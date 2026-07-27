@@ -30,7 +30,7 @@ dev = [
     "tox-uv>=1.33.4",
     "deptry>=0.25.1",
     "mypy>=1.19.1",
-    
+
     "ruff>=0.15.7",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.6",
@@ -107,5 +107,3 @@ ignore = [
 
 [tool.ruff.format]
 preview = true
-
-
