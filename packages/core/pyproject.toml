@@ -1,18 +1,23 @@
 [project]
 name = "core"
 version = "0.1.0"
-description = "Add your description here"
+description = "microfiche core: document scanning, classification, filing, and library management logic."
 readme = "README.md"
 authors = [
     { name = "Richard G", email = "61820266+richard-gledhill@users.noreply.github.com" }
 ]
 requires-python = ">=3.10, <4.0"
 dependencies = [
+    "pydantic>=2",
+    "pyyaml",
     "thefuzz==0.22.1",
+    "pymupdf",
+    "python-docx",
+    "extract-msg",
 ]
 
-[project.scripts]
-core = "core:main"
+[project.optional-dependencies]
+ai = ["openai", "ollama"]
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]

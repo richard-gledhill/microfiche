@@ -1,7 +1,7 @@
 site_name: microfiche
 repo_url: https://github.com/richard-gledhill/microfiche
 site_url: https://richard-gledhill.github.io/microfiche
-site_description: A personal library file manager built in python.
+site_description: Automatically organize, categorize, and file project reference materials into a structured library.
 site_author: Richard Gledhill
 edit_uri: edit/main/docs/
 repo_name: richard-gledhill/microfiche
@@ -10,12 +10,18 @@ copyright: Maintained by <a href="https://richard-gledhill.com">richard-gledhill
 nav:
   - Home: index.md
   - Modules: modules.md
+
+# docs/prd/ holds internal PRD/architecture planning docs, not published user-facing
+# documentation - exclude it from the built site rather than force it into the nav.
+exclude_docs: |
+  prd/
+
 plugins:
   - search
   - mkdocstrings:
       handlers:
         python:
-          paths: ["src/microfiche"]
+          paths: ["packages/core/src", "packages/cli/src"]
 theme:
   name: material
   feature:

@@ -1,7 +1,7 @@
 [project]
 name = "cli"
 version = "0.1.0"
-description = "Add your description here"
+description = "microfiche CLI: organize project reference materials into a structured library."
 readme = "README.md"
 authors = [
     { name = "Richard G", email = "61820266+richard-gledhill@users.noreply.github.com" }
@@ -10,11 +10,15 @@ requires-python = ">=3.10, <4.0"
 dependencies = [
     "typer",
     "rich",
+    "core",
 ]
 
 [project.scripts]
-cli = "cli:main"
+microfiche = "cli:main"
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.uv.sources]
+core = { workspace = true }
