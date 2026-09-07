@@ -1,7 +1,7 @@
 [project]
 name = "microfiche"
 version = "0.0.1"
-description = "A personal library file manager built in python."
+description = "Automatically organize, categorize, and file project reference materials into a structured library."
 authors = [{ name = "Richard Gledhill", email = "rich.gledhill73@gmail.com" }]
 readme = "README.md"
 keywords = ['python']
@@ -27,6 +27,7 @@ Documentation = "https://richard-gledhill.github.io/microfiche/"
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-cov>=6.0.0",
     "pre-commit>=4.5.1",
     "tox-uv>=1.33.4",
     "deptry>=0.25.1",
@@ -36,9 +37,11 @@ dev = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.3",
+    "types-PyYAML>=6.0",
 ]
 dependencies = [
     "core",
+    "cli",
 ]
 
 [build-system]
@@ -48,6 +51,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/microfiche"]
 
+[tool.uv]
+default-groups = ["dev", "dependencies"]
+
 [tool.uv.workspace]
 members = [
     "packages/core",
@@ -56,9 +62,10 @@ members = [
 
 [tool.uv.sources]
 core = { workspace = true}
+cli = { workspace = true }
 
 [tool.mypy]
-files = ["src"]
+files = ["packages/core/src", "packages/cli/src"]
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
@@ -67,13 +74,39 @@ warn_return_any = true
 warn_unused_ignores = true
 show_error_codes = true
 
+[[tool.mypy.overrides]]
+# No type stubs published upstream for these; ollama/openai are core's optional "ai" extra
+# and aren't installed by a plain `uv sync` (use `uv sync --package core --extra ai`).
+module = ["thefuzz", "thefuzz.*", "pymupdf", "ollama", "openai"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+# Package names, not paths - coverage.py maps these to packages/{core,cli}/src/{core,cli} via
+# the workspace's editable installs regardless of which src/ directory they actually live in.
+source = ["core", "cli"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+# No fail_under yet - the codebase has known-stubbed paths (see docs/prd/20260907_microfiche_architecture_v2.md
+# section 9). Add one once coverage has a real baseline to enforce against.
 
 [tool.ruff]
 target-version = "py310"
 line-length = 120
 fix = true
+extend-exclude = ["docs"]
+# pre-commit passes ruff explicit staged filenames rather than running `ruff .`, which bypasses
+# exclude/extend-exclude by default - force-exclude makes the docs/ exclusion apply either way.
+force-exclude = true
 
 [tool.ruff.lint]
 select = [

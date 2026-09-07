@@ -1,2 +1,9 @@
+"""microfiche CLI entry point."""
+
+from __future__ import annotations
+
+from cli.app import app
+
+
 def main() -> None:
-    print("Hello from cli!")
+    app()

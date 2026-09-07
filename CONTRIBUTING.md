@@ -1,15 +1,13 @@
 # Contributing to `microfiche`
 
-Contributions are welcome, and they are greatly appreciated!
-Every little bit helps, and credit will always be given.
+Contributions are welcome, and greatly appreciated! Every little bit helps, and credit will
+always be given.
 
-You can contribute in many ways:
+## Types of Contributions
 
-# Types of Contributions
+### Report Bugs
 
-## Report Bugs
-
-Report bugs at https://github.com/richard-gledhill/microfiche/issues
+Report bugs at [github.com/richard-gledhill/microfiche/issues](https://github.com/richard-gledhill/microfiche/issues).
 
 If you are reporting a bug, please include:
 
@@ -17,110 +15,94 @@ If you are reporting a bug, please include:
 - Any details about your local setup that might be helpful in troubleshooting.
 - Detailed steps to reproduce the bug.
 
-## Fix Bugs
+### Fix Bugs
 
-Look through the GitHub issues for bugs.
-Anything tagged with "bug" and "help wanted" is open to whoever wants to implement a fix for it.
+Look through the GitHub issues for bugs. Anything tagged `bug` and `help wanted` is open to
+whoever wants to implement a fix for it.
 
-## Implement Features
+### Implement Features
 
-Look through the GitHub issues for features.
-Anything tagged with "enhancement" and "help wanted" is open to whoever wants to implement it.
+Look through the GitHub issues for features. Anything tagged `enhancement` and `help wanted`
+is open to whoever wants to implement it.
 
-## Write Documentation
+### Write Documentation
 
-microfiche could always use more documentation, whether as part of the official docs, in docstrings, or even on the web in blog posts, articles, and such.
+microfiche could always use more documentation, whether as part of the official docs, in
+docstrings, or on the web in blog posts and articles.
 
-## Submit Feedback
+### Submit Feedback
 
-The best way to send feedback is to file an issue at https://github.com/richard-gledhill/microfiche/issues.
+The best way to send feedback is to [file an issue](https://github.com/richard-gledhill/microfiche/issues).
 
 If you are proposing a new feature:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
+- Remember that this is a volunteer-driven project, and that contributions are welcome :)
 
-# Get Started!
+## Get Started!
 
-Ready to contribute? Here's how to set up `microfiche` for local development.
-Please note this documentation assumes you already have `uv` and `Git` installed and ready to go.
+Ready to contribute? Here's how to set up `microfiche` for local development. This assumes
+you already have `uv` and `Git` installed.
+
+microfiche is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with
+two packages — code lives under `packages/core/src/core/` and `packages/cli/src/cli/`, and
+tests mirror that layout under `tests/core/` and `tests/cli/`. See
+[docs/prd/20260907_microfiche_architecture_v2.md](docs/prd/20260907_microfiche_architecture_v2.md)
+for the architecture behind it.
+
+Docstrings follow [Google style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)
+(`Args:`, `Returns:`, `Raises:` sections) — `mkdocstrings` renders them accordingly, so keep
+new docstrings consistent with that convention.
 
 1. Fork the `microfiche` repo on GitHub.
 
-2. Clone your fork locally:
+2. Clone your fork locally and set up the environment:
 
-```bash
-cd <directory_in_which_repo_should_be_created>
-git clone git@github.com:YOUR_NAME/microfiche.git
-```
+   ```bash
+   git clone git@github.com:YOUR_NAME/microfiche.git
+   cd microfiche
+   make install
+   ```
 
-3. Now we need to install the environment. Navigate into the directory
+   This runs `uv sync` across the workspace and installs the pre-commit hooks.
 
-```bash
-cd microfiche
-```
+3. Create a branch for local development:
 
-Then, install and activate the environment with:
+   ```bash
+   git checkout -b name-of-your-bugfix-or-feature
+   ```
 
-```bash
-uv sync
-```
+4. Make your changes. Add tests under `tests/core/` or `tests/cli/`, matching the module
+   you changed.
 
-4. Install pre-commit to run linters/formatters at commit time:
+5. Check that your changes pass formatting, linting, and type checks:
 
-```bash
-uv run pre-commit install
-```
+   ```bash
+   make check
+   ```
 
-5. Create a branch for local development:
+6. Run the test suite:
 
-```bash
-git checkout -b name-of-your-bugfix-or-feature
-```
+   ```bash
+   make test
+   ```
 
-Now you can make your changes locally.
+7. Commit your changes and push your branch to GitHub:
 
-6. Don't forget to add test cases for your added functionality to the `tests` directory.
+   ```bash
+   git add .
+   git commit -m "Your detailed description of your changes."
+   git push origin name-of-your-bugfix-or-feature
+   ```
 
-7. When you're done making changes, check that your changes pass the formatting tests.
+8. Submit a pull request through the GitHub website. CI runs the same checks (`ruff`, `mypy`,
+   `pytest`) across Python 3.10–3.14 automatically.
 
-```bash
-make check
-```
-
-Now, validate that all unit tests are passing:
-
-```bash
-make test
-```
-
-9. Before raising a pull request you should also run tox.
-   This will run the tests across different versions of Python:
-
-```bash
-tox
-```
-
-This requires you to have multiple versions of python installed.
-This step is also triggered in the CI/CD pipeline, so you could also choose to skip this step locally.
-
-10. Commit your changes and push your branch to GitHub:
-
-```bash
-git add .
-git commit -m "Your detailed description of your changes."
-git push origin name-of-your-bugfix-or-feature
-```
-
-11. Submit a pull request through the GitHub website.
-
-# Pull Request Guidelines
+## Pull Request Guidelines
 
 Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests.
-
-2. If the pull request adds functionality, the docs should be updated.
-   Put your new functionality into a function with a docstring, and add the feature to the list in `README.md`.
+2. If the pull request adds functionality, update the docs — add a docstring, and note the
+   feature in `README.md` if it's user-facing.

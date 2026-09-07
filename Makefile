@@ -13,12 +13,13 @@ check: ## Run code quality tools.
 	@echo "🚀 Static type checking: Running mypy"
 	@uv run mypy
 	@echo "🚀 Checking for obsolete dependencies: Running deptry"
-	@uv run deptry src
+	@cd packages/core && uv run deptry src
+	@cd packages/cli && uv run deptry src
 
 .PHONY: test
 test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
-	@uv run python -m pytest --doctest-modules
+	@uv run python -m pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 
 .PHONY: build
 build: clean-build ## Build wheel file
