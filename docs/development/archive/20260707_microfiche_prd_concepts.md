@@ -1,5 +1,7 @@
 _Last updated: 20260707_
 
+> **Historical.** Superseded by [architecture.md](../architecture.md); kept for design-history context.
+
 # MVP Concept Option 1: Rules-First Document Organizer
 
 ## Positioning

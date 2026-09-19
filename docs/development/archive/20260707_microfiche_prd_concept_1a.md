@@ -1,5 +1,7 @@
 _Last updated: 20260707_
 
+> **Historical.** Superseded by [architecture.md](../architecture.md); kept for design-history context.
+
 For **Option 1 (Rules-First Document Organizer)**, I would structure the project to support three goals:
 
 1. Keep the MVP simple.

@@ -48,7 +48,7 @@ you already have `uv` and `Git` installed.
 microfiche is a [uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/) with
 two packages — code lives under `packages/core/src/core/` and `packages/cli/src/cli/`, and
 tests mirror that layout under `tests/core/` and `tests/cli/`. See
-[docs/prd/20260907_microfiche_architecture_v2.md](docs/prd/20260907_microfiche_architecture_v2.md)
+[docs/development/architecture.md](docs/development/architecture.md)
 for the architecture behind it.
 
 Docstrings follow [Google style](https://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings)

@@ -12,7 +12,7 @@ def test_load_config_reads_the_shipped_default_config() -> None:
     config = load_config(_REPO_CONFIG_DIR)
 
     assert config.library_structure.depth == 2
-    assert "sorting" in config.exclusions.exclude
+    assert "sorting*" in config.exclusions.exclude
     # .microfiche-config/ and .logs/ aren't listed explicitly - the ".*" wildcard covers any
     # dot-prefixed operational folder, which is what they're renamed to (see
     # microfiche-config/exclusions.yaml).

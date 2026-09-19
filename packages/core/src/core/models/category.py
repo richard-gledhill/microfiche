@@ -10,7 +10,7 @@ class Taxonomy(BaseModel):
 
     This is rebuilt by ``core.library.taxonomy.discover_taxonomy`` on every run rather than
     persisted - the library's own folders are the taxonomy, per
-    docs/prd/20260907_microfiche_architecture_v2.md.
+    docs/development/architecture.md.
     """
 
     groups: dict[str, list[str]] = Field(default_factory=dict)

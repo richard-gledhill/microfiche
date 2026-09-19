@@ -1,5 +1,7 @@
 _Last updated: 20260707_
 
+> **Historical.** Superseded by [architecture.md](../architecture.md); kept for design-history context.
+
 That's a better fit for the product vision.
 
 If the primary goal is to **organize documents into an existing project library** rather than build a document management system, then SQLite should be reduced to an optional audit/cache component and **the folder structure becomes the source of truth**.

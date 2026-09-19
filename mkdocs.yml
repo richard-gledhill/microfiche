@@ -11,10 +11,11 @@ nav:
   - Home: index.md
   - Modules: modules.md
 
-# docs/prd/ holds internal PRD/architecture planning docs, not published user-facing
-# documentation - exclude it from the built site rather than force it into the nav.
+# docs/development/ holds internal planning docs - the current architecture.md, archived
+# superseded PRD/concept docs, and a README template - not published user-facing
+# documentation. Exclude it from the built site rather than force it into the nav.
 exclude_docs: |
-  prd/
+  development/
 
 plugins:
   - search

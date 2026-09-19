@@ -14,7 +14,7 @@ _PROPOSED_HEADING = "## Proposed"
 class TagIndex:
     """The canonical tag vocabulary defined in a library's TagIndex.md, plus any tags proposed
     (but not yet promoted) by microfiche itself - see the "suggest-only" tag governance decision
-    in docs/prd/20260907_microfiche_architecture_v2.md."""
+    in docs/development/architecture.md."""
 
     path: Path
     canonical_tags: set[str] = field(default_factory=set)
