@@ -7,5 +7,7 @@
 # entries. The sorting inbox isn't dot-prefixed (it stays visible in Obsidian on purpose, as
 # the active drop zone), so it does need to be listed explicitly.
 exclude:
-  - "sorting"
+  - "sorting*"
+  - "_sorting*"
   - ".*"
+  - "_*"
