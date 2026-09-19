@@ -7,8 +7,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `microfiche` scans a "library" folder (an Obsidian vault of `group/category` subfolders) for
 loose documents dropped into a `sorting/` inbox, classifies each one (group, then category),
 and files it — recording every move so it can be rolled back. Nothing is ever deleted. Full
-design rationale: [docs/prd/20260907_microfiche_architecture_v2.md](docs/prd/20260907_microfiche_architecture_v2.md)
-(supersedes the earlier `docs/prd/2026070*` concept docs where they conflict).
+design rationale: [docs/development/architecture.md](docs/development/architecture.md)
+(supersedes the earlier concept docs archived under `docs/development/archive/` where they conflict).
+
+**Before assuming a described feature is fully wired, check
+[docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
+actually implemented vs. still stubbed (e.g. `sort` doesn't yet persist an audit trail or
+rollback job, and `review`/`index` are stub commands). See
+[docs/development/README.md](docs/development/README.md) for the full doc index, including
+[data-model.md](docs/development/data-model.md) (sidecar/audit/rollback schemas) and
+[mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
 
 ## Commands
 
@@ -89,8 +97,10 @@ workspace `.venv`.
   `TagIndex.md` and append unmatched ones to a `## Proposed` section rather than silently merging
   them in (suggest-only tag governance).
 - **`rollback.py`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
-  `logs/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
-  by that JSON, not by re-deriving anything from the filesystem.
+  `.logs/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
+  by that JSON, not by re-deriving anything from the filesystem. **`save_job` isn't called from
+  `run_sort` yet** — `sort` doesn't currently persist a job, so there's nothing to roll back
+  until that's wired up (tracked in `docs/development/mvp-roadmap.md`).
 
 ### Config resolution
 

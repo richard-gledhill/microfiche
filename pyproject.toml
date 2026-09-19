@@ -96,7 +96,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
-# No fail_under yet - the codebase has known-stubbed paths (see docs/prd/20260907_microfiche_architecture_v2.md
+# No fail_under yet - the codebase has known-stubbed paths (see docs/development/architecture.md
 # section 9). Add one once coverage has a real baseline to enforce against.
 
 [tool.ruff]

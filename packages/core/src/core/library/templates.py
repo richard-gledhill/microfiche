@@ -1,7 +1,7 @@
 """Creates a new project (group) folder from a named template.
 
 Not yet wired to a CLI command (the current CLI surface assumes the library and its groups
-already exist - see docs/prd/20260907_microfiche_architecture_v2.md, section 8) but kept here since
+already exist - see docs/development/architecture.md, section 8) but kept here since
 microfiche-config/library_templates.yaml already ships default templates for a future `create-library`/
 `init` command.
 """

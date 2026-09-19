@@ -42,7 +42,7 @@ class Classifier:
     def classify_unit(self, unit: SortableUnit, taxonomy: Taxonomy) -> ClassificationResult:
         """Classify a unit. A single-file unit is classified directly; a folder unit is classified
         by the dominant (group, category) pair voted across all the documents inside it (see the
-        "folder-as-unit" decision in docs/prd/20260907_microfiche_architecture_v2.md)."""
+        "folder-as-unit" decision in docs/development/architecture.md)."""
 
         per_document = [
             self.classify_document(document.file_name, document.content, taxonomy) for document in unit.documents

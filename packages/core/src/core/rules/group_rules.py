@@ -14,7 +14,7 @@ def match_group(text: str, group_names: list[str]) -> GroupMatch:
 
     Returns a GroupMatch with ``name=None`` when nothing clears the confidence threshold -
     callers should route that to the review queue with a "create new group" option rather
-    than treating it as an error (see docs/prd/20260907_microfiche_architecture_v2.md, section 3).
+    than treating it as an error (see docs/development/architecture.md, section 3).
     """
 
     lowered = text.lower()

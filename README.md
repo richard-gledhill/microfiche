@@ -105,7 +105,7 @@ into a new library to get started, then adjust as needed:
 | `naming_rules.yaml` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates.yaml` | Category sets for a future `create-library`/`init` command. |
 
-See [docs/prd/20260907_microfiche_architecture_v2.md](docs/prd/20260907_microfiche_architecture_v2.md)
+See [docs/development/architecture.md](docs/development/architecture.md)
 for the full design behind these.
 
 ## Development

@@ -21,7 +21,7 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 | `config.py` | Per-library YAML config loading. |
 | `utils/` | Filesystem, hashing, logging, and validation helpers. |
 
-See [docs/prd/20260907_microfiche_architecture_v2.md](../../docs/prd/20260907_microfiche_architecture_v2.md)
+See [docs/development/architecture.md](../../docs/development/architecture.md)
 for the design behind this package.
 
 ## Development

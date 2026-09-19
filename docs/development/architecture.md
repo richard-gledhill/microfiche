@@ -1,8 +1,6 @@
-_Last updated: 20260907_
+# Architecture: library-aware sorting
 
-# Architecture Decision Record: Library-Aware Sorting (v2)
-
-This supersedes the folder/module layout in [20260707_microfiche_prd_concept_1b.md](20260707_microfiche_prd_concept_1b.md)
+This supersedes the folder/module layout in [20260707_microfiche_prd_concept_1b.md](archive/20260707_microfiche_prd_concept_1b.md)
 for the points below. Concept 1b's core principle — **the filesystem is the source of truth, no database,
 JSON sidecars + JSON rollback jobs** — is unchanged and still governs everything here.
 
@@ -105,16 +103,17 @@ groups) is treated as "no group found" and routed to review, same as an individu
 
 ## 5. Exclusions
 
-`microfiche-config/exclusions.yaml` — folder names/globs never treated as a category and never descended into by
-`resort`/taxonomy discovery:
-```yaml
-exclude:
-  - "sorting"        # the inbox itself
-  - ".obsidian"
-  - ".git"
-  - ".*"             # any dotfolder, belt-and-braces
-```
-User-extendable for their own non-category folders (templates, attachments, etc.).
+`microfiche-config/exclusions.yaml` — glob patterns never treated as a category and never descended into by
+`resort`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
+Three pattern families, not one fixed list — see the shipped file for the current exact patterns rather than
+duplicating them here, since that list has already changed once since this ADR was written:
+- The inbox itself (`sorting*`, plus a `_sorting*` variant used by the test fixture under `tests/mock_library/`).
+- Any dot-prefixed folder (`.*`) — covers `.microfiche-config/`, `.logs/`, `.obsidian/`, `.git/` without needing
+  their own entries.
+- Any underscore-prefixed folder (`_*`) — a second, non-dot-prefixed convention for a library's own non-category
+  folders (templates, attachments, archives) that should still be visible in Obsidian's file explorer.
+
+User-extendable for anything not covered by those three families.
 
 ## 6. New capabilities beyond concept 1b
 
@@ -193,3 +192,9 @@ microfiche rollback --job-id ID                      # undo a job by id
 No database, no vector store, no semantic search in this MVP — `ai/` is a fallback path for group/category
 resolution and for `propose-categories --use-ai`, not a always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
+
+## See also
+
+- [mvp-roadmap.md](mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
+- [data-model.md](data-model.md) — the sidecar/`AuditEvent`/`Job` schemas as actually implemented.
+- [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to this design.
