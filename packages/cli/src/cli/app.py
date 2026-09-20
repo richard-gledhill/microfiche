@@ -14,5 +14,6 @@ app.command(name="resort")(commands.resort)
 app.command(name="index")(commands.index)
 app.command(name="audit")(commands.audit)
 app.command(name="rollback")(commands.rollback)
+app.command(name="config")(commands.config)
 
 __all__ = ["app"]

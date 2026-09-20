@@ -2,10 +2,44 @@
 
 from __future__ import annotations
 
+from core.config import MicroficheConfig
 from core.organizer import SortReport
 from core.resort import ResortProposal
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
+
+# def render_config(console: Console, config: MicroficheConfig) -> None:
+#     console.print("Config:")
+#     for field_name, value in config:
+#         console.print(f"[green]{field_name}:[/green] {value}")
+
+
+def _format_value(value: object) -> str:
+    if isinstance(value, dict):
+        return ", ".join(f"{key}={_format_value(item)}" for key, item in value.items()) if value else "—"
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value) if value else "—"
+    return str(value)
+
+
+def render_config(console: Console, config: MicroficheConfig) -> None:
+    table = Table(title="Library configuration")
+    table.add_column("Section", style="bold cyan")
+    table.add_column("Setting")
+    table.add_column("Value")
+
+    sections = list(config)
+    for section_index, (section_name, section) in enumerate(sections):
+        fields = list(section)
+        for field_index, (field_name, value) in enumerate(fields):
+            table.add_row(
+                section_name if field_index == 0 else "",
+                field_name,
+                escape(_format_value(value)),
+                end_section=field_index == len(fields) - 1 and section_index != len(sections) - 1,
+            )
+    console.print(table)
 
 
 def render_sort_report(console: Console, report: SortReport) -> None:

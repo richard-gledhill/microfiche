@@ -15,7 +15,7 @@ from core.rollback import rollback_job
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
 
-from cli.display import render_resort_table, render_sort_report
+from cli.display import render_config, render_resort_table, render_sort_report
 
 console = Console()
 
@@ -26,7 +26,7 @@ _SCOPE_OPTION = typer.Option(None, "--scope")
 
 # Dot-prefixed so Obsidian's file explorer hides them by default in a vault-backed library.
 _CONFIG_DIRNAME = ".microfiche-config"
-_LOGS_DIRNAME = ".logs"
+_LOGS_DIRNAME = ".microfiche-logs"
 
 
 def sort(
@@ -70,6 +70,13 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
         console.print(
             f"[bold]{suggestion.name}[/bold] (score={suggestion.score}) — e.g. {', '.join(suggestion.example_documents)}"
         )
+
+
+def config(library: Path = _LIBRARY_OPTION) -> None:
+    """Library configuration."""
+
+    config = load_config(library / _CONFIG_DIRNAME)
+    render_config(console, config)
 
 
 def resort(
