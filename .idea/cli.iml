@@ -4,8 +4,8 @@
     <content url="file://$MODULE_DIR$/packages/cli">
       <sourceFolder url="file://$MODULE_DIR$/packages/cli/src" isTestSource="false" />
     </content>
+    <orderEntry type="jdk" jdkName="~\Local\GitHub\microfiche\.venv" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="core" exported="" />
-    <orderEntry type="jdk" jdkName="~\OneDrive\Desktop\rich\myProjects\GitHub\microfiche\.venv" jdkType="Python SDK" />
   </component>
 </module>
