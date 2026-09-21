@@ -64,7 +64,7 @@ This installs the `microfiche` CLI into the project's virtual environment, runna
 
 ## Usage
 
-Point microfiche at a library — a folder with a `sorting/` inbox and `group/category`
+Point microfiche at a library — a folder with a `_sorting/` inbox and `group/category`
 subfolders (see [Configuration](#configuration)) — and sort whatever's been dropped into it:
 
 ```bash

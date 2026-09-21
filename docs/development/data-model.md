@@ -55,10 +55,9 @@ class Job(BaseModel):
     moves: list[AuditEvent]
 ```
 
-**Canonical path:** `<library_root>/.logs/rollback/job_<id>.json` — dot-prefixed, matching
-the `.microfiche-config/` convention, per `cli/commands.py::_LOGS_DIRNAME`. (`job.py`'s own
-docstring currently says `logs/rollback/...` without the dot; that's wrong and should be
-fixed, not treated as a second valid path.)
+**Canonical path:** `<library_root>/.microfiche-logs/rollback/job_<id>.json` — dot-prefixed,
+matching the `.microfiche-config/` convention, per `cli/commands.py::_LOGS_DIRNAME`. `job.py`'s
+own docstring agrees with this path.
 
 `core/rollback.py` provides both directions:
 
@@ -67,10 +66,10 @@ fixed, not treated as a second valid path.)
 - `load_job(logs_dir, job_id)` / `rollback_job(logs_dir, job_id)` — read a job back and
   replay its moves in reverse. These work correctly today, given a job file to read.
 
-## `.logs/` directory layout
+## `.microfiche-logs/` directory layout
 
 ```text
-<library_root>/.logs/
+<library_root>/.microfiche-logs/
 ├── audit.log              # human-readable trail; read by `microfiche audit`
 └── rollback/
     └── job_<id>.json       # one Job per sort/resort --apply run; read by `microfiche rollback`

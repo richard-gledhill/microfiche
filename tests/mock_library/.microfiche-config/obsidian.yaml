@@ -1,4 +1,4 @@
-enabled: true
+enabled: false
 tag_index_path: "TagIndex.md"
 # suggest: apply + propose new tags for review | strict: only apply tags already in TagIndex.md
 # | off: tag freely, don't consult TagIndex.md at all

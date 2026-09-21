@@ -67,7 +67,7 @@ fixture folder. No CLI, no config files, no AI, no rollback.
 
 **Milestone:** `v0.2 — Configurable Rules Engine, Taxonomy & CLI`
 **Testable version:** A `microfiche sort --library <path>` command that discovers a library's
-existing group/category folder structure, classifies documents in a `sorting/` inbox against
+existing group/category folder structure, classifies documents in a `_sorting/` inbox against
 that taxonomy using YAML-configured rules, and files them — runnable and demoable by a human.
 
 **Plan**
@@ -108,7 +108,7 @@ state — verified by a round-trip integration test.
 
 **Plan**
 - Define the audit/rollback data contract: what one audit event records, and what one job groups together.
-- Decide the on-disk layout for persisted state (`.logs/audit.log`, `.logs/rollback/job_<id>.json`) before implementing either writer.
+- Decide the on-disk layout for persisted state (`.microfiche-logs/audit.log`, `.microfiche-logs/rollback/job_<id>.json`) before implementing either writer.
 
 **Design**
 - Design the `AuditEvent` and `Job` models and their JSON serialization format.
@@ -116,8 +116,8 @@ state — verified by a round-trip integration test.
 
 **Build**
 - Implement the `AuditEvent` and `Job` models.
-- Implement a `.logs/audit.log` writer that appends one line per audit event.
-- Implement save/load functions that persist and reload a job as `.logs/rollback/job_<id>.json`.
+- Implement a `.microfiche-logs/audit.log` writer that appends one line per audit event.
+- Implement save/load functions that persist and reload a job as `.microfiche-logs/rollback/job_<id>.json`.
 - Wire `sort` to build and persist a job from every run's filing events.
 - Implement rollback logic that replays a job's moves in reverse and restores original file locations.
 - Implement the `audit` and `rollback` CLI commands against this persisted state.

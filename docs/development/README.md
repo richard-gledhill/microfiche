@@ -12,7 +12,7 @@ Internal planning/design docs — not published to the user-facing docs site (se
   into a GitHub Project. A different lens than `mvp-roadmap.md`: process/sequencing rather
   than status.
 - **[data-model.md](data-model.md)** — current. The sidecar JSON, `AuditEvent`/`Job` schemas,
-  and `.logs/` directory layout, as one authoritative page.
+  and `.microfiche-logs/` directory layout, as one authoritative page.
 - **[archive/](archive/)** — superseded design history, kept for context but not authoritative.
   Reading order: the original PRD → a three-option concepts brainstorm → concept 1a (SQLite-backed)
   → concept 1b (revised to filesystem-as-source-of-truth) → superseded by `architecture.md`.
