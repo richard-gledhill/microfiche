@@ -1,6 +1,6 @@
-"""Scans the library's sorting/ inbox and builds the list of SortableUnits to process.
+"""Scans the library's _sorting/ inbox and builds the list of SortableUnits to process.
 
-Per the ADR, `sorting/` is a single, library-wide inbox at the library root - not one per
+Per the ADR, `_sorting/` is a single, library-wide inbox at the library root - not one per
 project/group.
 """
 
@@ -12,11 +12,12 @@ from core.extractor import extract
 from core.models.unit import SortableUnit
 from core.parsers import SUPPORTED_EXTENSIONS
 
-SORTING_FOLDER_NAME = "sorting"
+# TODO: move this constant into per-library config once config.py supports it.
+SORTING_FOLDER_NAME = "_sorting"
 
 
 def scan_sorting_inbox(library_root: Path, *, keep_folders: bool = False) -> list[SortableUnit]:
-    """Scan ``library_root/sorting`` and return the units ready for classification.
+    """Scan ``library_root/_sorting`` and return the units ready for classification.
 
     Loose supported files become single-document units. Sub-folders are only descended into
     (and kept whole as one unit) when ``keep_folders`` is True; otherwise they're left alone

@@ -38,7 +38,7 @@ def sort(
         False, "--use-ai", help="Fall back to a local Ollama model for classifications the rules engine can't resolve."
     ),
 ) -> None:
-    """Process the library's sorting/ inbox: classify and file everything above the confidence threshold."""
+    """Process the library's _sorting/ inbox: classify and file everything above the confidence threshold."""
 
     config = load_config(library / _CONFIG_DIRNAME)
     ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None

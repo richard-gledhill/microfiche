@@ -18,7 +18,7 @@ the design with that reality.
 `microfiche-config/categories.yaml` no longer defines *what categories exist*. It only supplies keyword hints that help the
 rules engine match content to a category that **already exists as a folder** in the library.
 
-A new taxonomy discovery step walks the library tree (excluding `sorting/` and anything in
+A new taxonomy discovery step walks the library tree (excluding `_sorting/` and anything in
 `microfiche-config/exclusions.yaml`) and builds an in-memory index of `{group_name: [category_name, ...]}` on every run.
 No taxonomy is persisted — the walk is cheap because it only reads directory names at a fixed depth, not file
 contents.
@@ -52,7 +52,7 @@ Depth is configurable for future flexibility, but 2 is the only depth the MVP im
 
 ## 3. Sorting is a single, library-wide inbox — two-stage classification
 
-**Decision:** one `sorting/` folder at the library root, not one per group. This is the harder classification
+**Decision:** one `_sorting/` folder at the library root, not one per group. This is the harder classification
 problem — every item in it could belong to *any* project — so the classifier runs in two stages:
 
 ```
@@ -82,8 +82,8 @@ If no existing group matches at all, that's not automatically "low confidence" �
 
 ## 4. Sortable units: files and whole folders
 
-`sorting/` can contain loose files and folders-full-of-documents. Folder handling is **opt-in**
-(`--keep-folders`, off by default) — when off, folders in `sorting/` are left alone and reported, not
+`_sorting/` can contain loose files and folders-full-of-documents. Folder handling is **opt-in**
+(`--keep-folders`, off by default) — when off, folders in `_sorting/` are left alone and reported, not
 descended into.
 
 ```
@@ -107,8 +107,9 @@ groups) is treated as "no group found" and routed to review, same as an individu
 `resort`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
 Three pattern families, not one fixed list — see the shipped file for the current exact patterns rather than
 duplicating them here, since that list has already changed once since this ADR was written:
-- The inbox itself (`sorting*`, plus a `_sorting*` variant used by the test fixture under `tests/mock_library/`).
-- Any dot-prefixed folder (`.*`) — covers `.microfiche-config/`, `.logs/`, `.obsidian/`, `.git/` without needing
+- The inbox itself (`_sorting*`, the canonical inbox folder name; `sorting*` is also excluded for
+  compatibility with libraries still using the older, pre-rename convention).
+- Any dot-prefixed folder (`.*`) — covers `.microfiche-config/`, `.microfiche-logs/`, `.obsidian/`, `.git/` without needing
   their own entries.
 - Any underscore-prefixed folder (`_*`) — a second, non-dot-prefixed convention for a library's own non-category
   folders (templates, attachments, archives) that should still be visible in Obsidian's file explorer.
@@ -178,7 +179,7 @@ A folder unit's sidecar additionally carries the per-document breakdown used to 
 ## 8. CLI surface (supersedes concept 1a's command list)
 
 ```bash
-microfiche sort [--keep-folders] [--use-ai]        # process the library-wide sorting/ inbox
+microfiche sort [--keep-folders] [--use-ai]        # process the library-wide _sorting/ inbox
 microfiche review                                    # work the low-confidence queue from the last sort
 microfiche propose-categories [--scope PATH] [--use-ai] [--apply]
 microfiche resort [--folder PATH | --all] [--apply]  # re-review already-filed documents

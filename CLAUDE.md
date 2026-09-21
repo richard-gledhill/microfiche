@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 `microfiche` scans a "library" folder (an Obsidian vault of `group/category` subfolders) for
-loose documents dropped into a `sorting/` inbox, classifies each one (group, then category),
+loose documents dropped into a `_sorting/` inbox, classifies each one (group, then category),
 and files it — recording every move so it can be rolled back. Nothing is ever deleted. Full
 design rationale: [docs/development/architecture.md](docs/development/architecture.md)
 (supersedes the earlier concept docs archived under `docs/development/archive/` where they conflict).
@@ -59,12 +59,12 @@ workspace `.venv`.
 
 ### The sort pipeline (`core/organizer.py::run_sort`)
 
-1. **`library/taxonomy.py::discover_taxonomy`** walks the library tree (skipping `sorting/` and
+1. **`library/taxonomy.py::discover_taxonomy`** walks the library tree (skipping `_sorting/` and
    anything in `microfiche-config/exclusions.yaml`) and builds `{group_name: [category_name]}`
    fresh on every run. **The library's own folder structure is the taxonomy — nothing is
    persisted or configured separately.** `microfiche-config/categories.yaml` only supplies
    keyword *hints* for matching against categories that already exist as folders.
-2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in `sorting/` — either a loose file
+2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in `_sorting/` — either a loose file
    or (with `--keep-folders`) a whole folder treated as one unit.
 3. **`classifier.py::Classifier`** runs two-stage classification per document, via
    `rules/rules_engine.py`:
@@ -97,7 +97,7 @@ workspace `.venv`.
   `TagIndex.md` and append unmatched ones to a `## Proposed` section rather than silently merging
   them in (suggest-only tag governance).
 - **`rollback.py`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
-  `.logs/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
+  `.microfiche-logs/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
   by that JSON, not by re-deriving anything from the filesystem. **`save_job` isn't called from
   `run_sort` yet** — `sort` doesn't currently persist a job, so there's nothing to roll back
   until that's wired up (tracked in `docs/development/mvp-roadmap.md`).
