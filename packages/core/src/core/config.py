@@ -76,42 +76,38 @@ class FilingRulesConfig(BaseModel):
 
 
 class NamingRulesConfig(BaseModel):
-    """
-    Represents configuration for naming rules.
+    """Represents configuration for naming rules.
 
     This class is intended to store and manage Regex pattern naming rules defined as key-value pairs.
     These are applied to filenames before filing.
     It provides a way to structure and validate configuration data for naming conventions.
 
-    :ivar rules: A dictionary containing naming rules, where the key is the name of the
-        rule and the value is its corresponding pattern or configuration.
-    :type rules: dict[str, str]
+    Attributes:
+        rules (dict[str, str]): A dictionary containing naming rules, where the key is the name of the
+            rule and the value is its corresponding pattern or configuration.
     """
 
     rules: dict[str, str] = Field(default_factory=dict)
 
 
 class MicroficheConfig(BaseModel):
-    """
-    Configuration class for managing microfiche system settings.
+    """Configuration container for Microfiche.
 
-    This class encapsulates the configuration settings required for the
-    microfiche system. It provides a structured and centralized way to
-    organize settings related to library structure, exclusions, Obsidian
-    integration, category hints, filing rules, and naming rules.
+    Represents the configuration settings for the Microfiche system, which
+    defines the structure and behavior of file management, organization, and
+    categorization. This class holds detailed settings for library structure,
+    file exclusions, integration with Obsidian, category hints, filing rules,
+    and naming conventions.
 
-    :ivar library_structure: Configuration for the structure of the library.
-    :type library_structure: LibraryStructureConfig
-    :ivar exclusions: Configuration for managing exclusions.
-    :type exclusions: ExclusionsConfig
-    :ivar obsidian: Configuration related to Obsidian integration.
-    :type obsidian: ObsidianConfig
-    :ivar category_hints: Configuration for category hint options.
-    :type category_hints: CategoryHintsConfig
-    :ivar filing_rules: Configuration for filing rules.
-    :type filing_rules: FilingRulesConfig
-    :ivar naming_rules: Configuration for naming rules.
-    :type naming_rules: NamingRulesConfig
+    Attributes:
+        library_structure (LibraryStructureConfig): Configuration for the library structure.
+        exclusions (ExclusionsConfig): Configuration for file and folder exclusions.
+        obsidian (ObsidianConfig): Configuration for Obsidian integration.
+        category_hints (CategoryHintsConfig): Configuration for category hints used in
+            categorizing files or folders.
+        filing_rules (FilingRulesConfig): Configuration for rules dictating how files
+            are organized and filed.
+        naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
     """
 
     library_structure: LibraryStructureConfig
@@ -122,19 +118,26 @@ class MicroficheConfig(BaseModel):
     naming_rules: NamingRulesConfig
 
 
+class TomlConfigParseError(ValueError):
+    """Raised when TOML configuration parsing fails."""
+
+    def __init__(self, path: Path | str, error: Exception | str) -> None:
+        super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
+        self.path = Path(path)
+        self.error = error
+
+
 def _load_toml(path: Path) -> dict[str, Any]:
     """
-    Load and parse a TOML file into a dictionary. This function processes the supplied
-    file path, ensuring that the file exists before attempting to parse its content.
-    If the file does not exist, an empty dictionary is returned allowing default values to be used.
-    In case of a parsing failure, a ValueError is raised.
+    Loads and parses a TOML file from the specified path. If the file does not exist
+    or cannot be parsed due to format errors, appropriate handling is performed.
 
-    :param path: The filesystem path to the TOML file to be loaded.
+    :param path: The path to the TOML file to be loaded.
     :type path: Path
-    :return: A dictionary containing the parsed TOML data, or an empty dictionary if the file
-             does not exist.
+    :return: A dictionary representing the parsed TOML configuration if the file
+        is valid, or an empty dictionary if the file does not exist.
     :rtype: dict[str, Any]
-    :raises ValueError: If the TOML content is invalid and cannot be parsed.
+    :raises ValueError: If the TOML file cannot be parsed due to a decoding error.
     """
     if not path.is_file():
         return {}
@@ -142,26 +145,28 @@ def _load_toml(path: Path) -> dict[str, Any]:
         with path.open("rb") as fh:
             return tomllib.load(fh)
     except tomllib.TOMLDecodeError as err:
-        raise ValueError(f"Failed to parse TOML configuration at {path}: {err}") from err
+        raise TomlConfigParseError(path, err) from err
 
 
 def load_config(config_path: Path) -> MicroficheConfig:
     """
-    Loads the configuration from a given file path. The method determines the target
-    configuration file based on the provided path and loads the corresponding data
-    from the TOML file. The loaded configuration is then used to initialize and return
-    a `MicroficheConfig` object.
+    Loads the configuration file from the given path and creates a MicroficheConfig
+    object based on the loaded configuration. This function evaluates the provided
+    path, determines the existence of a file, reads the TOML configuration, and
+    processes various sub-configurations to assemble a complete MicroficheConfig
+    object.
 
-    :param config_path: Path to the configuration file or directory containing the
-        configuration file.
+    :param config_path: The path to the base configuration directory or a specific
+        configuration file. If a directory is provided, the function tries to locate
+        the configuration file using a predefined filename.
     :type config_path: Path
-    :return: An instance of `MicroficheConfig` containing the loaded configuration data.
+
+    :return: An instance of MicroficheConfig containing the parsed configurations
+        with details for library structure, exclusions, Obsidian, category hints,
+        filing rules, and naming rules.
     :rtype: MicroficheConfig
     """
-    if config_path.is_file():
-        target_file = config_path
-    else:
-        target_file = config_path / CONFIG_FILENAME
+    target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)
     return MicroficheConfig(
