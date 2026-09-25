@@ -44,7 +44,7 @@ project workspace with minimal manual effort.
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - [uv](https://docs.astral.sh/uv/) for dependency management
 - Optional, only if you enable AI-assisted classification: a running [Ollama](https://ollama.com)
   server, or an OpenAI API key
