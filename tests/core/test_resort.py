@@ -9,9 +9,9 @@ _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
 
 def test_resort_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
-    """Regression test: .microfiche-config/ and .logs/ are operational folders, not sortable content.
+    """Regression test: .microfiche/ is an operational folder, not sortable content.
 
-    Uses the actual shipped default exclusions (microfiche-config/exclusions.yaml), not a
+    Uses the actual shipped default exclusions (microfiche-config.toml [exclusions], not a
     synthetic one, so this catches a regression in the defaults themselves.
     """
 
