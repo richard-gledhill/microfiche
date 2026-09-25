@@ -1,3 +1,0 @@
-# Regex pattern -> replacement, applied to filenames before filing (see core.library.naming).
-# Empty by default: the MVP leaves filenames untouched.
-rules: {}

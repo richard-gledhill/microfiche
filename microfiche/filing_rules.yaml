@@ -1,9 +1,0 @@
-# Filename-pattern rules, checked before keyword hints. `pattern` is a glob matched against
-# the lowercased filename; `category` must be a category name that exists in the target group.
-rules:
-  - pattern: "requirements*.docx"
-    category: "01 Requirements"
-  - pattern: "architecture*.pdf"
-    category: "02 Architecture"
-  - pattern: "meeting-notes*"
-    category: "04 Meeting Notes"
