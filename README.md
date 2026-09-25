@@ -91,19 +91,19 @@ Run `uv run microfiche --help` for the full command reference.
 
 ## Configuration
 
-Each library reads its own `.microfiche-config/` folder (dot-prefixed so it stays out of
-Obsidian's file explorer) — copy the defaults from [`microfiche-config/`](microfiche-config)
+Each library reads its own `.microfiche/microfiche-config.toml` file (the folder is dot-prefixed so it stays out of
+Obsidian's or similar file explorer). For setting up a new library copy the defaults from [`microfiche-config.toml/`](microfiche)
 into a new library to get started, then adjust as needed:
 
-| File | Purpose |
+| Section | Purpose |
 |---|---|
-| `library_structure.yaml` | Depth of the group/category hierarchy (default: 2 levels). |
-| `exclusions.yaml` | Folders never treated as a category and never scanned into. |
-| `obsidian.yaml` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
-| `categories.yaml` | Keyword hints per *existing* category name — not the category list itself. |
-| `filing_rules.yaml` | Filename-glob rules, checked before keyword hints. |
-| `naming_rules.yaml` | Regex rename rules applied to filenames before filing (empty by default). |
-| `library_templates.yaml` | Category sets for a future `create-library`/`init` command. |
+| `library_structure` | Depth of the group/category hierarchy (default: 2 levels). |
+| `exclusions` | Folders never treated as a category and never scanned into. |
+| `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
+| `categories` | Keyword hints per *existing* category name — not the category list itself. |
+| `filing_rules` | Filename-glob rules, checked before keyword hints. |
+| `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
+| `library_templates` | Category sets for a future `create-library`/`init` command. |
 
 See [docs/development/architecture.md](docs/development/architecture.md)
 for the full design behind these.
@@ -148,7 +148,7 @@ microfiche/
 ├── packages/
 │   ├── core/src/core/    # scanning, classification, filing, library/Obsidian logic
 │   └── cli/src/cli/      # the microfiche Typer CLI
-├── microfiche-config/     # default per-library config, copied into a library's .microfiche-config/
+├── microfiche/     # default per-library config, copied into a library's .microfiche/
 ├── tests/
 │   ├── core/, cli/        # unit tests, mirrors the packages/ layout
 │   └── mock_library/       # a hand-built library fixture for integration-style tests

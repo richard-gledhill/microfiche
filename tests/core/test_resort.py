@@ -5,7 +5,7 @@ from pathlib import Path
 from core.config import load_config
 from core.resort import run_resort
 
-_REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche-config"
+_REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
 
 def test_resort_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
@@ -16,7 +16,7 @@ def test_resort_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: P
     """
 
     (tmp_path / "Project Phoenix" / "01 Requirements").mkdir(parents=True)
-    config_dir = tmp_path / ".microfiche-config"
+    config_dir = tmp_path / ".microfiche"
     config_dir.mkdir()
     (config_dir / "README.md").write_text("Not a project document.", encoding="utf-8")
     (tmp_path / ".logs").mkdir()
