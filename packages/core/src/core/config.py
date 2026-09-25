@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 CONFIG_FILENAME = "microfiche-config.toml"
 
+
 class LibraryStructureConfig(BaseModel):
     """Depth and naming of the library's group/category hierarchy."""
 
@@ -53,11 +54,11 @@ class CategoryHintsConfig(BaseModel):
     :ivar categories: A dictionary mapping category names to a list of associated hints.
     :type categories: dict[str, list[str]]
     """
+
     categories: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class FilingRulesConfig(BaseModel):
-
     """
     Represents the configuration for filing rules.
     Filename-glob -> category rules, checked before keyword hints.
