@@ -72,7 +72,7 @@ that taxonomy using YAML-configured rules, and files them — runnable and demoa
 
 **Plan**
 - Define the two-stage (group, then category) classification contract that replaces Stage 1's flat hardcoded classifier.
-- Define the config file set (`categories.yaml`, `filing_rules.yaml`, `naming_rules.yaml`, `exclusions.yaml`) and what each one governs.
+- Define the config file (`[categories]`, `[filing_rules]`, `[naming_rules]`, `[exclusions]`) and what each one governs.
 
 **Design**
 - Design the `Taxonomy` model representing the library's discovered `{group: [category, ...]}` structure.
