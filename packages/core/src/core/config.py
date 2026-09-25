@@ -11,9 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Literal
 
-import yaml
 from pydantic import BaseModel, Field
-
+import tomlib
 
 class LibraryStructureConfig(BaseModel):
     """Depth and naming of the library's group/category hierarchy."""
