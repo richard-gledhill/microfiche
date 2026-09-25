@@ -60,9 +60,9 @@ workspace `.venv`.
 ### The sort pipeline (`core/organizer.py::run_sort`)
 
 1. **`library/taxonomy.py::discover_taxonomy`** walks the library tree (skipping `_sorting/` and
-   anything in `microfiche-config/exclusions.yaml`) and builds `{group_name: [category_name]}`
+   anything in `microfiche-config.toml`'s `[exclusions]` table) and builds `{group_name: [category_name]}`
    fresh on every run. **The library's own folder structure is the taxonomy — nothing is
-   persisted or configured separately.** `microfiche-config/categories.yaml` only supplies
+   persisted or configured separately.** `microfiche-config.toml`'s `[category_hints.categories]` table only supplies
    keyword *hints* for matching against categories that already exist as folders.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in `_sorting/` — either a loose file
    or (with `--keep-folders`) a whole folder treated as one unit.
@@ -97,17 +97,17 @@ workspace `.venv`.
   `TagIndex.md` and append unmatched ones to a `## Proposed` section rather than silently merging
   them in (suggest-only tag governance).
 - **`rollback.py`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
-  `.microfiche-logs/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
+  `.microfiche/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
   by that JSON, not by re-deriving anything from the filesystem. **`save_job` isn't called from
   `run_sort` yet** — `sort` doesn't currently persist a job, so there's nothing to roll back
   until that's wired up (tracked in `docs/development/mvp-roadmap.md`).
 
 ### Config resolution
 
-Each library has its own `.microfiche-config/` (dot-prefixed to stay out of Obsidian's file
-explorer); `microfiche-config/` at the repo root is the template copied into a new library.
+Each library has its own `.microfiche/` (dot-prefixed to stay out of Obsidian's file
+explorer); `microfiche/` at the repo root is the template copied into a new library.
 `core/config.py::MicroficheConfig` loads and validates all of it. See the table in
-[README.md](README.md#configuration) for what each YAML file governs.
+[README.md](README.md#configuration) for what each section governs.
 
 ### Parsers (`core/parsers/`)
 

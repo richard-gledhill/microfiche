@@ -92,8 +92,8 @@ Run `uv run microfiche --help` for the full command reference.
 ## Configuration
 
 Each library reads its own `.microfiche/microfiche-config.toml` file (the folder is dot-prefixed so it stays out of
-Obsidian's or similar file explorer). For setting up a new library copy the defaults from [`microfiche-config.toml/`](microfiche)
-into a new library to get started, then adjust as needed:
+Obsidian's or similar file explorer). To set up a new library, copy the defaults from
+[`microfiche/`](microfiche) into it as `.microfiche/`, then adjust as needed:
 
 | Section | Purpose |
 |---|---|
