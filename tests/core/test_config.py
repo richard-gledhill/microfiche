@@ -1,4 +1,4 @@
-"""Tests for loading microfiche's YAML configuration files."""
+"""Tests for loading microfiche's configuration file."""
 
 from pathlib import Path
 
