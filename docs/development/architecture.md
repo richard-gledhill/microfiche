@@ -15,11 +15,11 @@ the design with that reality.
 
 ## 1. The library is the taxonomy — categories are discovered, not configured
 
-`microfiche-config/categories.yaml` no longer defines *what categories exist*. It only supplies keyword hints that help the
+`microfiche-config.toml`'s `[category_hints.categories]` table no longer defines *what categories exist*. It only supplies keyword hints that help the
 rules engine match content to a category that **already exists as a folder** in the library.
 
 A new taxonomy discovery step walks the library tree (excluding `_sorting/` and anything in
-`microfiche-config/exclusions.yaml`) and builds an in-memory index of `{group_name: [category_name, ...]}` on every run.
+`microfiche-config.toml`'s `[exclusions]` table) and builds an in-memory index of `{group_name: [category_name, ...]}` on every run.
 No taxonomy is persisted — the walk is cheap because it only reads directory names at a fixed depth, not file
 contents.
 
@@ -42,11 +42,12 @@ Projects/
     └── ...
 ```
 
-`microfiche-config/library_structure.yaml`:
-```yaml
-depth: 2
-levels: [group, category]
-file_target_level: 2   # loose files (and kept-whole folders) are filed at the leaf
+`.microfiche/microfiche-config.toml`'s `[library_structure]` table:
+```toml
+[library_structure]
+depth = 2
+levels = ["group", "category"]
+file_target_level = 2   # loose files (and kept-whole folders) are filed at the leaf
 ```
 Depth is configurable for future flexibility, but 2 is the only depth the MVP implements against.
 
@@ -103,13 +104,13 @@ groups) is treated as "no group found" and routed to review, same as an individu
 
 ## 5. Exclusions
 
-`microfiche-config/exclusions.yaml` — glob patterns never treated as a category and never descended into by
+`microfiche-config.toml`'s `[exclusions]` table — glob patterns never treated as a category and never descended into by
 `resort`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
 Three pattern families, not one fixed list — see the shipped file for the current exact patterns rather than
 duplicating them here, since that list has already changed once since this ADR was written:
 - The inbox itself (`_sorting*`, the canonical inbox folder name; `sorting*` is also excluded for
   compatibility with libraries still using the older, pre-rename convention).
-- Any dot-prefixed folder (`.*`) — covers `.microfiche-config/`, `.microfiche-logs/`, `.obsidian/`, `.git/` without needing
+- Any dot-prefixed folder (`.*`) — covers `.microfiche/`, `.obsidian/`, `.git/` without needing
   their own entries.
 - Any underscore-prefixed folder (`_*`) — a second, non-dot-prefixed convention for a library's own non-category
   folders (templates, attachments, archives) that should still be visible in Obsidian's file explorer.

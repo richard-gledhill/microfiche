@@ -25,8 +25,9 @@ _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; withou
 _SCOPE_OPTION = typer.Option(None, "--scope")
 
 # Dot-prefixed so Obsidian's file explorer hides them by default in a vault-backed library.
-_CONFIG_DIRNAME = ".microfiche-config"
-_LOGS_DIRNAME = ".microfiche-logs"
+# todo: combine DIRNAMES
+_CONFIG_DIRNAME = ".microfiche"
+_LOGS_DIRNAME = ".microfiche"
 
 
 def sort(

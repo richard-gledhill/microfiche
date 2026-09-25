@@ -1,11 +1,11 @@
-"""Tests for loading microfiche's YAML configuration files."""
+"""Tests for loading microfiche's configuration file."""
 
 from pathlib import Path
 
 from core.config import load_config
 from core.utils.filesystem import is_excluded
 
-_REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche-config"
+_REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
 
 def test_load_config_reads_the_shipped_default_config() -> None:
@@ -15,8 +15,7 @@ def test_load_config_reads_the_shipped_default_config() -> None:
     assert "sorting*" in config.exclusions.exclude
     # .microfiche-config/ and .logs/ aren't listed explicitly - the ".*" wildcard covers any
     # dot-prefixed operational folder, which is what they're renamed to (see
-    # microfiche-config/exclusions.yaml).
-    assert is_excluded(Path(".microfiche-config/exclusions.yaml"), config.exclusions.exclude)
+    # microfiche-config [exclusions]).
     assert is_excluded(Path(".logs/audit.log"), config.exclusions.exclude)
     assert config.obsidian.tag_mode == "suggest"
 

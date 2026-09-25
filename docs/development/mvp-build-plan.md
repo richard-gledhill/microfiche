@@ -72,7 +72,7 @@ that taxonomy using YAML-configured rules, and files them — runnable and demoa
 
 **Plan**
 - Define the two-stage (group, then category) classification contract that replaces Stage 1's flat hardcoded classifier.
-- Define the config file set (`categories.yaml`, `filing_rules.yaml`, `naming_rules.yaml`, `exclusions.yaml`) and what each one governs.
+- Define the config file (`[categories]`, `[filing_rules]`, `[naming_rules]`, `[exclusions]`) and what each one governs.
 
 **Design**
 - Design the `Taxonomy` model representing the library's discovered `{group: [category, ...]}` structure.
@@ -108,7 +108,7 @@ state — verified by a round-trip integration test.
 
 **Plan**
 - Define the audit/rollback data contract: what one audit event records, and what one job groups together.
-- Decide the on-disk layout for persisted state (`.microfiche-logs/audit.log`, `.microfiche-logs/rollback/job_<id>.json`) before implementing either writer.
+- Decide the on-disk layout for persisted state (`.microfiche/audit.log`, `.microfiche/rollback/job_<id>.json`) before implementing either writer.
 
 **Design**
 - Design the `AuditEvent` and `Job` models and their JSON serialization format.
@@ -116,8 +116,8 @@ state — verified by a round-trip integration test.
 
 **Build**
 - Implement the `AuditEvent` and `Job` models.
-- Implement a `.microfiche-logs/audit.log` writer that appends one line per audit event.
-- Implement save/load functions that persist and reload a job as `.microfiche-logs/rollback/job_<id>.json`.
+- Implement a `.microfiche/audit.log` writer that appends one line per audit event.
+- Implement save/load functions that persist and reload a job as `.microfiche/rollback/job_<id>.json`.
 - Wire `sort` to build and persist a job from every run's filing events.
 - Implement rollback logic that replays a job's moves in reverse and restores original file locations.
 - Implement the `audit` and `rollback` CLI commands against this persisted state.

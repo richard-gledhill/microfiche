@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Richard G", email = "61820266+richard-gledhill@users.noreply.github.com" }
 ]
-requires-python = ">=3.10, <4.0"
+requires-python = ">=3.11, <4.0"
 dependencies = [
     "typer",
     "rich",

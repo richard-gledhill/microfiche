@@ -5,12 +5,11 @@ description = "Automatically organize, categorize, and file project reference ma
 authors = [{ name = "Richard Gledhill", email = "rich.gledhill73@gmail.com" }]
 readme = "README.md"
 keywords = ['python']
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.11,<4.0"
 classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -32,12 +31,10 @@ dev = [
     "tox-uv>=1.33.4",
     "deptry>=0.25.1",
     "mypy>=1.19.1",
-
     "ruff>=0.15.7",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.3",
-    "types-PyYAML>=6.0",
 ]
 dependencies = [
     "core",
@@ -100,7 +97,7 @@ exclude_lines = [
 # section 9). Add one once coverage has a real baseline to enforce against.
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 line-length = 120
 fix = true
 extend-exclude = ["docs"]
