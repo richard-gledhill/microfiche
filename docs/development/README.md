@@ -13,6 +13,10 @@ Internal planning/design docs — not published to the user-facing docs site (se
   than status.
 - **[data-model.md](data-model.md)** — current. The sidecar JSON, `AuditEvent`/`Job` schemas,
   and `.microfiche/` directory layout, as one authoritative page.
+- **[module-diagram.md](module-diagram.md)** — generated from the actual source imports, not
+  hand-maintained prose. Two Mermaid diagrams: the module import graph, and the `sort` pipeline's
+  runtime data flow (including what's implemented but not yet wired in, e.g. rollback-job
+  persistence and the Obsidian integration). Regenerate rather than hand-edit if it drifts.
 - **[archive/](archive/)** — superseded design history, kept for context but not authoritative.
   Reading order: the original PRD → a three-option concepts brainstorm → concept 1a (SQLite-backed)
   → concept 1b (revised to filesystem-as-source-of-truth) → superseded by `architecture.md`.
