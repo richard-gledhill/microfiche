@@ -2,7 +2,9 @@
 
 What's actually implemented vs. what `architecture.md` describes, and what's still blocking
 a real MVP. Edit this in place as commands move from stub → partial → done — it's a living
-doc, not a dated snapshot (same convention as `architecture.md`).
+doc, not a dated snapshot (same convention as `architecture.md`). When a command's status
+changes here, update the "Current limitations" list and usage steps in the user-facing
+[how-to-use.md](../how-to-use.md) in the same change.
 
 ## CLI command status
 

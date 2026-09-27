@@ -10,6 +10,7 @@ copyright: Maintained by <a href="https://richard-gledhill.com">richard-gledhill
 nav:
   - Home: index.md
   - Modules: modules.md
+  - How to use: how-to-use.md
 
 # docs/development/ holds internal planning docs - the current architecture.md, archived
 # superseded PRD/concept docs, and a README template - not published user-facing
@@ -57,3 +58,6 @@ markdown_extensions:
       permalink: true
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
