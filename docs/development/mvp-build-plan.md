@@ -216,11 +216,11 @@ actual MVP.
 - Build out a fixture library with representative data covering every classification and filing path.
 - Set the coverage `fail_under` threshold once a real baseline is established.
 - Add a coverage-gated job to CI's test workflow.
-- Reconcile any remaining documentation drift between the README/architecture docs and actual behavior.
+- Reconcile any remaining documentation drift between the README, `docs/how-to-use.md`, the architecture docs, and actual behavior.
 
 **Test**
 - Run the full test suite across every supported Python version and confirm parity.
-- Run a manual end-to-end walkthrough against a realistic sample library, following the README's own quickstart verbatim.
+- Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps).
 
 **Deploy**
 - Cut the `v1.0` release through the repo's release workflow.
