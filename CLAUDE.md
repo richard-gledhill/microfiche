@@ -127,3 +127,7 @@ the dispatcher that picks a parser by file extension.
   `docs/development/mvp-roadmap.md` must also update
   [docs/how-to-use.md](docs/how-to-use.md) (the command in both its Bash and PowerShell tabs,
   plus its "Current limitations" list) and the Usage section of [README.md](README.md#usage).
+- Branches follow `<type>/<short-description>`, `<type>` being a Conventional Commits type
+  (`feat`/`feature`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
+  `revert`) — e.g. `feature/config-command`, `chore/refactor-configs`. Checked, advisory-only,
+  by `.github/workflows/branch-naming.yml`.

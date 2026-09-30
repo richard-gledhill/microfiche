@@ -67,10 +67,13 @@ new docstrings consistent with that convention.
 
    This runs `uv sync` across the workspace and installs the pre-commit hooks.
 
-3. Create a branch for local development:
+3. Create a branch for local development, named `<type>/<short-description>` — `<type>` is a
+   Conventional Commits type (`feat` or `feature`, `fix`, `chore`, `docs`, `style`, `refactor`,
+   `perf`, `test`, `build`, `ci`, `revert`). A CI check validates this on every PR — it's
+   advisory only for now and won't block a merge, but please follow it anyway:
 
    ```bash
-   git checkout -b name-of-your-bugfix-or-feature
+   git checkout -b feature/name-of-your-feature
    ```
 
 4. Make your changes. Add tests under `tests/core/` or `tests/cli/`, matching the module
@@ -93,11 +96,11 @@ new docstrings consistent with that convention.
    ```bash
    git add .
    git commit -m "Your detailed description of your changes."
-   git push origin name-of-your-bugfix-or-feature
+   git push origin feature/name-of-your-feature
    ```
 
 8. Submit a pull request through the GitHub website. CI runs the same checks (`ruff`, `mypy`,
-   `pytest`) across Python 3.10–3.14 automatically.
+   `pytest`) across Python 3.11–3.14 automatically, plus the branch-naming check from step 3.
 
 ## Pull Request Guidelines
 
@@ -106,3 +109,4 @@ Before you submit a pull request, check that it meets these guidelines:
 1. The pull request should include tests.
 2. If the pull request adds functionality, update the docs — add a docstring, and note the
    feature in `README.md` if it's user-facing.
+3. The branch name follows the `<type>/<short-description>` convention from step 3 above.
