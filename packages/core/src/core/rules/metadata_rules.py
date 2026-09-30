@@ -9,6 +9,7 @@ from core.models.classification import CategoryMatch
 _FILENAME_MATCH_CONFIDENCE = 0.95
 # Todo: move to config
 
+
 def match_by_filename(file_name: str, rules: list[dict[str, str]]) -> CategoryMatch:
     """Match a filename against glob-style filing rules,
     e.g. ``{"pattern": "requirements*.docx", "category": "01 Requirements"}``."""

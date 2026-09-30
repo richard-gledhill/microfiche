@@ -8,6 +8,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from core.models.document import Document
+
 # Todo: Review if it makes sense to keep SortableUnit in a separate file from document.py.
 
 

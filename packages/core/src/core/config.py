@@ -198,7 +198,7 @@ def load_config(config_path: Path) -> MicroficheConfig:
         - Review target_file as nothing in the codebase calls it with a literal file path, only the directory form is ever used
     """
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
-    
+
     config = _load_toml(target_file)
     return MicroficheConfig(
         library_structure=LibraryStructureConfig(**config.get("library_structure", {})),

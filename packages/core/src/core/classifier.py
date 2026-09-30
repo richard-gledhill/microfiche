@@ -14,6 +14,7 @@ from core.rules.rules_engine import RulesEngine
 CONFIDENCE_THRESHOLD = 0.6
 # Todo: Move to config
 
+
 class Classifier:
     """
     Classifier handles the classification of documents and units using rules and an optional

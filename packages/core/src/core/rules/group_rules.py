@@ -9,6 +9,7 @@ from core.models.classification import GroupMatch
 _FUZZY_MATCH_THRESHOLD = 85
 # Todo: Move to config
 
+
 def match_group(text: str, group_names: list[str]) -> GroupMatch:
     """
     Matches a given text against a list of group names to find the most relevant match

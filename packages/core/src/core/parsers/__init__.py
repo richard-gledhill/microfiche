@@ -7,7 +7,8 @@ from pathlib import Path
 
 from core.models.document import Document
 from core.parsers import docx_parser, eml_parser, markdown_parser, msg_parser, pdf_parser, txt_parser
-#Todo: Add support for folder parsing with a collection of documents that sorts the whole folder as a unit.
+
+# Todo: Add support for folder parsing with a collection of documents that sorts the whole folder as a unit.
 
 _PARSERS = {
     ".pdf": pdf_parser.parse,
