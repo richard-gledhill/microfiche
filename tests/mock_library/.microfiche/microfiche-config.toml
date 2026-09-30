@@ -16,12 +16,16 @@ file_target_level = 2
 # purpose, as the active drop zone), so it does need to be listed explicitly. `sorting*` is also
 # excluded for compatibility with libraries still using the older folder name.
 [exclusions]
-exclude = ["sorting*", "_sorting*", ".*", "_*"]
+exclude = ["sorting*",
+  "_sorting*",
+  ".*",
+  "_*",
+]
 
 # Keyword hints that help the rules engine match content to a category that already exists
 # as a folder in the library. These are hints, not the category list itself - the category
 # list is discovered from the library's existing folders (see core.library.taxonomy).
-# todo: review how this is included in confg. might be better to move into separate library-specific file.
+# Todo: review how this is included in confg. might be better to move into separate library-specific config file.
 [category_hints.categories]
 "01 Requirements" = ["requirement", "user story", "acceptance criteria"]
 "02 Architecture" = ["architecture", "design decision", "system diagram"]
@@ -31,7 +35,7 @@ exclude = ["sorting*", "_sorting*", ".*", "_*"]
 
 # Filename-pattern rules, checked before keyword hints. `pattern` is a glob matched against
 # the lowercased filename; `category` must be a category name that exists in the target group.
-# todo: review with category_hints
+# Todo: as with category_hints this might be better to move into a separate library specific file
 [filing_rules]
 rules = [
   { pattern = "requirements*.docx", category = "01 Requirements" },

@@ -12,10 +12,27 @@ from core.rules.confidence import combine_confidence
 from core.rules.rules_engine import RulesEngine
 
 CONFIDENCE_THRESHOLD = 0.6
+# Todo: Move to config
 
 
 class Classifier:
-    """Combines the deterministic RulesEngine with an optional AI fallback for low-confidence cases."""
+    """
+    Classifier handles the classification of documents and units using rules and an optional
+    AI-based fallback mechanism.
+
+    Combines the deterministic RulesEngine with an optional AI fallback for low-confidence cases.
+
+    The Classifier class integrates a rules-based engine and an optional large language model
+    (LLM) classifier to perform document or unit classification based on a taxonomy. For documents,
+    it utilizes the rules engine first, and only resorts to the AI classifier if the confidence
+    threshold is not met. For multi-document units such as folders, it determines the dominant
+    (group, category) pair via majority voting.
+
+    Attributes:
+        _rules_engine (RulesEngine): Core engine handling rules-based classification logic.
+        _ai_classifier (LLMClassifier | None): Optional AI-based classifier providing fallback
+            classification when confidence from rules-based classification is insufficient.
+    """
 
     def __init__(self, rules_engine: RulesEngine, ai_classifier: LLMClassifier | None = None) -> None:
         self._rules_engine = rules_engine
