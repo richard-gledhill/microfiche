@@ -9,11 +9,38 @@ from core.utils.filesystem import is_excluded
 
 
 def discover_taxonomy(library_root: Path, exclusions: list[str], depth: int = 2) -> Taxonomy:
-    """Walk ``library_root`` to depth 2 and return the existing ``{group: [category, ...]}`` structure.
-
+    """Discover and build a taxonomy structure from a library directory.
+    Walk ``library_root`` to depth 2 and return the existing ``{group: [category, ...]}`` structure.
     Only directory names are read - file contents are never touched - so this is cheap even
     against a library with 10,000+ files. Anything matching ``exclusions`` (e.g. the sorting
     inbox, dotfolders) is skipped entirely, at both levels.
+
+    This function walks through the provided library directory and organizes it into
+    a taxonomy structure consisting of groups and categories. Only directories that
+    meet the inclusion criteria are included, and the function operates at a fixed
+    depth of 2 (group/category). Any directory name matching the exclusions list is
+    ignored. If a different depth is provided, the function raises a
+    `NotImplementedError`.
+
+    Args:
+        library_root (Path): The root directory of the library from which to discover
+            groups and categories.
+        exclusions (list[str]): A list of directory names to exclude from the taxonomy
+            discovery process.
+        depth (int): The depth of exploration for taxonomy structure. Currently,
+            only a depth of 2 is supported. Defaults to 2.
+
+    Returns:
+        Taxonomy: A `Taxonomy` object containing the discovered groups and categories
+            organized into a dictionary-like structure.
+
+    Raises:
+        NotImplementedError: If a depth other than 2 is provided.
+    Todo:
+        - Add support for other depths in the future.
+        - Improve error handling for invalid input types.
+        - Validate depth input.
+        - Consider merging from core.models.category import Taxonomy to improve code organization and module depth.
     """
 
     if depth != 2:

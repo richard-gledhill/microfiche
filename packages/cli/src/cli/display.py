@@ -9,11 +9,6 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-# def render_config(console: Console, config: MicroficheConfig) -> None:
-#     console.print("Config:")
-#     for field_name, value in config:
-#         console.print(f"[green]{field_name}:[/green] {value}")
-
 
 def _format_value(value: object) -> str:
     if isinstance(value, dict):

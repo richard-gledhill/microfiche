@@ -44,6 +44,18 @@ def file_unit(
 
 
 def _write_metadata_sidecar(filed_path: Path, unit: SortableUnit, classification: ClassificationResult) -> None:
+    """
+    Writes metadata to a sidecar JSON file alongside the provided file path. This metadata includes
+    classification results, unit information, and processing details.
+
+    Args:
+        filed_path (Path): The path of the primary file for which the metadata is being generated.
+        unit (SortableUnit): The unit object indicating the type of unit associated with the file.
+        classification (ClassificationResult): The classification result containing categorization,
+            confidence values, and classifier details.
+    Todo:
+        - Move this functionality into a log file saved in .microfiche. No need to write to a sidecar JSON file for each file.
+    """
     sidecar_path = filed_path.parent / f"{filed_path.name}.metadata.json"
     payload = {
         "group": classification.group.name,

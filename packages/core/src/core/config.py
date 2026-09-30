@@ -189,9 +189,16 @@ def load_config(config_path: Path) -> MicroficheConfig:
         MicroficheConfig: An instance of MicroficheConfig containing the parsed configurations
             with details for library structure, exclusions, Obsidian, category hints,
             filing rules, and naming rules.
+    Todo:
+        - Implement check for .microfiche folder
+        - Implement validation of config file and prompt for exit or using defaults if error.
+        - Consider adding flag in microfiche-config.toml to indicate whether it's default or custom.
+        - Implement validation checks for configuration values.
+        - Consider adding logging for configuration loading and processing.
+        - Review target_file as nothing in the codebase calls it with a literal file path, only the directory form is ever used
     """
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
-
+    
     config = _load_toml(target_file)
     return MicroficheConfig(
         library_structure=LibraryStructureConfig(**config.get("library_structure", {})),
