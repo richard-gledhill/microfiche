@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`microfiche` scans a "library" folder (an Obsidian vault of `group/category` subfolders) for
+`microfiche` scans a "library" folder (e.g. an Obsidian vault of `group/category` subfolders) for
 loose documents dropped into a `_sorting/` inbox, classifies each one (group, then category),
 and files it — recording every move so it can be rolled back. Nothing is ever deleted. Full
 design rationale: [docs/development/architecture.md](docs/development/architecture.md)
@@ -131,3 +131,43 @@ the dispatcher that picks a parser by file extension.
   (`feat`/`feature`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
   `revert`) — e.g. `feature/config-command`, `chore/refactor-configs`. Checked, advisory-only,
   by `.github/workflows/branch-naming.yml`.
+
+## Verifying your work
+
+Verify any change to code, tests, config, or dependencies before reporting the task complete.
+Docs-only changes and questions don't need the full suite.
+
+### While developing: targeted checks
+
+Run the narrowest check that exercises what you changed, e.g.:
+```bash
+uv run pytest tests/core/test_rules.py -k <test_name>
+uv run --directory packages/core deptry src
+```
+These are for fast iteration; they don't replace full verification.
+
+### Before reporting complete: full verification
+
+```bash
+make check   # uv lock --locked, pre-commit run -a, mypy, deptry (core, then cli)
+make test    # pytest --doctest-modules with coverage for core and cli
+```
+
+- If pre-commit auto-fixes files, review the changes and rerun `make check`.
+  If it still isn't clean after two reruns, stop and report.
+- If `uv lock --locked` fails because you changed dependencies, run `uv lock` and include the lockfile in your change.
+
+### Rules
+
+- Fix the code, not the check. Never skip, delete, or weaken a test, and never silence a check:
+  no `# type: ignore`, `# noqa`, `SKIP=`, `--no-verify`, or loosened mypy/deptry/pre-commit config,
+  unless I've asked for it.
+- If you believe a test is wrong, explain why in your final response before changing it.
+- Add or update tests for any behavior you change.
+- If a failure persists that you can't fix, or that existed before your change, or is caused by the
+  environment (network, missing tools), stop. Don't report the task as complete. Say what failed and why.
+
+### Final report
+
+List each verification command you ran with pass/fail. For any failure, include the relevant output.
+Don't report a command as passing unless you ran it after your last change.
