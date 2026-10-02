@@ -20,6 +20,10 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Normalize trailing newline
+        # The generator ends the file with a blank line, which pre-commit's end-of-file-fixer rejects.
+        run: printf '%s\n' "$(cat CHANGELOG.md)" > CHANGELOG.md
+
       - name: Set Git User Info
         run: |
           git config user.name 'GitHub Actions Bot'
