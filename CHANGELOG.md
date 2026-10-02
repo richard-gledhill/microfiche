@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Continuous Integration
+- normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
+
+### Documentation
+- :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
+
+### Chore
+- exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
+
+### Other
+- Merge pull request #23 from richard-gledhill/ci/changelog-trailing-newline [`37961e8`](https://github.com/richard-gledhill/microfiche/commit/37961e8)
+
 ## v0.1.0 (2026-10-02)
 
 ### Documentation
@@ -80,4 +92,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added packages structure [`372e90d`](https://github.com/richard-gledhill/microfiche/commit/372e90d)
 - Fix formatting issues [`3ac6c51`](https://github.com/richard-gledhill/microfiche/commit/3ac6c51)
 - init commit [`2d2ec17`](https://github.com/richard-gledhill/microfiche/commit/2d2ec17)
-
