@@ -6,6 +6,9 @@ on:
 
 jobs:
   check-branch-name:
+    # Dependabot branches are always prefixed "dependabot/" (not configurable via
+    # dependabot.yml), so they can never match the pattern below - exempt them.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Validate branch name against Conventional Commits prefixes
