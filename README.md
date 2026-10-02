@@ -2,7 +2,10 @@
 
 [![Release](https://img.shields.io/github/v/release/richard-gledhill/microfiche)](https://github.com/richard-gledhill/microfiche/releases)
 [![Build status](https://img.shields.io/github/actions/workflow/status/richard-gledhill/microfiche/main.yml?branch=main)](https://github.com/richard-gledhill/microfiche/actions/workflows/main.yml?query=branch%3Amain)
-[![License](https://img.shields.io/github/license/richard-gledhill/microfiche)](LICENSE)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/richard-gledhill/microfiche)](https://img.shields.io/github/commit-activity/m/richard-gledhill/microfiche)
+[![License](https://img.shields.io/github/license/richard-gledhill/microfiche)](https://github.com/richard-gledhill/microfiche/blob/main/LICENSE)
+
+A personal library file manager built in python.
 
 `microfiche` automatically organizes, categorizes, and files project reference materials —
 requirements, design notes, research, correspondence — into a structured, Obsidian-friendly
@@ -13,8 +16,6 @@ project workspace with minimal manual effort.
 - **Source code**: <https://github.com/richard-gledhill/microfiche>
 
 ---
-
-## Table of Contents
 
 - [Features](#features)
 - [Requirements](#requirements)
@@ -93,7 +94,7 @@ Run `uv run microfiche --help` for the full command reference.
 
 Each library reads its own `.microfiche/microfiche-config.toml` file (the folder is dot-prefixed so it stays out of
 Obsidian's or similar file explorer). To set up a new library, copy the defaults from
-[`microfiche/`](microfiche) into it as `.microfiche/`, then adjust as needed:
+[`microfiche/`](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) into it as `.microfiche/`, then adjust as needed:
 
 | Section | Purpose |
 |---|---|
@@ -105,7 +106,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
 
-See [docs/development/architecture.md](docs/development/architecture.md)
+See [docs/development/architecture.md](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/architecture.md)
 for the full design behind these.
 
 ## Development
@@ -165,11 +166,11 @@ agree on the approach, then:
 3. Run `uv run pre-commit run -a` and `uv run pytest` locally.
 4. Open a pull request describing what changed and why.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+See [CONTRIBUTING.md](https://github.com/richard-gledhill/microfiche/blob/main/CONTRIBUTING.md) for full guidelines.
 
 Or if you are so inclined or use this for commercial work you can
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/richardgledhill)
 
 ## License
 
-Distributed under the MIT license. See [LICENSE](LICENSE) for details.
+Distributed under the MIT license. See [LICENSE](https://github.com/richard-gledhill/microfiche/blob/main/LICENSE) for details.
