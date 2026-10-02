@@ -13,6 +13,7 @@ nav:
   - How to use: how-to-use.md
   - Changelog: changelog.md
   - Contributing: contributing.md
+  - License: license.md
 
 # docs/development/ holds internal planning docs - the current architecture.md, archived
 # superseded PRD/concept docs, and a README template - not published user-facing
@@ -60,6 +61,9 @@ markdown_extensions:
       permalink: true
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
