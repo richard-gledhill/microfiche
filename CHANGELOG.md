@@ -10,12 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`7f825f1`](https://github.com/richard-gledhill/microfiche/commit/7f825f1)
 - :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
 
 ### Chore
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
+- bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #19 from richard-gledhill/dependabot/github_actions/github-actions-dependencies-1046ce1340 [`2beb0be`](https://github.com/richard-gledhill/microfiche/commit/2beb0be)
 - Merge pull request #23 from richard-gledhill/ci/changelog-trailing-newline [`37961e8`](https://github.com/richard-gledhill/microfiche/commit/37961e8)
 
 ## v0.1.0 (2026-10-02)
