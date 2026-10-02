@@ -2,22 +2,82 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) and to [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-## [Unreleased]
+## Unreleased changes
 
-### Added
--
+## v0.1.0 (2026-10-02)
 
-### Fixed
--
+### Documentation
+- update CHANGELOG with initial structure and project setup details [`814483c`](https://github.com/richard-gledhill/microfiche/commit/814483c)
+- add changelog, contributing guide, and workflow to generate changelog [`ff674d5`](https://github.com/richard-gledhill/microfiche/commit/ff674d5)
+- add how-to-use guide with Bash/PowerShell tabs and require it to track CLI changes [`1ec8c4a`](https://github.com/richard-gledhill/microfiche/commit/1ec8c4a)
 
-## - 2026-10-02
+### Chore
+- switch Dependabot's Python updates to the uv ecosystem [`b836c2f`](https://github.com/richard-gledhill/microfiche/commit/b836c2f)
+- strip trailing whitespace from CHANGELOG.md placeholders [`147b16d`](https://github.com/richard-gledhill/microfiche/commit/147b16d)
+- add Dependabot configuration for pip and GitHub Actions updates [`c690bcd`](https://github.com/richard-gledhill/microfiche/commit/c690bcd)
+- exempt Dependabot branches from branch name validation [`2b8b86e`](https://github.com/richard-gledhill/microfiche/commit/2b8b86e)
+- add missing blank lines for readability and standardize spacing around todos [`a64dd3d`](https://github.com/richard-gledhill/microfiche/commit/a64dd3d)
+- standardize and expand docstrings; add todos for future improvements [`8bdc0b9`](https://github.com/richard-gledhill/microfiche/commit/8bdc0b9)
+- update documentation to reflect `.microfiche-config` consolidation into `.microfiche` folder and migration to TOML format [`ba0fe8d`](https://github.com/richard-gledhill/microfiche/commit/ba0fe8d)
+- update test docstring for clarity in `test_config.py` [`8b98f2e`](https://github.com/richard-gledhill/microfiche/commit/8b98f2e)
+- add todo to consolidate duplicate directory name constants in CLI commands [`c37ecad`](https://github.com/richard-gledhill/microfiche/commit/c37ecad)
+- improve docstrings in `core.config` for clarity and standardization [`0d7b218`](https://github.com/richard-gledhill/microfiche/commit/0d7b218)
+- add `.junie/AGENTS.md` to document coding standards [`fb39ee7`](https://github.com/richard-gledhill/microfiche/commit/fb39ee7)
+- update docstrings and error handling in `core.config` for clarity and consistency [`798dc08`](https://github.com/richard-gledhill/microfiche/commit/798dc08)
+- remove deprecated `.microfiche` YAML configuration files and associated test fixtures [`7958c94`](https://github.com/richard-gledhill/microfiche/commit/7958c94)
+- update mock library README to reflect `.microfiche` folder rename and adjust table formatting [`ddaf9e2`](https://github.com/richard-gledhill/microfiche/commit/ddaf9e2)
+- update test case to reflect `.microfiche` folder rename and TOML config format changes [`c0427c7`](https://github.com/richard-gledhill/microfiche/commit/c0427c7)
+- update config file formatting in mvp-build-plan documentation [`85db5e8`](https://github.com/richard-gledhill/microfiche/commit/85db5e8)
+- clean up formatting and remove unnecessary blank lines in `core.config` [`713d66c`](https://github.com/richard-gledhill/microfiche/commit/713d66c)
+- rename `.microfiche-config` to `.microfiche` and consolidate config file structure [`312fe6b`](https://github.com/richard-gledhill/microfiche/commit/312fe6b)
+- remove PyYAML dependency and update references accordingly [`2622087`](https://github.com/richard-gledhill/microfiche/commit/2622087)
 
-### Added
-- Initial project scaffolding and repository setup.
-- Basic configuration files (`.gitignore`, `README.md`).
+### Other
+- Merge pull request #18 from richard-gledhill/build/update-setup [`f1c9e0a`](https://github.com/richard-gledhill/microfiche/commit/f1c9e0a)
+- Merge branch 'main' into build/update-setup [`557dd45`](https://github.com/richard-gledhill/microfiche/commit/557dd45)
+- Merge pull request #17 from richard-gledhill/docs/mkdocs-snippets-contributing-link [`2067da0`](https://github.com/richard-gledhill/microfiche/commit/2067da0)
+- Fix typo in MkDocs navigation: rename "Contribution" to "Contributing" [`9420b7e`](https://github.com/richard-gledhill/microfiche/commit/9420b7e)
+- Add LICENSE and CONTRIBUTING docs to MkDocs navigation [`23fb685`](https://github.com/richard-gledhill/microfiche/commit/23fb685)
+- Standardize documentation links and remove redundant Table of Contents in README. [`49bfd2f`](https://github.com/richard-gledhill/microfiche/commit/49bfd2f)
+- Rename CLAUDE.md to AGENTS.md [`d11db6c`](https://github.com/richard-gledhill/microfiche/commit/d11db6c)
+- Merge pull request #16 from richard-gledhill/chore/update-agent-instructions [`ca157d3`](https://github.com/richard-gledhill/microfiche/commit/ca157d3)
+- Enhance CLAUDE.md with verification guidelines [`2c83105`](https://github.com/richard-gledhill/microfiche/commit/2c83105)
+- Merge pull request #15 from richard-gledhill/docs/branch-naming-convention [`99609ce`](https://github.com/richard-gledhill/microfiche/commit/99609ce)
+- Document the Conventional-Commits-style branch naming convention [`346d5b7`](https://github.com/richard-gledhill/microfiche/commit/346d5b7)
+- Merge pull request #14 from richard-gledhill/chore/branch-naming-check [`8205a42`](https://github.com/richard-gledhill/microfiche/commit/8205a42)
+- Add CI check for Conventional-Commits-style branch names [`298d42e`](https://github.com/richard-gledhill/microfiche/commit/298d42e)
+- Merge pull request #13 from richard-gledhill/docs/update-todos [`400ce5b`](https://github.com/richard-gledhill/microfiche/commit/400ce5b)
+- Merge pull request #12 from richard-gledhill/docs/development [`111ab14`](https://github.com/richard-gledhill/microfiche/commit/111ab14)
+- Add generated module import + data flow diagrams [`1c2550f`](https://github.com/richard-gledhill/microfiche/commit/1c2550f)
+- Merge pull request #11 from richard-gledhill/docs/how-to-use-guide [`f7ffe2a`](https://github.com/richard-gledhill/microfiche/commit/f7ffe2a)
+- Merge pull request #10 from richard-gledhill/chore/refactor-configs [`49f6903`](https://github.com/richard-gledhill/microfiche/commit/49f6903)
+- Raise minimum Python version to 3.11 across project files and workflows. [`41a7b87`](https://github.com/richard-gledhill/microfiche/commit/41a7b87)
+- Merge pull request #9 from richard-gledhill/chore/update-gitignore [`a16c7b2`](https://github.com/richard-gledhill/microfiche/commit/a16c7b2)
+- Update .gitignore rules, untrack JetBrains .iml files [`8584bb7`](https://github.com/richard-gledhill/microfiche/commit/8584bb7)
+- Merge pull request #8 from richard-gledhill/chore/update-gitignore [`a5ab1a5`](https://github.com/richard-gledhill/microfiche/commit/a5ab1a5)
+- Apply .gitignore rules, untrack JetBrains IDE files [`9fd681d`](https://github.com/richard-gledhill/microfiche/commit/9fd681d)
+- Merge pull request #7 from richard-gledhill/chore/sorting-rename-and-logs-docs [`f94e62a`](https://github.com/richard-gledhill/microfiche/commit/f94e62a)
+- Rename sorting inbox convention to _sorting and finish .logs doc rename [`f59ec1a`](https://github.com/richard-gledhill/microfiche/commit/f59ec1a)
+- Merge pull request #6 from richard-gledhill/feature/mock-library-fixtures [`7333821`](https://github.com/richard-gledhill/microfiche/commit/7333821)
+- Populate mock_library fixture and sync local IDE project metadata [`8ef24b7`](https://github.com/richard-gledhill/microfiche/commit/8ef24b7)
+- Merge pull request #5 from richard-gledhill/feature/config-command [`79f2d7f`](https://github.com/richard-gledhill/microfiche/commit/79f2d7f)
+- Add `config` command to display library configuration [`7aec1af`](https://github.com/richard-gledhill/microfiche/commit/7aec1af)
+- Merge pull request #4 from richard-gledhill/feature/initial-scaffold [`2b12a73`](https://github.com/richard-gledhill/microfiche/commit/2b12a73)
+- Fix missing trailing newlines in .idea project files [`f6db6eb`](https://github.com/richard-gledhill/microfiche/commit/f6db6eb)
+- Update IDE project metadata for local environment path [`c0a8394`](https://github.com/richard-gledhill/microfiche/commit/c0a8394)
+- Merge pull request #3 from richard-gledhill/feature/initial-scaffold [`1f0e9ce`](https://github.com/richard-gledhill/microfiche/commit/1f0e9ce)
+- Update test_config exclusion pattern to match "sorting*" instead of "sorting" [`bb48a8b`](https://github.com/richard-gledhill/microfiche/commit/bb48a8b)
+- Restructure docs/prd into docs/development and add MVP planning docs [`0e6bb62`](https://github.com/richard-gledhill/microfiche/commit/0e6bb62)
+- Expand exclusion patterns in microfiche-config to include `_sorting*` and `_*` files. [`6347946`](https://github.com/richard-gledhill/microfiche/commit/6347946)
+- Merge pull request #2 [`aba5c64`](https://github.com/richard-gledhill/microfiche/commit/aba5c64)
+- Add CLAUDE.md with development guidance and architecture overview [`643ec27`](https://github.com/richard-gledhill/microfiche/commit/643ec27)
+- Merge pull request #1 from richard-gledhill/feature/initial-scaffold [`91da7ed`](https://github.com/richard-gledhill/microfiche/commit/91da7ed)
+- Scaffold microfiche core/CLI, reorganize docs, fix tooling gaps [`3afac66`](https://github.com/richard-gledhill/microfiche/commit/3afac66)
+- updated structure to uv workspaces [`9ac1c3c`](https://github.com/richard-gledhill/microfiche/commit/9ac1c3c)
+- updated fuzzywuzzy to thefuzz [`fa9d1c9`](https://github.com/richard-gledhill/microfiche/commit/fa9d1c9)
+- Added packages structure [`372e90d`](https://github.com/richard-gledhill/microfiche/commit/372e90d)
+- Fix formatting issues [`3ac6c51`](https://github.com/richard-gledhill/microfiche/commit/3ac6c51)
+- init commit [`2d2ec17`](https://github.com/richard-gledhill/microfiche/commit/2d2ec17)
 
-[Unreleased]: https://github.com
-: https://github.com
