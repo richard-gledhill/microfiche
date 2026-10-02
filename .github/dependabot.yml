@@ -1,0 +1,21 @@
+version: 2
+updates:
+# uv, not pip: only the uv ecosystem updates uv.lock. Deliberately not grouped - grouped
+# uv workspace updates have open upstream bugs (dependabot-core #15558, #15786).
+- package-ecosystem: uv
+  directory: "/"
+  schedule:
+    interval: monthly
+    time: "02:00"
+  open-pull-requests-limit: 3
+
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: monthly
+    time: "02:00"
+  open-pull-requests-limit: 3
+  groups:
+    github-actions-dependencies:
+      patterns:
+        - "*"

@@ -11,6 +11,7 @@ nav:
   - Home: index.md
   - Modules: modules.md
   - How to use: how-to-use.md
+  - Changelog: changelog.md
   - Contributing: contributing.md
   - License: license.md
 
