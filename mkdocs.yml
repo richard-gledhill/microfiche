@@ -11,7 +11,7 @@ nav:
   - Home: index.md
   - Modules: modules.md
   - How to use: how-to-use.md
-  - Contribution: contributing.md
+  - Contributing: contributing.md
   - License: license.md
 
 # docs/development/ holds internal planning docs - the current architecture.md, archived
