@@ -11,6 +11,8 @@ nav:
   - Home: index.md
   - Modules: modules.md
   - How to use: how-to-use.md
+  - Changelog: changelog.md
+  - Contributing: contributing.md
 
 # docs/development/ holds internal planning docs - the current architecture.md, archived
 # superseded PRD/concept docs, and a README template - not published user-facing
