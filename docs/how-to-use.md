@@ -123,9 +123,14 @@ Library/
 
 Stage names rarely appear word for word in a document, so give each one keyword hints in
 `.microfiche/microfiche-config.toml`. The keys must match the category folder names exactly,
-including any leading number:
+including any leading number. Hint matches are weaker than a name match, so also set the
+[confidence threshold](#how-sure-microfiche-has-to-be) to `0.75` (as below) or they will be
+listed under **Needs review** instead of being filed:
 
 ```toml
+[classification]
+confidence_threshold = 0.75   # let keyword-hint matches file automatically
+
 [category_hints.categories]
 "01 Discovery" = ["interview", "problem statement", "user research"]
 "02 Design" = ["wireframe", "mockup", "design decision"]
@@ -161,6 +166,33 @@ rules = [
   folders.
 - Exactly two levels (group, category) are supported today. Folders deeper than that aren't
   part of the taxonomy.
+
+### How sure microfiche has to be
+
+microfiche only files a document on its own when it is confident enough; anything less stays in
+`_sorting/` under **Needs review**. How sure it is depends on how it matched:
+
+| Match | Confidence |
+|---|---|
+| Group name found in the document | 1.0 |
+| A filename rule | 0.95 |
+| Category name found in the document | 0.90 |
+| Group name nearly matches (fuzzy) | 0.85 and up |
+| A category keyword hint | 0.75 |
+| An answer from the AI fallback | 0.70 |
+
+A document is only as confident as the weaker of its group and category. The threshold is set per
+library in `.microfiche/microfiche-config.toml`, from 0 to 1, and defaults to a deliberately high
+**0.8**: exact names and filename rules file automatically; keyword hints and AI answers are left
+for you to review.
+
+```toml
+[classification]
+confidence_threshold = 0.75   # also file keyword-hint matches
+```
+
+Use `0.75` to let keyword hints file automatically, or `0.7` to let AI answers file too. The default
+has not been tested against real documents yet, so treat it as a cautious starting point.
 
 ## 3. Sort documents
 
@@ -320,6 +352,10 @@ same command again):
 microfiche is pre-release. At the moment:
 
 - `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
+- At the default confidence threshold, documents matched only by a keyword hint or by the AI
+  fallback are left for review. See [How sure microfiche has to be](#how-sure-microfiche-has-to-be).
+- When the documents in a dropped folder disagree about where it belongs (a tie), the folder is
+  left for review rather than guessed.
 - If you re-file a document with `reclassify --apply` after a `sort`, undo the newer job first —
   rolling back the older one will stop with an error because the file is no longer where it
   was filed.

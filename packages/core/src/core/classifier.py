@@ -1,83 +1,186 @@
-"""Two-stage (group, then category) classification, with an optional AI fallback."""
+"""Two-stage (group, then category) classification over pluggable resolvers.
+
+``Classifier`` owns the whole decision: it asks a primary resolver (the deterministic rules) for
+each stage, optionally falls back to a second resolver (the AI) for a stage the first couldn't
+answer confidently, checks every answer against the library's taxonomy, and says whether the
+result is confident enough to file. The resolvers only propose; they don't decide.
+"""
 
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable, Sequence
+from typing import Protocol, TypeVar
 
-from core.ai.llm_classifier import LLMClassifier
 from core.models.category import Taxonomy
-from core.models.classification import ClassificationResult
+from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
+from core.models.document import Document
 from core.models.unit import SortableUnit
-from core.rules.confidence import combine_confidence
-from core.rules.rules_engine import RulesEngine
+from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD, combine_confidence
 
-CONFIDENCE_THRESHOLD = 0.6
-# Todo: Move to config
+Match = TypeVar("Match", GroupMatch, CategoryMatch)
+
+
+class Resolver(Protocol):
+    """Proposes a group, or a category within a group, for a document.
+
+    Attributes:
+        name: Identifies the resolver in ``ClassificationResult.classified_by``.
+    """
+
+    name: str
+
+    def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
+        """Propose which group ``document`` belongs to (``name=None`` if it can't tell)."""
+        ...
+
+    def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
+        """Propose which category of ``group`` ``document`` belongs to (``name=None`` if it can't tell)."""
+        ...
 
 
 class Classifier:
+    """Decides where a document, or a whole folder, belongs.
+
+    For each stage - group first, then category within the resolved group - the primary resolver
+    is asked. If its answer is missing or below the confidence threshold and a fallback resolver
+    was given, the fallback is asked too, and its answer is used if it names something; otherwise
+    the primary's answer stands, so a weak suggestion is never replaced by nothing. A group or
+    category that isn't in the taxonomy is treated as unresolved, whoever proposed it.
+
+    A folder is classified document by document; the pair of (group, category) most documents
+    voted for wins. If the top vote is tied, the folder is left unresolved rather than guessed.
+
+    Args:
+        rules: The primary resolver, asked first for every stage.
+        fallback: An optional second resolver, asked only for stages the primary can't answer
+            confidently.
+        threshold: How confident a result must be to count as ``confident``.
     """
-    Classifier handles the classification of documents and units using rules and an optional
-    AI-based fallback mechanism.
 
-    Combines the deterministic RulesEngine with an optional AI fallback for low-confidence cases.
+    def __init__(
+        self,
+        rules: Resolver,
+        fallback: Resolver | None = None,
+        *,
+        threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+    ) -> None:
+        self._rules = rules
+        self._fallback = fallback
+        self._threshold = threshold
 
-    The Classifier class integrates a rules-based engine and an optional large language model
-    (LLM) classifier to perform document or unit classification based on a taxonomy. For documents,
-    it utilizes the rules engine first, and only resorts to the AI classifier if the confidence
-    threshold is not met. For multi-document units such as folders, it determines the dominant
-    (group, category) pair via majority voting.
+    @property
+    def threshold(self) -> float:
+        """The confidence a result must reach to be ``confident``."""
 
-    Attributes:
-        _rules_engine (RulesEngine): Core engine handling rules-based classification logic.
-        _ai_classifier (LLMClassifier | None): Optional AI-based classifier providing fallback
-            classification when confidence from rules-based classification is insufficient.
-    """
+        return self._threshold
 
-    def __init__(self, rules_engine: RulesEngine, ai_classifier: LLMClassifier | None = None) -> None:
-        self._rules_engine = rules_engine
-        self._ai_classifier = ai_classifier
+    def classify_document(self, document: Document, taxonomy: Taxonomy) -> ClassificationResult:
+        """Classify one document: resolve its group, then its category within that group."""
 
-    def classify_document(self, file_name: str, text: str, taxonomy: Taxonomy) -> ClassificationResult:
-        result = self._rules_engine.classify(file_name, text, taxonomy)
-        if result.overall_confidence >= CONFIDENCE_THRESHOLD or self._ai_classifier is None:
-            return result
+        group, group_source = self._resolve(lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy))
+        if group.name is None:
+            category = CategoryMatch(name=None, confidence=0.0, reason="Group unresolved")
+            category_source = self._rules
+        else:
+            group_name = group.name
+            category, category_source = self._resolve(
+                lambda r: _known_category(r.resolve_category(document, group_name, taxonomy), group_name, taxonomy)
+            )
 
-        group = self._ai_classifier.resolve_group(text, taxonomy)
-        category = (
-            self._ai_classifier.resolve_category(text, group.name, taxonomy)
-            if group.name is not None
-            else result.category
-        )
+        overall = combine_confidence(group.confidence, category.confidence)
         return ClassificationResult(
             group=group,
             category=category,
-            overall_confidence=combine_confidence(group.confidence, category.confidence),
-            classified_by="ai_fallback",
+            overall_confidence=overall,
+            classified_by=self._label(group_source, category_source),
+            confident=group.name is not None and category.name is not None and overall >= self._threshold,
         )
 
     def classify_unit(self, unit: SortableUnit, taxonomy: Taxonomy) -> ClassificationResult:
         """Classify a unit. A single-file unit is classified directly; a folder unit is classified
         by the dominant (group, category) pair voted across all the documents inside it (see the
-        "folder-as-unit" decision in docs/development/architecture.md)."""
+        "folder-as-unit" decision in docs/development/architecture.md).
 
-        per_document = [
-            self.classify_document(document.file_name, document.content, taxonomy) for document in unit.documents
-        ]
+        Each document whose group resolved casts one vote. The pair with the most votes wins, and
+        the winning pair's most confident document represents the folder. If two or more pairs
+        share the top vote the folder is unresolved, with a reason listing the disagreement.
+        """
+
+        per_document = [self.classify_document(document, taxonomy) for document in unit.documents]
         if len(per_document) == 1:
             return per_document[0]
 
-        pair_votes = Counter(
-            (result.group.name, result.category.name) for result in per_document if result.group.name is not None
-        )
+        pair_votes = Counter((result.group.name, result.category.name) for result in per_document if result.group.name)
         if not pair_votes:
             # No document in the folder resolved a group at all - surface the first result's
             # reasoning so the review queue has something concrete to show the user.
             return per_document[0]
 
-        (group_name, category_name), _ = pair_votes.most_common(1)[0]
-        return next(
-            result
-            for result in per_document
-            if result.group.name == group_name and result.category.name == category_name
+        ranked = pair_votes.most_common()
+        leaders = [(pair, votes) for pair, votes in ranked if votes == ranked[0][1]]
+        if len(leaders) > 1:
+            return _tied_vote(leaders)
+
+        (group_name, category_name), _ = leaders[0]
+        return max(
+            (r for r in per_document if (r.group.name, r.category.name) == (group_name, category_name)),
+            key=lambda result: result.overall_confidence,
         )
+
+    def _resolve(self, ask: Callable[[Resolver], Match]) -> tuple[Match, Resolver]:
+        """Ask the primary resolver; if it isn't confident, ask the fallback. Return the answer used
+        and the resolver it came from."""
+
+        answer = ask(self._rules)
+        if self._is_confident(answer) or self._fallback is None:
+            return answer, self._rules
+        fallback_answer = ask(self._fallback)
+        if fallback_answer.name is not None:
+            return fallback_answer, self._fallback
+        return answer, self._rules
+
+    def _is_confident(self, match: GroupMatch | CategoryMatch) -> bool:
+        return match.name is not None and match.confidence >= self._threshold
+
+    def _label(self, *sources: Resolver) -> str:
+        """Names of the resolvers that decided a stage, primary first (e.g. ``rules_engine+ai_fallback``)."""
+
+        used = [r for r in (self._rules, self._fallback) if r is not None and any(r is source for source in sources)]
+        return "+".join(resolver.name for resolver in used)
+
+
+def _known_group(match: GroupMatch, taxonomy: Taxonomy) -> GroupMatch:
+    """``match``, or an unresolved match if it names a group that isn't in the taxonomy."""
+
+    if match.name is None or match.name in taxonomy.group_names:
+        return match
+    return GroupMatch(name=None, confidence=0.0, reason=f"{match.reason}; but '{match.name}' is not an existing group")
+
+
+def _known_category(match: CategoryMatch, group: str, taxonomy: Taxonomy) -> CategoryMatch:
+    """``match``, or an unresolved match if it names a category that isn't in ``group``."""
+
+    if match.name is None or match.name in taxonomy.categories_for(group):
+        return match
+    return CategoryMatch(
+        name=None,
+        confidence=0.0,
+        reason=f"{match.reason}; but '{match.name}' is not an existing category of '{group}'",
+    )
+
+
+def _tied_vote(leaders: Sequence[tuple[tuple[str | None, str | None], int]]) -> ClassificationResult:
+    """An unresolved result explaining which (group, category) pairs tied for the most votes."""
+
+    breakdown = ", ".join(
+        f"{group}/{category or '(no category)'} ({votes} documents)" for (group, category), votes in leaders
+    )
+    reason = f"Documents in this folder disagree: {breakdown}"
+    return ClassificationResult(
+        group=GroupMatch(name=None, confidence=0.0, reason=reason),
+        category=CategoryMatch(name=None, confidence=0.0, reason=reason),
+        overall_confidence=0.0,
+        classified_by="folder_vote",
+        confident=False,
+    )

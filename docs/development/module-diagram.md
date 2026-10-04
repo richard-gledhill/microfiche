@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-10-05. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-06. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -124,12 +124,13 @@ flowchart TD
     core_extractor --> m_document
     core_extractor --> p_init
 
-    core_classifier --> a_llm
     core_classifier --> m_category
     core_classifier --> m_classification
+    core_classifier --> m_document
     core_classifier --> m_unit
     core_classifier --> r_confidence
-    core_classifier --> r_engine
+
+    core_config --> r_confidence
 
     core_filer --> core_config
     core_filer --> core_ledger
@@ -177,7 +178,7 @@ flowchart TD
 
     r_engine --> m_category
     r_engine --> m_classification
-    r_engine --> r_confidence
+    r_engine --> m_document
     r_engine --> r_group
     r_engine --> r_keyword
     r_engine --> r_metadata
@@ -189,6 +190,7 @@ flowchart TD
     a_llm --> a_prompts
     a_llm --> m_category
     a_llm --> m_classification
+    a_llm --> m_document
 
     l_taxonomy --> m_category
     l_taxonomy --> u_filesystem
@@ -223,8 +225,8 @@ flowchart TD
     Taxonomy --> ClassifyUnit
     Config -.->|"category_hints, filing_rules"| RulesEngine
     ClassifyUnit --> RulesEngine["RulesEngine\n(group_rules -> keyword_rules/metadata_rules\n-> confidence.combine_confidence, min not average)"]
-    RulesEngine -->|"confidence >= 0.6"| Result["ClassificationResult"]
-    RulesEngine -->|"confidence < 0.6 and --use-ai"| LLM["LLMClassifier\n(OllamaProvider today; OpenAIProvider exists,\nnot wired to a CLI flag)"]
+    RulesEngine -->|"confident: both stages resolved and\nconfidence >= threshold (default 0.8)"| Result["ClassificationResult"]
+    RulesEngine -->|"a stage below threshold and --use-ai\n(asked per stage, group then category)"| LLM["LLMClassifier\n(OllamaProvider today; OpenAIProvider exists,\nnot wired to a CLI flag)"]
     LLM --> Result
 
     Result -->|">= threshold"| FileUnit["filer.file_batch()\n(one Job per run)"]

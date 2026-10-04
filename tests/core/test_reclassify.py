@@ -258,3 +258,17 @@ def test_a_scope_outside_the_library_is_refused(tmp_path: Path) -> None:
 
     with pytest.raises(ScopeOutsideLibraryError):
         run_reclassify(library, load_config(library / MICROFICHE_DIRNAME), scope=outside)
+
+
+def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_moved(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _write(library, f"{_RESEARCH}/backlog.md", "Project Phoenix user story backlog.")  # keyword hint: 0.75
+    config = load_config(library / MICROFICHE_DIRNAME)
+
+    at_default = _by_name(run_reclassify(library, config))["backlog.md"]
+    config.classification.confidence_threshold = 0.75
+    lowered = _by_name(run_reclassify(library, config))["backlog.md"]
+
+    assert at_default.action == "review"
+    assert lowered.action == "move"
+    assert lowered.destination == library / _REQUIREMENTS / "backlog.md"

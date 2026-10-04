@@ -6,6 +6,14 @@ depth = 2
 levels = ["group", "category"]
 file_target_level = 2
 
+# How confident microfiche must be (0 to 1) before it files a document without asking. Anything
+# below this is left in _sorting/ for review. How sure each kind of match is today: exact group or
+# category name 0.9-1.0, filename rule 0.95, keyword hint 0.75, AI answer 0.70. The default, 0.8,
+# files on exact names and filename rules but leaves keyword-hint and AI matches for review. Lower
+# it to 0.75 to let keyword hints file automatically, or to 0.7 to let AI answers file too.
+[classification]
+confidence_threshold = 0.8
+
 # Folder name/glob patterns never treated as a category and never descended into by
 # taxonomy discovery or `reclassify`. Extend this with your own non-category folders
 # (templates, attachments, archives you don't want touched, etc).

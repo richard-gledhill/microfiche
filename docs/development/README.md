@@ -11,6 +11,8 @@ Internal planning/design docs — not published to the user-facing docs site (se
   building to MVP (six stages, each Plan/Design/Build/Test/Deploy), written to be dropped
   into a GitHub Project. A different lens than `mvp-roadmap.md`: process/sequencing rather
   than status.
+- **[CONTEXT.md](../../CONTEXT.md)** — current. The project's domain glossary (library, group, category,
+  unit, job, ledger, ...) and the words to avoid. Use these terms in code, docs and reviews.
 - **[data-model.md](data-model.md)** — current. The ledger, `AuditEvent`/`Job` schemas,
   `audit.log` format and `.microfiche/` directory layout, as one authoritative page.
 - **[module-diagram.md](module-diagram.md)** — generated from the actual source imports, not

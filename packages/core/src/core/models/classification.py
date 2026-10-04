@@ -22,9 +22,20 @@ class CategoryMatch(BaseModel):
 
 
 class ClassificationResult(BaseModel):
-    """Combined group + category classification for a single document or sortable unit."""
+    """Combined group + category classification for a single document or sortable unit.
+
+    Attributes:
+        group: The group decision.
+        category: The category decision.
+        overall_confidence: The weaker of the two stages' confidence.
+        classified_by: Which resolver(s) decided - e.g. ``rules_engine``, ``ai_fallback`` or
+            ``rules_engine+ai_fallback`` when each decided a different stage.
+        confident: Whether the unit may be filed without review: both a group and a category
+            were resolved and ``overall_confidence`` reached the classifier's threshold.
+    """
 
     group: GroupMatch
     category: CategoryMatch
     overall_confidence: float
     classified_by: str
+    confident: bool
