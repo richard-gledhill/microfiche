@@ -9,6 +9,8 @@ loose documents dropped into a `_sorting/` inbox, classifies each one (group, th
 and files it — recording every move so it can be rolled back. Nothing is ever deleted. Full
 design rationale: [docs/development/architecture.md](docs/development/architecture.md)
 (supersedes the earlier concept docs archived under `docs/development/archive/` where they conflict).
+Domain language (library, group, category, unit, job, ledger, ...) is defined in
+[CONTEXT.md](CONTEXT.md) — use those terms.
 
 **Before assuming a described feature is fully wired, check
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
@@ -65,8 +67,10 @@ workspace `.venv`.
    keyword *hints* for matching against categories that already exist as folders.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in `_sorting/` — either a loose file
    or (with `--keep-folders`) a whole folder treated as one unit.
-3. **`classifier.py::Classifier`** runs two-stage classification per document, via
-   `rules/rules_engine.py`:
+3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
+   the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
+   (`ai/llm_classifier.py::LLMClassifier`). It owns the flow, the confidence threshold and the
+   taxonomy check; the resolvers only propose:
    - **Group** (`rules/group_rules.py`): keyword + fuzzy match (`thefuzz`) against known group
      names.
    - **Category** (`rules/keyword_rules.py`, `rules/metadata_rules.py`): filename-glob rules
@@ -75,14 +79,25 @@ workspace `.venv`.
    - Overall confidence is `combine_confidence` (`rules/confidence.py`) of both stages — **min,
      not average**, so a confident category guess under an unconfident group guess still reads
      as unconfident.
-   - If rules score below `Classifier.CONFIDENCE_THRESHOLD` (0.6) and an `LLMClassifier`
-     (`ai/llm_classifier.py`, backed by `ai/ollama_provider.py` or `ai/openai_provider.py`) was
-     passed in, it's asked to pick a group/category (or "none") from the same taxonomy. The
-     `ai` extra (`ollama`, `openai`) isn't installed by a plain `uv sync` — see the `core`
-     package's `pyproject.toml`.
+   - The AI fallback is per stage: for the group, then the category within the resolved group,
+     the rules answer first; only if that answer is missing or below the threshold is the
+     `LLMClassifier` (backed by `ai/ollama_provider.py` or `ai/openai_provider.py`) asked to pick
+     one (or "none") from the same taxonomy. A confident rules answer is never overridden, and
+     an AI "none" keeps the rules' weak suggestion. The `ai` extra (`ollama`, `openai`) isn't
+     installed by a plain `uv sync` — see the `core` package's `pyproject.toml`.
+   - Any group/category a resolver names is checked against the taxonomy; one that isn't an
+     existing folder counts as unresolved, so nothing is ever filed into an invented folder.
+   - A result is `confident` when both stages resolved and the overall confidence reaches the
+     threshold: `[classification] confidence_threshold` in the library's config, defaulting to
+     `DEFAULT_CONFIDENCE_THRESHOLD` (0.8, in `rules/confidence.py`). At the default, keyword-hint
+     matches (0.75) and AI-only answers (0.70) go to review rather than being filed.
+     `classified_by` names which resolver(s) decided: `rules_engine`, `ai_fallback` or
+     `rules_engine+ai_fallback`.
    - A folder unit is classified document-by-document; the whole folder is filed under whichever
-     `(group, category)` pair got the most votes across its documents (dominant-category rule).
-4. Anything at/above threshold is filed as one job (`filer.py::file_batch`: move, ledger record,
+     `(group, category)` pair got the most votes across its documents (dominant-category rule),
+     represented by that pair's most confident document. A tie for the most votes is not guessed:
+     the folder goes to review with the disagreement as its reason.
+4. Anything `confident` is filed as one job (`filer.py::file_batch`: move, ledger record,
    audit line, rollback job); everything else goes to
    `SortReport.needs_review` for the `review` command instead of being moved.
 

@@ -25,6 +25,9 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   the SHA-256 of the file, or — for a folder unit — of a manifest of `relative path:file hash`
   lines for every file inside (`core/utils/hashing.py::unit_hash`). The hash lets a record be
   found again after a file is moved or renamed outside microfiche.
+- **`classified_by`** names the resolver(s) that decided the classification: `rules_engine`, `ai_fallback`,
+  or `rules_engine+ai_fallback` when each decided a different stage. (`folder_vote` marks a tied folder
+  left for review; it never reaches the ledger because nothing is filed.)
 - **Events.** `"filed"` is written when a unit is moved into the library. `"rolled_back"` is
   written when a rollback moves it out again; it carries only the identifying fields
   (`job_id`, `path`, `original_path`, `content_hash`, `unit_type`) and leaves the classification

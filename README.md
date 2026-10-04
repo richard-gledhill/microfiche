@@ -111,6 +111,9 @@ Library/
 
 ```toml
 # .microfiche/microfiche-config.toml — keys are the category folder names, exactly as written
+[classification]
+confidence_threshold = 0.75   # keyword hints score 0.75; the default (0.8) leaves them for review
+
 [category_hints.categories]
 "01 Discovery" = ["interview", "problem statement", "user research"]
 "02 Design" = ["wireframe", "mockup", "design decision"]
@@ -123,7 +126,9 @@ Things to keep in mind when choosing names:
 - **Groups are matched by name only** (there are no keyword hints for groups), so pick names that
   actually appear in your documents — project, client or course names usually do. A document that
   doesn't mention any group goes to **Needs review** and stays in the inbox.
-- **Categories can use hints**, so they don't need to appear literally in the text.
+- **Categories can use hints**, so they don't need to appear literally in the text. A hint match is a
+  weaker signal than a name match, so lower `[classification] confidence_threshold` (see the
+  [configuration table](#configuration)) to let hint matches file automatically.
 - **Exactly two levels** are supported today; deeper folder trees aren't.
 
 See [How to use microfiche](https://richard-gledhill.github.io/microfiche/how-to-use/) for a
@@ -169,6 +174,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | Section | Purpose |
 |---|---|
 | `library_structure` | The group/category hierarchy. Only the default two levels are implemented today. |
+| `classification` | `confidence_threshold` (0–1, default 0.8): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so lower it to file those automatically. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `categories` | Keyword hints per *existing* category name — not the category list itself. |

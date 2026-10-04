@@ -64,23 +64,36 @@ Depth is configurable for future flexibility, but 2 is the only depth the MVP im
 problem — every item in it could belong to *any* group — so the classifier runs in two stages:
 
 ```
-core/classifier.py
-    resolve_group(document, taxonomy)     → GroupMatch(name, confidence, reason)
-    resolve_category(document, group, taxonomy) → CategoryMatch(name, confidence, reason)
+core/classifier.py          # Classifier: owns the flow, the threshold, the taxonomy check
+    Resolver (protocol)      # what Classifier asks; each answer is a GroupMatch / CategoryMatch
+        resolve_group(document, taxonomy)           → GroupMatch(name, confidence, reason)
+        resolve_category(document, group, taxonomy) → CategoryMatch(name, confidence, reason)
+rules/rules_engine.py        # Resolver adapter 1: deterministic rules
+ai/llm_classifier.py         # Resolver adapter 2: the AI fallback
 ```
 
 **Stage 1 — group resolution** (`rules/group_rules.py`, new):
-* Filename/content keyword match against known group names.
+* Match against known group names in the document text (groups have no keyword hints).
 * Fuzzy match (via `thefuzz`, already a dependency — this is what it's for) to catch near-misses like
   "Phoenix Project" vs "Project Phoenix".
-* AI fallback (existing `ai/llm_classifier.py` path) only if rules produce no confident match: given the
-  document text and the list of known group names, ask the model to pick one or say "none".
+* AI fallback (`ai/llm_classifier.py`) only if the rules' answer is missing or below the confidence threshold:
+  given the document text and the list of known group names, ask the model to pick one or say "none". A
+  confident rules answer is never overridden, and an AI "none" leaves the rules' weak suggestion in place.
 
 **Stage 2 — category resolution** (`rules/keyword_rules.py`, extended): once the group is known, this is
 exactly concept 1b's original single-stage classification, scoped to that group's existing category folders.
+The same per-stage fallback applies: rules first, the AI only for a category the rules couldn't resolve
+confidently. Whoever proposes a group or category, `Classifier` checks it against the taxonomy; a name that
+isn't an existing folder is treated as unresolved, so the filer never creates a folder.
 
 **Overall confidence** = combination (min, not average — a confident category guess under an unconfident group
-guess is still an unconfident result) of both stages. Anything below threshold goes to the review queue, and
+guess is still an unconfident result) of both stages. A result is *confident* — and so filed without asking —
+when both stages resolved and that overall confidence reaches the **confidence threshold**: the library's
+`[classification] confidence_threshold` (0 to 1), defaulting to 0.8. Today's signal strengths are 1.0 for an
+exact group name, 0.95 for a filename rule, 0.90 for a category name, 0.85–0.99 for a fuzzy group match, 0.75
+for a category keyword hint and 0.70 for an AI answer, so at the default threshold keyword-hint matches and
+AI-only answers are left for review; a library lowers the threshold to file those too. Anything below the
+threshold goes to the review queue, and
 the review prompt must let the user pick group *and* category, not just category, since group may be the part
 that's actually unresolved.
 
@@ -104,10 +117,13 @@ core/models/unit.py
 
 **Decision — mixed-category folders:** dominant category wins. Every document inside a folder unit is
 classified individually (both stages); the folder is filed as a whole under whichever `(group, category)` pair
-has the highest combined confidence / vote count across its documents. Per-document classification results are
+has the most votes across its documents, represented by that pair's most confident document. Per-document
+classification results are
 meant to be recorded (in the ledger, see §7 — not implemented yet) even though only one filing decision is physically applied —
-so a human can see *why* a folder landed where it did. A folder with no majority (e.g. an even split across two
-groups) is treated as "no group found" and routed to review, same as an individual unresolved document.
+so a human can see *why* a folder landed where it did. If two or more `(group, category)` pairs tie for the
+most votes (e.g. an even split across two groups) the folder is **not** guessed: it is left unresolved and
+routed to review, with the disagreement as its reason — same as an individual unresolved document. A unique
+winner is enough; it does not need a strict majority. Documents whose group didn't resolve don't vote.
 
 ## 5. Exclusions
 

@@ -20,7 +20,10 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 ## Cross-cutting feature status
 
-- **AI fallback** — Ollama is wired via `--use-ai` (`cli/commands.py`). `OpenAIProvider`
+- **AI fallback** — Ollama is wired via `--use-ai` (`cli/commands.py`), applied per stage by
+  `Classifier`. At the default confidence threshold (0.8) an AI-only answer (0.70) is left for
+  review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file.
+  `OpenAIProvider`
   (`core/ai/openai_provider.py`) is fully implemented but never imported anywhere else —
   unreachable from the CLI despite `core`'s `ai` extra advertising `openai` support.
 - **Obsidian tag governance** (`tag_index.py`, `tag_mapper.py`) — implemented, unit-tested,
@@ -29,7 +32,11 @@ changes here, update the "Current limitations" list and usage steps in the user-
 - **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
   sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
   per filing. Not yet recorded: `tags`, and the per-document breakdown for folder units.
-- **Folder dominant-category voting** — wired, in `classifier.py::Classifier.classify_unit`.
+- **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
+  the confidence threshold (`[classification] confidence_threshold`, default 0.8), the per-stage AI
+  fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.
+- **Folder dominant-category voting** — wired, in `classifier.py::Classifier.classify_unit`. A tie for
+  the most votes is left unresolved for review rather than guessed.
 
 ## Must-fix before MVP
 
@@ -50,6 +57,17 @@ Ranked by how central they are to the product's core promise, not by ease of imp
    they be explicitly descoped (removed from `cli/app.py` and marked "planned" in the README)
    rather than shipping as a stub that exits 1? This doc surfaces the question; the
    maintainer decides.
+
+## Future work
+
+- **Calibrate the confidence threshold against real documents, and tell users how to set it.** The default
+  (`DEFAULT_CONFIDENCE_THRESHOLD`, 0.8) was chosen by reasoning about today's fixed signal strengths, not
+  measured. Build a small corpus of test documents with known correct filings (across several taxonomies,
+  e.g. project › document type and project › stage), measure how often each threshold files correctly,
+  files wrongly and sends to review, and use that to confirm or change the default. Then write user
+  guidance in `how-to-use.md`: what the threshold trades off, how to pick one for a library, and when to
+  lower it so keyword hints or AI answers file automatically. The signal strengths themselves (hint 0.75,
+  AI 0.70, and the other "move to config" constants in `rules/`) should be reviewed in the same pass.
 
 ## Deferred beyond MVP
 
