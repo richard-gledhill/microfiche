@@ -32,6 +32,10 @@ changes here, update the "Current limitations" list and usage steps in the user-
 - **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
   sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
   per filing. Not yet recorded: `tags`, and the per-document breakdown for folder units.
+- **Library layout** (`core/library/library.py`) — wired. `Library` owns the inbox (configurable via
+  `[library_structure] library_inbox`), state folder, target folders, relative paths, exclusions and taxonomy. Exclusions
+  are matched relative to the library root and always cover the inbox and `.microfiche/`. Not done: nested
+  sub-libraries (the shipped exclusion patterns leave room for them).
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
   the confidence threshold (`[classification] confidence_threshold`, default 0.8), the per-stage AI
   fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.

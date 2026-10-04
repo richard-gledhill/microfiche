@@ -19,13 +19,14 @@ the design with that reality.
 `microfiche-config.toml`'s `[category_hints.categories]` table no longer defines *what categories exist*. It only supplies keyword hints that help the
 rules engine match content to a category that **already exists as a folder** in the library.
 
-A new taxonomy discovery step walks the library tree (excluding `_sorting/` and anything in
+A taxonomy discovery step walks the library tree (excluding the inbox, the `.microfiche/` state folder, and anything in
 `microfiche-config.toml`'s `[exclusions]` table) and builds an in-memory index of `{group_name: [category_name, ...]}` on every run.
 No taxonomy is persisted — the walk is cheap because it only reads directory names at a fixed depth, not file
 contents.
 
 ```
-core/library/taxonomy.py       # walks the library, returns {group: [category, ...]}, respects exclusions
+core/library/library.py        # Library: layout (inbox, state folder, target folders), exclusions, and
+                               #   Library.taxonomy() -> {group: [category, ...]}
 ```
 
 ## 2. Fixed depth model: group → category
@@ -60,7 +61,8 @@ Depth is configurable for future flexibility, but 2 is the only depth the MVP im
 
 ## 3. Sorting is a single, library-wide inbox — two-stage classification
 
-**Decision:** one `_sorting/` folder at the library root, not one per group. This is the harder classification
+**Decision:** one inbox folder at the library root (`_sorting/` unless the config's `[library_structure] library_inbox`
+names another), not one per group. This is the harder classification
 problem — every item in it could belong to *any* group — so the classifier runs in two stages:
 
 ```
@@ -128,11 +130,15 @@ winner is enough; it does not need a strict majority. Documents whose group didn
 ## 5. Exclusions
 
 `microfiche-config.toml`'s `[exclusions]` table — glob patterns never treated as a category and never descended into by
-`reclassify`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
+`reclassify`/taxonomy discovery, matched against each component of the path *relative to the library root*
+(`Library.is_excluded`, which uses `core/utils/filesystem.py::is_excluded`) — never against the folders above the
+library, so a library kept under `~/.vaults` or `~/_work` behaves like any other. Two folders are excluded
+structurally, whatever the config says: the library's inbox and its `.microfiche/` state folder.
 Three pattern families, not one fixed list — see the shipped file for the current exact patterns rather than
 duplicating them here, since that list has already changed once since this ADR was written:
-- The inbox itself (`_sorting*`, the canonical inbox folder name; `sorting*` is also excluded for
-  compatibility with libraries still using the older, pre-rename convention).
+- Inbox-style folders (`_sorting*`, `sorting*`). The library's own inbox is excluded automatically; these stay
+  so that other inbox-style folders — for example the inboxes of sub-libraries nested inside it — are kept out of
+  the taxonomy too.
 - Any dot-prefixed folder (`.*`) — covers `.microfiche/`, `.obsidian/`, `.git/` without needing
   their own entries.
 - Any underscore-prefixed folder (`_*`) — a second, non-dot-prefixed convention for a library's own non-category

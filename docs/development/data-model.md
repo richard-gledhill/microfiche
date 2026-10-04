@@ -1,8 +1,8 @@
 # Data model: ledger, audit events, and rollback jobs
 
 The target schema for everything microfiche writes to disk outside of the moved files
-themselves. Everything lives under the library's dot-prefixed `.microfiche/` folder
-(`core.config.MICROFICHE_DIRNAME`), so Obsidian's file explorer hides it and no file ever gets
+themselves. Everything lives under the library's dot-prefixed `.microfiche/` state folder
+(`core.config.MICROFICHE_DIRNAME`, `Library.state_dir`), so Obsidian's file explorer hides it and no file ever gets
 a companion file written next to it. Where the current implementation doesn't yet produce data
 matching this, that's tracked as an open item in [mvp-roadmap.md](mvp-roadmap.md), not restated
 here.

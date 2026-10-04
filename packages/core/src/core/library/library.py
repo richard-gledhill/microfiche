@@ -1,0 +1,140 @@
+"""The library: the folder microfiche manages, and everything that depends on how it is laid out.
+
+A library is an inbox plus two levels of folders, group then category, with a hidden state folder
+(``.microfiche``) holding its config and records. ``Library`` is the one place that knows which
+folder is which: where the inbox and state folder are, what counts as excluded, what the taxonomy
+is, and where a classified unit belongs. Everything else asks it.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from core.config import MICROFICHE_DIRNAME, MicroficheConfig, load_config
+from core.models.category import Taxonomy
+from core.utils.filesystem import is_excluded
+
+
+class ScopeOutsideLibraryError(ValueError):
+    """Raised when asked to look at a folder that isn't inside the library."""
+
+    def __init__(self, scope: Path, library_root: Path) -> None:
+        self.scope = scope
+        super().__init__(f"Scope '{scope}' is not inside the library '{library_root}'")
+
+
+class Library:
+    """A library folder, its config, and its layout.
+
+    Constructing one does no I/O. The config is read from ``<root>/.microfiche`` the first time
+    something needs it (a missing file means defaults), so operations that only need paths - such
+    as undoing a job - work even if the config file is broken.
+
+    Args:
+        root: The library's root folder.
+        config: The library's config, if the caller already has one; otherwise it is loaded lazily.
+
+    Attributes:
+        root: The library's root folder.
+    """
+
+    def __init__(self, root: Path, config: MicroficheConfig | None = None) -> None:
+        self.root = root
+        self._config = config
+
+    @property
+    def config(self) -> MicroficheConfig:
+        """The library's configuration, loaded on first use and then kept (and mutable)."""
+
+        if self._config is None:
+            self._config = load_config(self.state_dir)
+        return self._config
+
+    @property
+    def state_dir(self) -> Path:
+        """The hidden folder holding the config, ledger, audit log and rollback jobs."""
+
+        return self.root / MICROFICHE_DIRNAME
+
+    @property
+    def inbox(self) -> Path:
+        """The folder new documents are dropped into (named by the config's ``[library_structure] library_inbox``)."""
+
+        return self.root / self.config.library_structure.library_inbox
+
+    def taxonomy(self) -> Taxonomy:
+        """Read the library's groups and categories from the folders that exist right now.
+
+        Only folder names are read, never file contents, so this is cheap even for a library with
+        10,000+ files. The inbox, the state folder and anything matching the config's exclusions
+        are skipped at both levels. Nothing is cached: the folders are the taxonomy.
+        """
+
+        groups: dict[str, list[str]] = {}
+        for group_dir in sorted(p for p in self.root.iterdir() if p.is_dir()):
+            if self.is_excluded(group_dir):
+                continue
+            groups[group_dir.name] = [
+                category_dir.name
+                for category_dir in sorted(group_dir.iterdir())
+                if category_dir.is_dir() and not self.is_excluded(category_dir)
+            ]
+        return Taxonomy(groups=groups)
+
+    def target_dir(self, group: str, category: str) -> Path:
+        """The folder a unit classified as ``group``/``category`` is filed into."""
+
+        return self.root / group / category
+
+    def is_excluded(self, path: Path) -> bool:
+        """Whether ``path`` (inside the library) is not part of the library's content.
+
+        The inbox and the state folder are always excluded, whatever the config says. Beyond that,
+        any component of the path *relative to the library root* matching one of the config's
+        exclusion patterns excludes it. Folders above the library are never considered, so a
+        library kept under ``~/.vaults`` or ``~/_work`` behaves like any other.
+
+        Raises:
+            ValueError: if ``path`` isn't inside the library.
+        """
+
+        relative = path.relative_to(self.root)
+        if relative.parts and relative.parts[0] in (self.config.library_structure.library_inbox, MICROFICHE_DIRNAME):
+            return True
+        return is_excluded(relative, self.config.exclusions.exclude)
+
+    def relative(self, path: Path) -> str:
+        """``path`` relative to the library with forward slashes (or as-is if it lies outside it)."""
+
+        try:
+            return path.relative_to(self.root).as_posix()
+        except ValueError:
+            return path.as_posix()
+
+    def files(self, scope: Path | None = None) -> list[Path]:
+        """Every file under ``scope`` (default: the whole library) that isn't excluded, in sorted path order.
+
+        Args:
+            scope: A folder inside the library to limit the listing to. May be relative to the
+                working directory or spelled differently from ``root``.
+
+        Raises:
+            ScopeOutsideLibraryError: if ``scope`` isn't inside the library.
+        """
+
+        search_root = self._search_root(scope)
+        return [path for path in sorted(search_root.rglob("*")) if path.is_file() and not self.is_excluded(path)]
+
+    def _search_root(self, scope: Path | None) -> Path:
+        """``scope`` re-expressed under ``root``'s own spelling of the path.
+
+        File locations are compared with ``root``-based destinations, so a relative or
+        differently-spelled scope must not leak through as-is.
+        """
+
+        if scope is None:
+            return self.root
+        try:
+            return self.root / scope.resolve().relative_to(self.root.resolve())
+        except ValueError as err:
+            raise ScopeOutsideLibraryError(scope, self.root) from err

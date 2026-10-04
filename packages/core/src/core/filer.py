@@ -18,9 +18,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
-from core.config import MICROFICHE_DIRNAME
 from core.ledger import Ledger
-from core.library.folder_mapping import resolve_target_path
+from core.library.library import Library
 from core.library.naming import apply_naming_rules
 from core.models.audit_event import AuditEvent
 from core.models.classification import ClassificationResult
@@ -70,22 +69,18 @@ class JobMoveMissingError(FileNotFoundError):
         super().__init__(f"Cannot roll back: '{event.new_path}' is gone and '{event.original_path}' does not exist")
 
 
-def file_batch(
-    library_root: Path,
-    items: list[tuple[SortableUnit, ClassificationResult]],
-    *,
-    naming_rules: dict[str, str] | None = None,
-) -> Job | None:
+def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationResult]]) -> Job | None:
     """Move each unit into its classified (group, category) folder and record the run as one job.
 
     The whole batch is checked for unresolved classifications before anything moves. If a move
     then fails part-way (for example because the destination already exists), the moves already
     made are still saved as the job - so they can be rolled back - and the error is re-raised.
 
+    Each unit's name is rewritten by the library's naming rules as it is filed.
+
     Args:
-        library_root: The library's root folder.
+        library: The library to file into.
         items: Pairs of a unit and its (resolved) classification.
-        naming_rules: Filename rewrite rules applied to each unit's name as it is filed.
 
     Returns:
         The saved ``Job``, or ``None`` if ``items`` is empty (nothing is written in that case).
@@ -101,29 +96,29 @@ def file_batch(
         if classification.group.name is None or classification.category.name is None:
             raise UnresolvedClassificationError(unit.source_path.name)
 
-    state_dir = library_root / MICROFICHE_DIRNAME
+    state_dir = library.state_dir
     ledger = Ledger(state_dir)
     job = Job(job_id=_new_job_id())
     try:
         for unit, classification in items:
-            event, record = _file_unit(unit, classification, library_root, job.job_id, naming_rules or {})
+            event, record = _file_unit(unit, classification, library, job.job_id)
             job.moves.append(event)
             ledger.append([record])
-            _append_audit_lines(state_dir, library_root, job.job_id, [event])
+            _append_audit_lines(library, job.job_id, [event])
     finally:
         if job.moves:
             save_job(state_dir, job)
     return job
 
 
-def rollback_job(library_root: Path, job_id: str) -> Job:
+def rollback_job(library: Library, job_id: str) -> Job:
     """Reverse every move of a job, newest first, and mark the job as rolled back.
 
     Safe to retry: if an earlier attempt stopped part-way, moves that were already reversed are
     recognised (the unit is back at its original location) and skipped.
 
     Args:
-        library_root: The library's root folder.
+        library: The library the job was run on.
         job_id: The id printed by ``sort`` (the ``job_<id>.json`` file name without its decoration).
 
     Returns:
@@ -136,7 +131,7 @@ def rollback_job(library_root: Path, job_id: str) -> Job:
         FileExistsError: if something now occupies a unit's original location.
     """
 
-    state_dir = library_root / MICROFICHE_DIRNAME
+    state_dir = library.state_dir
     job = load_job(state_dir, job_id)
     if job.rolled_back_at is not None:
         raise JobAlreadyRolledBackError(job.job_id, job.rolled_back_at)
@@ -161,34 +156,29 @@ def rollback_job(library_root: Path, job_id: str) -> Job:
                 LedgerRecord(
                     event="rolled_back",
                     job_id=job.job_id,
-                    path=_relative(event.new_path, library_root),
-                    original_path=_relative(event.original_path, library_root),
+                    path=library.relative(event.new_path),
+                    original_path=library.relative(event.original_path),
                     content_hash=content_hash,
                     unit_type=unit_type,
                 )
             )
     finally:
         Ledger(state_dir).append(records)
-        _append_audit_lines(state_dir, library_root, job.job_id, reversed_events)
+        _append_audit_lines(library, job.job_id, reversed_events)
 
     job.rolled_back_at = datetime.now()
     save_job(state_dir, job)
     return job
 
 
-def destination_for(
-    library_root: Path,
-    group: str,
-    category: str,
-    source_name: str,
-    naming_rules: dict[str, str] | None = None,
-) -> Path:
-    """Where ``file_batch`` will put a unit called ``source_name`` classified as ``group``/``category``.
+def destination_for(library: Library, group: str, category: str, source_name: str) -> Path:
+    """Where ``file_batch`` will put a unit called ``source_name`` classified as ``group``/``category``,
+    after the library's naming rules.
 
     Lets callers (such as ``core.reclassify``) preview a move, or spot a clash, without filing.
     """
 
-    return resolve_target_path(library_root, group, category) / apply_naming_rules(source_name, naming_rules or {})
+    return library.target_dir(group, category) / apply_naming_rules(source_name, library.config.naming_rules.rules)
 
 
 def load_job(state_dir: Path, job_id: str) -> Job:
@@ -217,9 +207,8 @@ def save_job(state_dir: Path, job: Job) -> Path:
 def _file_unit(
     unit: SortableUnit,
     classification: ClassificationResult,
-    library_root: Path,
+    library: Library,
     job_id: str,
-    naming_rules: dict[str, str],
 ) -> tuple[AuditEvent, LedgerRecord]:
     """Move one resolved unit into the library; return its audit event and ledger record."""
 
@@ -228,7 +217,7 @@ def _file_unit(
         raise UnresolvedClassificationError(unit.source_path.name)
 
     content_hash = unit_hash(unit.source_path)  # before the move, while the content is still at the source
-    destination = destination_for(library_root, group, category, unit.source_path.name, naming_rules)
+    destination = destination_for(library, group, category, unit.source_path.name)
     ensure_dir(destination.parent)
     safe_move(unit.source_path, destination)
 
@@ -236,8 +225,8 @@ def _file_unit(
     record = LedgerRecord(
         event="filed",
         job_id=job_id,
-        path=_relative(destination, library_root),
-        original_path=_relative(unit.source_path, library_root),
+        path=library.relative(destination),
+        original_path=library.relative(unit.source_path),
         content_hash=content_hash,
         unit_type=unit.kind,
         group=group,
@@ -250,29 +239,20 @@ def _file_unit(
     return event, record
 
 
-def _append_audit_lines(state_dir: Path, library_root: Path, job_id: str, events: list[AuditEvent]) -> None:
+def _append_audit_lines(library: Library, job_id: str, events: list[AuditEvent]) -> None:
     """Append one ``<timestamp> job=<id> <action> <from> -> <to>`` line per event to ``audit.log``."""
 
     if not events:
         return
     lines = [
         f"{event.timestamp.isoformat(timespec='seconds')} job={job_id} {event.action} "
-        f"{_relative(event.original_path, library_root)} -> "
-        f"{_relative(event.new_path, library_root) if event.new_path is not None else '-'}\n"
+        f"{library.relative(event.original_path)} -> "
+        f"{library.relative(event.new_path) if event.new_path is not None else '-'}\n"
         for event in events
     ]
-    state_dir.mkdir(parents=True, exist_ok=True)
-    with (state_dir / AUDIT_LOG_FILENAME).open("a", encoding="utf-8", newline="\n") as fh:
+    library.state_dir.mkdir(parents=True, exist_ok=True)
+    with (library.state_dir / AUDIT_LOG_FILENAME).open("a", encoding="utf-8", newline="\n") as fh:
         fh.write("".join(lines))
-
-
-def _relative(path: Path, library_root: Path) -> str:
-    """``path`` relative to the library with forward slashes (or as-is if it lies outside the library)."""
-
-    try:
-        return path.relative_to(library_root).as_posix()
-    except ValueError:
-        return path.as_posix()
 
 
 def _new_job_id() -> str:

@@ -8,7 +8,11 @@ from pathlib import Path
 
 
 def is_excluded(path: Path, patterns: list[str]) -> bool:
-    """Return True if any component of ``path`` matches one of the exclusion glob patterns."""
+    """Return True if any component of ``path`` matches one of the exclusion glob patterns.
+
+    ``path`` must be relative to the library root: every component is tested, so an absolute
+    path would be excluded by an unrelated folder above the library. Use ``Library.is_excluded``.
+    """
 
     return any(fnmatch.fnmatch(part, pattern) for part in path.parts for pattern in patterns)
 

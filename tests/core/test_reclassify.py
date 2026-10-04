@@ -7,9 +7,9 @@ import pytest
 from core.config import MICROFICHE_DIRNAME, load_config
 from core.filer import AUDIT_LOG_FILENAME, rollback_job
 from core.ledger import Ledger
+from core.library.library import Library, ScopeOutsideLibraryError
 from core.reclassify import (
     ReclassifyProposal,
-    ScopeOutsideLibraryError,
     apply_reclassification,
     run_reclassify,
 )
@@ -42,7 +42,7 @@ def test_reclassify_never_scans_the_library_s_own_config_or_logs_folders(tmp_pat
     (tmp_path / ".logs" / "notes.md").write_text("Not a project document either.", encoding="utf-8")
 
     config = load_config(_REPO_CONFIG_DIR)
-    proposals = run_reclassify(tmp_path, config)
+    proposals = run_reclassify(Library(tmp_path, config=config))
 
     assert proposals == []
 
@@ -85,7 +85,7 @@ def test_proposals_say_what_applying_would_do_with_each_document(tmp_path: Path)
     _write(library, f"{_ARCHITECTURE}/in-place.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_RESEARCH}/unclear.md", _UNCLEAR_TEXT)
 
-    proposals = _by_name(run_reclassify(library, load_config(library / MICROFICHE_DIRNAME)))
+    proposals = _by_name(run_reclassify(Library(library)))
 
     misfiled = proposals["misfiled.md"]
     assert misfiled.action == "move"
@@ -102,7 +102,7 @@ def test_a_dry_run_changes_nothing_and_writes_no_state(tmp_path: Path) -> None:
     _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
 
-    run_reclassify(library, load_config(library / MICROFICHE_DIRNAME))
+    run_reclassify(Library(library))
 
     assert _snapshot(library) == before
     assert not (library / MICROFICHE_DIRNAME / "rollback").exists()
@@ -113,7 +113,7 @@ def test_a_document_already_under_its_category_folder_is_kept_even_in_a_subfolde
     library = _library(tmp_path)
     _write(library, f"{_ARCHITECTURE}/diagrams/nested.md", _ARCHITECTURE_TEXT)
 
-    proposals = _by_name(run_reclassify(library, load_config(library / MICROFICHE_DIRNAME)))
+    proposals = _by_name(run_reclassify(Library(library)))
 
     assert proposals["nested.md"].action == "keep"
 
@@ -123,7 +123,7 @@ def test_a_destination_that_is_already_taken_is_a_conflict_not_a_move(tmp_path: 
     _write(library, f"{_RESEARCH}/dup.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_ARCHITECTURE}/dup.md", _ARCHITECTURE_TEXT)
 
-    proposals = _named(run_reclassify(library, load_config(library / MICROFICHE_DIRNAME)), "dup.md")
+    proposals = _named(run_reclassify(Library(library)), "dup.md")
 
     assert sorted(p.action for p in proposals) == ["conflict", "keep"]
     conflict = next(p for p in proposals if p.action == "conflict")
@@ -135,20 +135,20 @@ def test_two_documents_headed_for_the_same_destination_only_move_one(tmp_path: P
     _write(library, f"{_REQUIREMENTS}/same.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_RESEARCH}/same.md", _ARCHITECTURE_TEXT)
 
-    proposals = _named(run_reclassify(library, load_config(library / MICROFICHE_DIRNAME)), "same.md")
+    proposals = _named(run_reclassify(Library(library)), "same.md")
 
     assert [p.action for p in proposals] == ["move", "conflict"]  # documents are visited in sorted path order
 
 
 def test_apply_moves_only_the_move_proposals_as_one_recorded_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
     _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_ARCHITECTURE}/in-place.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_RESEARCH}/unclear.md", _UNCLEAR_TEXT)
-    proposals = run_reclassify(library, config)
+    proposals = run_reclassify(lib)
 
-    job = apply_reclassification(library, config, proposals)
+    job = apply_reclassification(lib, proposals)
 
     assert job is not None
     assert not (library / _RESEARCH / "misfiled.md").exists()
@@ -166,11 +166,11 @@ def test_apply_moves_only_the_move_proposals_as_one_recorded_job(tmp_path: Path)
 
 def test_apply_with_nothing_to_move_writes_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
     _write(library, f"{_ARCHITECTURE}/in-place.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
 
-    job = apply_reclassification(library, config, run_reclassify(library, config))
+    job = apply_reclassification(lib, run_reclassify(lib))
 
     assert job is None
     assert _snapshot(library) == before
@@ -179,14 +179,14 @@ def test_apply_with_nothing_to_move_writes_nothing(tmp_path: Path) -> None:
 
 def test_a_reclassification_can_be_rolled_back_to_the_exact_prior_library(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
     _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
-    job = apply_reclassification(library, config, run_reclassify(library, config))
+    job = apply_reclassification(lib, run_reclassify(lib))
     assert job is not None
     assert _snapshot(library) != before
 
-    rollback_job(library, job.job_id)
+    rollback_job(Library(library), job.job_id)
 
     assert _snapshot(library) == before
     assert Ledger(library / MICROFICHE_DIRNAME).current() == []
@@ -194,13 +194,13 @@ def test_a_reclassification_can_be_rolled_back_to_the_exact_prior_library(tmp_pa
 
 def test_naming_rules_apply_to_the_proposed_destination_and_the_move(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    config = load_config(library / MICROFICHE_DIRNAME)
-    config.naming_rules.rules = {"^misfiled": "refiled"}
+    lib = Library(library)
+    lib.config.naming_rules.rules = {"^misfiled": "refiled"}
     _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
-    proposals = run_reclassify(library, config)
+    proposals = run_reclassify(lib)
 
     assert _by_name(proposals)["misfiled.md"].destination == library / _ARCHITECTURE / "refiled.md"
-    apply_reclassification(library, config, proposals)
+    apply_reclassification(lib, proposals)
 
     assert (library / _ARCHITECTURE / "refiled.md").exists()
 
@@ -209,21 +209,21 @@ def test_a_destination_taken_after_planning_stops_the_apply_but_keeps_earlier_mo
     tmp_path: Path,
 ) -> None:
     library = _library(tmp_path)
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
     _write(library, f"{_RESEARCH}/a-first.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_RESEARCH}/b-second.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
-    proposals = run_reclassify(library, config)
+    proposals = run_reclassify(lib)
     blocker = _write(library, f"{_ARCHITECTURE}/b-second.md", "appeared after the preview")
 
     with pytest.raises(FileExistsError):
-        apply_reclassification(library, config, proposals)
+        apply_reclassification(lib, proposals)
 
     assert (library / _ARCHITECTURE / "a-first.md").exists()
     assert (library / _RESEARCH / "b-second.md").exists()
     (job_file,) = (library / MICROFICHE_DIRNAME / "rollback").glob("job_*.json")
     blocker.unlink()
-    rollback_job(library, job_file.stem.removeprefix("job_"))
+    rollback_job(Library(library), job_file.stem.removeprefix("job_"))
     assert _snapshot(library) == before
 
 
@@ -232,7 +232,7 @@ def test_scope_limits_which_documents_are_considered(tmp_path: Path) -> None:
     _write(library, f"{_RESEARCH}/in-scope.md", _ARCHITECTURE_TEXT)
     _write(library, f"{_REQUIREMENTS}/out-of-scope.md", _ARCHITECTURE_TEXT)
 
-    proposals = run_reclassify(library, load_config(library / MICROFICHE_DIRNAME), scope=library / _RESEARCH)
+    proposals = run_reclassify(Library(library), scope=library / _RESEARCH)
 
     assert [p.current_path.name for p in proposals] == ["in-scope.md"]
 
@@ -244,9 +244,7 @@ def test_a_relative_scope_is_understood_relative_to_the_working_directory(
     _write(library, f"{_ARCHITECTURE}/in-place.md", _ARCHITECTURE_TEXT)
     monkeypatch.chdir(tmp_path)
 
-    proposals = run_reclassify(
-        library, load_config(library / MICROFICHE_DIRNAME), scope=Path("library") / _ARCHITECTURE
-    )
+    proposals = run_reclassify(Library(library), scope=Path("library") / _ARCHITECTURE)
 
     assert [(p.current_path.name, p.action) for p in proposals] == [("in-place.md", "keep")]
 
@@ -257,17 +255,17 @@ def test_a_scope_outside_the_library_is_refused(tmp_path: Path) -> None:
     outside.mkdir()
 
     with pytest.raises(ScopeOutsideLibraryError):
-        run_reclassify(library, load_config(library / MICROFICHE_DIRNAME), scope=outside)
+        run_reclassify(Library(library), scope=outside)
 
 
 def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_moved(tmp_path: Path) -> None:
     library = _library(tmp_path)
     _write(library, f"{_RESEARCH}/backlog.md", "Project Phoenix user story backlog.")  # keyword hint: 0.75
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
 
-    at_default = _by_name(run_reclassify(library, config))["backlog.md"]
-    config.classification.confidence_threshold = 0.75
-    lowered = _by_name(run_reclassify(library, config))["backlog.md"]
+    at_default = _by_name(run_reclassify(lib))["backlog.md"]
+    lib.config.classification.confidence_threshold = 0.75
+    lowered = _by_name(run_reclassify(lib))["backlog.md"]
 
     assert at_default.action == "review"
     assert lowered.action == "move"

@@ -12,7 +12,7 @@ The folder microfiche manages: an inbox plus two levels of folders, group then c
 _Avoid_: Vault, repository, archive
 
 **Inbox**:
-The single library-wide folder where new documents are dropped to be sorted.
+The single library-wide folder where new documents are dropped to be sorted; it is `_sorting` unless the library names another.
 _Avoid_: Queue, drop folder, staging area
 
 **Group**:
@@ -22,6 +22,10 @@ _Avoid_: Project (a project is only one thing a group can be), folder, bucket
 **Category**:
 A folder inside a group, where a document actually lands — such as a document type or a stage of work.
 _Avoid_: Subfolder, tag, label
+
+**State folder**:
+The hidden folder inside a library where microfiche keeps its config and its own records.
+_Avoid_: Data directory, config folder, logs folder
 
 **Taxonomy**:
 The library's groups and, within each, its categories, read from the folders that already exist.

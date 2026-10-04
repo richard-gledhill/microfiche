@@ -1,7 +1,11 @@
 # .microfiche/microfiche-config.toml — this library's microfiche configuration.
 
+# The shape of the library: the name of its inbox, and the depth of the group/category hierarchy.
+# library_inbox: the one folder at the library root where new documents are dropped. It must be a
+# plain folder name, not a path.
 # Depth of the group/category hierarchy (default: 2 levels).
 [library_structure]
+library_inbox = "_sorting"
 depth = 2
 levels = ["group", "category"]
 file_target_level = 2
@@ -18,11 +22,11 @@ confidence_threshold = 0.8
 # taxonomy discovery or `reclassify`. Extend this with your own non-category folders
 # (templates, attachments, archives you don't want touched, etc).
 #
-# Note: microfiche's own operational folders (.microfiche/, .obsidian/, .git/) are all
-# dot-prefixed and already covered by the ".*" wildcard below - they don't need their own
-# entries. The sorting inbox (_sorting/) isn't dot-prefixed (so if used with Obsidian or similar it stays visible on
-# purpose, as the active drop zone), so it does need to be listed explicitly. `sorting*` is also
-# excluded for compatibility with libraries still using the older folder name.
+# Note: the library's inbox (`library_inbox` under [library_structure] above) and microfiche's own .microfiche/ folder are
+# always excluded automatically - they need no entry here. Other dot-prefixed folders (.obsidian/,
+# .git/) are covered by the ".*" wildcard below. `sorting*` and `_sorting*` are kept so that
+# inbox-style folders stay out of the taxonomy even when they aren't this library's own inbox -
+# for example the inboxes of sub-libraries nested inside it.
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
 

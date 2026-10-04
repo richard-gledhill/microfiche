@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-10-06. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-07. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -69,10 +69,9 @@ flowchart TD
     end
 
     subgraph LIBRARY["core/library"]
-        l_taxonomy["taxonomy.py"]
+        l_library["library.py (Library)"]
         l_suggester["category_suggester.py"]
         l_naming["naming.py"]
-        l_folder_mapping["folder_mapping.py"]
         l_templates["templates.py (unused - no create-library command yet)"]
     end
 
@@ -109,7 +108,7 @@ flowchart TD
     core_organizer --> core_classifier
     core_organizer --> core_config
     core_organizer --> core_filer
-    core_organizer --> l_taxonomy
+    core_organizer --> l_library
     core_organizer --> m_audit
     core_organizer --> m_classification
     core_organizer --> m_job
@@ -134,7 +133,7 @@ flowchart TD
 
     core_filer --> core_config
     core_filer --> core_ledger
-    core_filer --> l_folder_mapping
+    core_filer --> l_library
     core_filer --> l_naming
     core_filer --> m_audit
     core_filer --> m_classification
@@ -150,7 +149,7 @@ flowchart TD
     core_reclassify --> core_config
     core_reclassify --> core_extractor
     core_reclassify --> core_filer
-    core_reclassify --> l_taxonomy
+    core_reclassify --> l_library
     core_reclassify --> m_classification
     core_reclassify --> m_job
     core_reclassify --> m_unit
@@ -192,8 +191,9 @@ flowchart TD
     a_llm --> m_classification
     a_llm --> m_document
 
-    l_taxonomy --> m_category
-    l_taxonomy --> u_filesystem
+    l_library --> core_config
+    l_library --> m_category
+    l_library --> u_filesystem
     l_suggester --> m_document
     l_templates --> u_filesystem
 
@@ -213,10 +213,10 @@ What actually happens at runtime when `microfiche sort` runs, as opposed to what
 ```mermaid
 flowchart TD
     LibraryTree[("Library folder tree\n(group/category subfolders)")]
-    SortingInbox[("_sorting/ inbox\n(loose files + folders)")]
+    SortingInbox[("inbox (_sorting/ by default)\n(loose files + folders)")]
     ConfigFile[("microfiche-config.toml")]
 
-    LibraryTree -->|"discover_taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
+    LibraryTree -->|"Library.taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
     ConfigFile -->|"load_config()"| Config["MicroficheConfig"]
     SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if --keep-folders)"]
     Units -->|"extract() via parsers/"| Documents["Document(s)\n(text + metadata)"]

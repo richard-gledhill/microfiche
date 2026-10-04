@@ -241,3 +241,65 @@ def test_reclassify_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> 
 
     assert result.exit_code == 1
     assert "is not inside the library" in result.stdout
+
+
+# --- library layout: where it lives, what it is called -----------------------------------------
+
+
+def test_sort_works_for_a_library_kept_under_a_dot_folder(tmp_path: Path) -> None:
+    """Regression: a library under a folder like ~/.vaults used to find no groups, so nothing filed."""
+
+    library = tmp_path / ".vaults" / "library"
+    shutil.copytree(_MOCK_LIBRARY, library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+
+
+def test_reclassify_works_for_a_library_kept_under_an_underscore_folder(tmp_path: Path) -> None:
+    library = tmp_path / "_work" / "library"
+    shutil.copytree(_MOCK_LIBRARY, library)
+    (library / _MISFILED).write_text(_ARCHITECTURE_TEXT, encoding="utf-8")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Moved: 1" in result.stdout
+    assert (library / _REFILED).exists()
+
+
+def test_sort_uses_the_inbox_named_in_the_libraries_config(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8").replace('"_sorting"', '"Incoming"', 1), encoding="utf-8")
+    (library / "_sorting").rename(library / "Incoming")
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+    assert (library / "Incoming" / "SolarConstructionNotes.md").exists()
+
+
+def test_sort_works_for_a_library_with_no_config_folder_at_all(tmp_path: Path) -> None:
+    """Regression: with no config the inbox used to be treated as a group."""
+
+    library = _library(tmp_path)
+    shutil.rmtree(library / ".microfiche")
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+
+
+def test_config_shows_the_library_inbox(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["config", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0
+    assert "library_inbox" in result.stdout
+    assert "_sorting" in result.stdout
