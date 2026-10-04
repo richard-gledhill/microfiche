@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`9ada702`](https://github.com/richard-gledhill/microfiche/commit/9ada702)
+- use the reclassify command name in the README usage section [`b189251`](https://github.com/richard-gledhill/microfiche/commit/b189251)
+- document resort --apply and the reclassify module [`6b129fd`](https://github.com/richard-gledhill/microfiche/commit/6b129fd)
 - describe the ledger, job and audit log; mark sort/audit/rollback done [`afab259`](https://github.com/richard-gledhill/microfiche/commit/afab259)
 - :robot: changelog file generated [`d217ae2`](https://github.com/richard-gledhill/microfiche/commit/d217ae2)
 - :robot: changelog file generated [`1ea2c1f`](https://github.com/richard-gledhill/microfiche/commit/1ea2c1f)
@@ -25,7 +28,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #25 from richard-gledhill/feature/reclassify-apply [`62de9fa`](https://github.com/richard-gledhill/microfiche/commit/62de9fa)
 - Merge pull request #24 from richard-gledhill/refactor/filing-job-ledger [`e8cc882`](https://github.com/richard-gledhill/microfiche/commit/e8cc882)
+- Rename the resort command to reclassify [`9bd4155`](https://github.com/richard-gledhill/microfiche/commit/9bd4155)
+- Wire resort --apply to file_batch; rename resort.py to reclassify.py [`88cec21`](https://github.com/richard-gledhill/microfiche/commit/88cec21)
 - Replace metadata sidecars with a ledger; record and roll back every sort as a job [`b200faf`](https://github.com/richard-gledhill/microfiche/commit/b200faf)
 - Merge pull request #21 from richard-gledhill/dependabot/uv/typer-0.27.2 [`30a73c4`](https://github.com/richard-gledhill/microfiche/commit/30a73c4)
 - Merge pull request #22 from richard-gledhill/dependabot/uv/pre-commit-4.6.2 [`183e5f2`](https://github.com/richard-gledhill/microfiche/commit/183e5f2)
