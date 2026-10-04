@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -40,7 +40,7 @@ Run one workspace package's own checks (e.g. what `make check` does per-package 
 cd packages/core && uv run deptry src
 ```
 
-`tox.ini` runs the same pytest + mypy pass across Python 3.10–3.14; `make check`/`make test` on
+`tox.ini` runs the same pytest + mypy pass across Python 3.11–3.14; `make check`/`make test` on
 your local interpreter are what you want day to day.
 
 ## Architecture
@@ -154,20 +154,48 @@ it becomes a unit (or proposal) left for review, with the reason.
 
 ## Conventions
 
+**Design**
+- Prefer deep modules: a small interface with a lot of behaviour behind it.
+- Before adding a module, apply the deletion test: if removing it would just move one line into its callers,
+  don't add it.
+- Locality: each concern lives in one place, so a fix is made once.
+- Add a seam (a `Protocol` or swappable adapter) only where something actually varies. One implementation is not a seam.
+- Test through the interface and fake at the seams (resolvers, the AI provider). If a test needs to reach past the
+  interface, the module is probably the wrong shape.
+
+**Code**
 - Docstrings: Google style (`Args:`/`Returns:`/`Raises:`) — `mkdocstrings` renders them for the
   published docs.
-- `ruff` config lives entirely in the root `pyproject.toml`; per-package `pyproject.toml` files
-  carry only that package's own dependencies, not tool config.
-- mypy is strict (`disallow_untyped_defs`, `warn_return_any`, etc.) and runs from the repo root
-  against both `packages/*/src` trees at once.
+- Use the [CONTEXT.md](CONTEXT.md) terms in code, docs and commits; add a term there when you
+  introduce a domain concept.
+- `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
+  just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
+
+**Tests**
+- Use `tmp_path` and `Library(path)`; copy `tests/mock_library` for integration tests. Use fake
+  resolvers/providers: no network or Ollama in the suite.
+
+**Docs**
 - User docs track the CLI: any change to a command, an option, or a command's status in
   `docs/development/mvp-roadmap.md` must also update
   [docs/how-to-use.md](docs/how-to-use.md) (the command in both its Bash and PowerShell tabs,
   plus its "Current limitations" list) and the Usage section of [README.md](README.md#usage).
+- `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
+  by GitHub URL.
+- After a rename or behaviour change, grep the docs for the old name or number.
+  `architecture.md`, `mvp-roadmap.md` and `module-diagram.md` (update its edges when imports
+  change) go stale first.
+
+**Git**
 - Branches follow `<type>/<short-description>`, `<type>` being a Conventional Commits type
   (`feat`/`feature`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
   `revert`) — e.g. `feature/config-command`, `chore/refactor-configs`. Checked, advisory-only,
-  by `.github/workflows/branch-naming.yml`.
+  by `.github/workflows/branch-naming.yml`. One concern per branch, from an up-to-date `main`.
+- Commit subjects use Conventional Commits (`feat:` or `feature:`, `fix:`, `refactor:`, `docs:`, `test:`,
+  `chore:`): the changelog is generated from them.
+- Stage by explicit path, never `git add <dir>` or `-A`; untracked local files get swept in.
+- `make check` only sees tracked files: `git add -N` new files first, or they go unchecked.
+- Local scratch files go in `.temp/` (gitignored).
 
 ## Verifying your work
 
