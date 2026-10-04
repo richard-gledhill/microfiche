@@ -54,6 +54,7 @@ def _classified(category: str | None = REQUIREMENTS, group: str | None = GROUP) 
         category=CategoryMatch(name=category, confidence=0.9, reason="category reason"),
         overall_confidence=0.9,
         classified_by="rules_engine",
+        confident=True,
     )
 
 

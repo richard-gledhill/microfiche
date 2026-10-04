@@ -130,3 +130,30 @@ def test_a_sort_can_be_rolled_back_to_the_exact_pre_sort_library(tmp_path: Path)
 
     assert _snapshot(library) == before
     assert Ledger(library / MICROFICHE_DIRNAME).current() == []
+
+
+# "user story" is a keyword hint for 01 Requirements, which scores 0.75: below the default threshold
+# of 0.8, so it is left for review unless the library lowers the threshold.
+_HINT_ONLY_TEXT = "Project Phoenix user story backlog."
+
+
+def test_a_keyword_hint_match_is_left_for_review_at_the_default_threshold(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
+
+    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+
+    assert "backlog.md" in [unit.source_path.name for unit, _ in report.needs_review]
+    assert (library / "_sorting" / "backlog.md").exists()
+
+
+def test_lowering_the_libraries_threshold_files_the_keyword_hint_match(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
+    config = load_config(library / MICROFICHE_DIRNAME)
+    config.classification.confidence_threshold = 0.75
+
+    report = run_sort(library, config)
+
+    assert "backlog.md" in [unit.source_path.name for unit, _ in report.filed]
+    assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()

@@ -2,8 +2,11 @@
 
 from pathlib import Path
 
-from core.config import load_config
+import pytest
+from core.config import ClassificationConfig, load_config
+from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from core.utils.filesystem import is_excluded
+from pydantic import ValidationError
 
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
@@ -25,3 +28,35 @@ def test_load_config_falls_back_to_defaults_when_files_are_missing(tmp_path: Pat
 
     assert config.library_structure.depth == 2
     assert config.exclusions.exclude == []
+
+
+def test_the_default_confidence_threshold_is_high() -> None:
+    assert DEFAULT_CONFIDENCE_THRESHOLD == 0.8
+
+
+def test_the_shipped_config_uses_the_default_confidence_threshold() -> None:
+    assert load_config(_REPO_CONFIG_DIR).classification.confidence_threshold == DEFAULT_CONFIDENCE_THRESHOLD
+
+
+def test_a_missing_classification_table_falls_back_to_the_default_threshold(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[library_structure]\ndepth = 2\n", encoding="utf-8")
+
+    assert load_config(tmp_path).classification.confidence_threshold == DEFAULT_CONFIDENCE_THRESHOLD
+    assert load_config(tmp_path / "does-not-exist").classification.confidence_threshold == DEFAULT_CONFIDENCE_THRESHOLD
+
+
+def test_a_library_can_set_its_own_confidence_threshold(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classification]\nconfidence_threshold = 0.7\n", encoding="utf-8")
+
+    assert load_config(tmp_path).classification.confidence_threshold == 0.7
+
+
+@pytest.mark.parametrize("value", [0.0, 0.5, 1.0])
+def test_thresholds_from_zero_to_one_are_accepted(value: float) -> None:
+    assert ClassificationConfig(confidence_threshold=value).confidence_threshold == value
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.01, 8])
+def test_thresholds_outside_zero_to_one_are_rejected(value: float) -> None:
+    with pytest.raises(ValidationError):
+        ClassificationConfig(confidence_threshold=value)

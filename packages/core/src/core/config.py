@@ -14,6 +14,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
+
 CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
@@ -106,6 +108,20 @@ class NamingRulesConfig(BaseModel):
     rules: dict[str, str] = Field(default_factory=dict)
 
 
+class ClassificationConfig(BaseModel):
+    """How confident microfiche must be before it files a document without asking.
+
+    Attributes:
+        confidence_threshold (float): From 0 to 1. A document is filed automatically only if the
+            weaker of its group and category confidence reaches this; otherwise it is left for
+            review. Higher is stricter. Today's signal strengths are 0.9-1.0 for exact names,
+            0.95 for filename rules, 0.75 for keyword hints and 0.70 for AI answers, so the
+            default of 0.8 leaves hint and AI matches for review; lower it to file those too.
+    """
+
+    confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0.0, le=1.0)
+
+
 class MicroficheConfig(BaseModel):
     """Configuration container for Microfiche.
 
@@ -124,6 +140,8 @@ class MicroficheConfig(BaseModel):
         filing_rules (FilingRulesConfig): Configuration for rules dictating how files
             are organized and filed.
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
+        classification (ClassificationConfig): Configuration for how confident a
+            classification must be before a document is filed automatically.
     """
 
     library_structure: LibraryStructureConfig
@@ -132,6 +150,7 @@ class MicroficheConfig(BaseModel):
     category_hints: CategoryHintsConfig
     filing_rules: FilingRulesConfig
     naming_rules: NamingRulesConfig
+    classification: ClassificationConfig = Field(default_factory=ClassificationConfig)
 
 
 class TomlConfigParseError(ValueError):
@@ -210,4 +229,5 @@ def load_config(config_path: Path) -> MicroficheConfig:
         category_hints=CategoryHintsConfig(**config.get("category_hints", {})),
         filing_rules=FilingRulesConfig(**config.get("filing_rules", {})),
         naming_rules=NamingRulesConfig(**config.get("naming_rules", {})),
+        classification=ClassificationConfig(**config.get("classification", {})),
     )

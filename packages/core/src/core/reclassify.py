@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from core.classifier import CONFIDENCE_THRESHOLD, Classifier
+from core.classifier import Classifier
 from core.config import MicroficheConfig
 from core.extractor import extract
 from core.filer import destination_for, file_batch
@@ -81,7 +81,10 @@ def run_reclassify(
     """
 
     taxonomy = discover_taxonomy(library_root, config.exclusions.exclude)
-    classifier = Classifier(RulesEngine(config.category_hints.categories, config.filing_rules.rules))
+    classifier = Classifier(
+        RulesEngine(config.category_hints.categories, config.filing_rules.rules),
+        threshold=config.classification.confidence_threshold,
+    )
     naming_rules = config.naming_rules.rules
 
     search_root = _search_root(library_root, scope)
@@ -148,7 +151,7 @@ def _plan(
     """Decide what to do with one classified document; ``claimed`` holds destinations already planned."""
 
     group, category = classification.group.name, classification.category.name
-    if group is None or category is None or classification.overall_confidence < CONFIDENCE_THRESHOLD:
+    if group is None or category is None or not classification.confident:
         return ReclassifyProposal(unit, classification, "review")
 
     destination = destination_for(library_root, group, category, unit.source_path.name, naming_rules)

@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from core.ai.llm_classifier import LLMClassifier
-from core.classifier import CONFIDENCE_THRESHOLD, Classifier
+from core.classifier import Classifier
 from core.config import MicroficheConfig
 from core.filer import file_batch
 from core.library.taxonomy import discover_taxonomy
@@ -35,18 +35,18 @@ def run_sort(
     keep_folders: bool = False,
     ai_classifier: LLMClassifier | None = None,
 ) -> SortReport:
-    """Scan the sorting inbox, classify each unit, and file everything at or above the confidence
-    threshold as one job (see ``core.filer``). Anything below it is returned in ``needs_review``
+    """Scan the sorting inbox, classify each unit, and file everything confident enough to
+    file (see ``config.classification.confidence_threshold``) as one job (see ``core.filer``). Anything below it is returned in ``needs_review``
     instead of being moved. ``SortReport.job`` is ``None`` if nothing was filed."""
 
     taxonomy = discover_taxonomy(library_root, config.exclusions.exclude)
     rules_engine = RulesEngine(config.category_hints.categories, config.filing_rules.rules)
-    classifier = Classifier(rules_engine, ai_classifier)
+    classifier = Classifier(rules_engine, ai_classifier, threshold=config.classification.confidence_threshold)
 
     report = SortReport()
     for unit in scan_sorting_inbox(library_root, keep_folders=keep_folders):
         classification = classifier.classify_unit(unit, taxonomy)
-        if classification.overall_confidence >= CONFIDENCE_THRESHOLD:
+        if classification.confident:
             report.filed.append((unit, classification))
         else:
             report.needs_review.append((unit, classification))
