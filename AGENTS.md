@@ -60,12 +60,16 @@ workspace `.venv`.
 
 ### The sort pipeline (`core/organizer.py::run_sort`)
 
-1. **`library/taxonomy.py::discover_taxonomy`** walks the library tree (skipping `_sorting/` and
-   anything in `microfiche-config.toml`'s `[exclusions]` table) and builds `{group_name: [category_name]}`
-   fresh on every run. **The library's own folder structure is the taxonomy — nothing is
+1. **`library/library.py::Library`** is the one place that knows the library's layout: the inbox and
+   state folder, what is excluded, where a unit is filed, and the taxonomy. `Library.taxonomy()` walks the
+   library tree (skipping the inbox, `.microfiche/`, and anything in `microfiche-config.toml`'s
+   `[exclusions]` table — matched against the path *inside* the library, never its parent folders) and builds
+   `{group_name: [category_name]}` fresh on every call. Public functions take a `Library` (`Library(path)`;
+   its config loads lazily from `.microfiche/`). **The library's own folder structure is the taxonomy — nothing is
    persisted or configured separately.** `microfiche-config.toml`'s `[category_hints.categories]` table only supplies
    keyword *hints* for matching against categories that already exist as folders.
-2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in `_sorting/` — either a loose file
+2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in the library's inbox (`_sorting/` unless the
+   config's `[library_structure] library_inbox` says otherwise) — either a loose file
    or (with `--keep-folders`) a whole folder treated as one unit.
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
    the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
@@ -126,7 +130,7 @@ workspace `.venv`.
 
 ### Config resolution
 
-Each library has its own `.microfiche/` (dot-prefixed to stay out of Obsidian's file
+Each library has its own `.microfiche/` — its *state folder* (dot-prefixed to stay out of Obsidian's file
 explorer); `microfiche/` at the repo root is the template copied into a new library.
 `core/config.py::MicroficheConfig` loads and validates all of it. See the table in
 [README.md](README.md#configuration) for what each section governs.

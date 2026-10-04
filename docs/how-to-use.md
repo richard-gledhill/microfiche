@@ -80,6 +80,16 @@ Copy the default config into the library as `.microfiche/` (run from the repo ro
     Copy-Item -Recurse microfiche "$HOME\Documents\Library\.microfiche"
     ```
 
+The inbox is called `_sorting` by default. To use another name — for example `Incoming`, or `sorting`
+if you already have a folder by that name — set `library_inbox` under `[library_structure]` in the config:
+
+```toml
+[library_structure]
+library_inbox = "Incoming"
+```
+
+The inbox and the hidden `.microfiche/` folder are never treated as groups, whatever else you exclude.
+
 Then edit `.microfiche/microfiche-config.toml` in the library to add keyword hints and filename
 rules for your categories. See the [configuration table](https://github.com/richard-gledhill/microfiche#configuration)
 for what each section does.
@@ -196,7 +206,7 @@ has not been tested against real documents yet, so treat it as a cautious starti
 
 ## 3. Sort documents
 
-Drop files (`.docx`, `.pdf`, `.md`, `.txt`, `.eml`, `.msg`) into `_sorting/`, then run:
+Drop files (`.docx`, `.pdf`, `.md`, `.txt`, `.eml`, `.msg`) into the inbox (`_sorting/` unless you named another), then run:
 
 === "Bash"
 

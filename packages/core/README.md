@@ -15,10 +15,10 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 | `parsers/` | Document parsing (PDF, DOCX, TXT, Markdown, MSG, EML). |
 | `rules/` | Deterministic group/category classification rules. |
 | `ai/` | Optional Ollama/OpenAI fallback classification. |
-| `library/` | Taxonomy discovery, category suggestion, naming, templates. |
+| `library/` | The `Library` (layout, exclusions, taxonomy), category suggestion, naming, templates. |
 | `obsidian/` | `index.md` generation and `TagIndex.md`-governed tagging. |
 | `models/` | Shared pydantic models (`Document`, `SortableUnit`, `Taxonomy`, ...). |
-| `config.py` | Per-library YAML config loading. |
+| `config.py` | Per-library TOML config loading. |
 | `utils/` | Filesystem, hashing, logging, and validation helpers. |
 
 See [docs/development/architecture.md](../../docs/development/architecture.md)

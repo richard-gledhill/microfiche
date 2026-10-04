@@ -70,7 +70,7 @@ A library is a folder with two levels of subfolders — **library › group › 
 
 ```text
 Library/
-├── _sorting/             <- inbox: drop new documents here
+├── _sorting/             <- inbox: drop new documents here (the name is configurable)
 ├── .microfiche/          <- config and records (hidden)
 ├── <group>/              <- level 1: what a document belongs to
 │   ├── <category>/       <- level 2: where the file lands
@@ -173,7 +173,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 
 | Section | Purpose |
 |---|---|
-| `library_structure` | The group/category hierarchy. Only the default two levels are implemented today. |
+| `library_structure` | The group/category hierarchy (only the default two levels are implemented today) and `library_inbox`, the name of the inbox folder (default `"_sorting"`). |
 | `classification` | `confidence_threshold` (0–1, default 0.8): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so lower it to file those automatically. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
