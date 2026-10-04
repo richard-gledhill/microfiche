@@ -33,15 +33,21 @@ core/library/taxonomy.py       # walks the library, returns {group: [category, .
 Default library shape, matching the existing example library:
 
 ```
-Projects/
-├── Project Phoenix/          ← level 1: "group"
-│   ├── 01 Requirements/      ← level 2: "category" (files land here)
+Library/
+├── Project Phoenix/          ← level 1: "group" (here, a project)
+│   ├── 01 Requirements/      ← level 2: "category" (files land here; here, a document type)
 │   ├── 02 Architecture/
 │   └── ...
 └── Project Atlas/
     ├── 01 Requirements/
     └── ...
 ```
+
+"Group" and "category" are roles, not meanings. A project is the usual group, but the same two-level shape fits
+other taxonomies — for example project › stage (`Project Phoenix/03 Build/`), client › document type, or
+course › topic. The classifier only ever matches group *names* against document text and category names or
+keyword hints, so the user guides ([README](../../README.md#how-a-library-is-organised),
+[how-to-use](../how-to-use.md#other-ways-to-organise-a-library)) show how to pick names that work.
 
 `.microfiche/microfiche-config.toml`'s `[library_structure]` table:
 ```toml
@@ -55,7 +61,7 @@ Depth is configurable for future flexibility, but 2 is the only depth the MVP im
 ## 3. Sorting is a single, library-wide inbox — two-stage classification
 
 **Decision:** one `_sorting/` folder at the library root, not one per group. This is the harder classification
-problem — every item in it could belong to *any* project — so the classifier runs in two stages:
+problem — every item in it could belong to *any* group — so the classifier runs in two stages:
 
 ```
 core/classifier.py

@@ -1,4 +1,4 @@
-"""Stage 1 classification: which library group (project) does a document belong to."""
+"""Stage 1 classification: which library group (level 1, e.g. a project) does a document belong to."""
 
 from __future__ import annotations
 

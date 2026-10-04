@@ -1,4 +1,4 @@
-"""Creates a new project (group) folder from a named template.
+"""Creates a new group folder (e.g. a project) with its category subfolders from a named template.
 
 Not yet wired to a CLI command (the current CLI surface assumes the library and its groups
 already exist - see docs/development/architecture.md, section 8) but kept here since

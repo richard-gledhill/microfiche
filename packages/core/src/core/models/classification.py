@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class GroupMatch(BaseModel):
-    """Result of resolving which library group (level 1 / project) a document belongs to."""
+    """Result of resolving which library group (level 1, e.g. a project) a document belongs to."""
 
     name: str | None
     confidence: float
