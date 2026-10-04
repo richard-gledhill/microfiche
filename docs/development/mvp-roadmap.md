@@ -10,13 +10,13 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 | Command | Status | Notes |
 |---|---|---|
-| `sort` | Partial | Classifies and files correctly, but doesn't persist anything to `.microfiche/` — `filer.py`/`organizer.py` never call `save_job`, so `audit` and `rollback` have nothing to act on. |
+| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. |
 | `review` | Stub | Exits with a "not implemented" message (`cli/commands.py:49-53`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
-| `resort` | Partial | Dry run works end-to-end. `--apply` is accepted but not wired to `core.filer.file_unit` (`cli/commands.py:85-86`) — it just prints a warning and does nothing. |
+| `resort` | Partial | Dry run works end-to-end. `--apply` is accepted but not wired to `core.filer.file_batch` (`cli/commands.py`) — it just prints a warning and does nothing. |
 | `index` | Stub | Exits with a "not implemented" message (`cli/commands.py:89-93`). The Obsidian modules it would call (`index_writer.py`) exist and are unit-tested in isolation — only the wiring is missing. |
-| `audit` | Partial | Reads `.microfiche/audit.log` if present, but nothing in the codebase ever writes that file. |
-| `rollback` | Partial | `rollback_job`/`load_job` work correctly *if* a job file exists — but nothing ever calls `save_job` to create one, so there's currently no job to roll back. |
+| `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
+| `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. `resort --apply` will reuse it once wired. |
 
 ## Cross-cutting feature status
 
@@ -26,22 +26,25 @@ changes here, update the "Current limitations" list and usage steps in the user-
 - **Obsidian tag governance** (`tag_index.py`, `tag_mapper.py`) — implemented, unit-tested,
   not called from the sort pipeline.
 - **Naming rules** (`library/naming.py`) — wired; `filer.py` applies them before filing.
+- **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
+  sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
+  per filing. Not yet recorded: `tags`, and the per-document breakdown for folder units.
 - **Folder dominant-category voting** — wired, in `classifier.py::Classifier.classify_unit`.
 
 ## Must-fix before MVP
 
 Ranked by how central they are to the product's core promise, not by ease of implementation.
 
-1. **Wire audit/rollback persistence into `run_sort` and `resort --apply`.** The README's
-   central safety claim — "every move is recorded and reversible" — isn't true yet. This is
-   the single highest-priority gap: `sort` needs to call `core.rollback.save_job` after
-   filing, and something needs to write `.microfiche/audit.log`.
+1. ~~Wire audit/rollback persistence into `run_sort` and `resort --apply`.~~ **Done for
+   `sort`:** `core.filer.file_batch` saves the job, appends the ledger and writes
+   `.microfiche/audit.log`, and `rollback` undoes it. `resort --apply` still needs wiring — see 3.
 2. ~~Reconcile the `.logs` vs `logs` path inconsistency.~~ **Resolved, then further
-   consolidated.** `core/models/job.py`'s docstring and `cli/commands.py::_LOGS_DIRNAME` agree
-   on a dot-prefixed convention — and that convention now shares one `.microfiche/` folder with
-   `microfiche-config.toml` (`cli/commands.py::_CONFIG_DIRNAME`), rather than living in a
-   separate `.microfiche-logs/` folder.
-3. **Wire `resort --apply` to the filer**, reusing whatever persistence path (1) establishes.
+   consolidated.** `core/models/job.py`'s docstring and the CLI agree on a dot-prefixed
+   convention — and that convention now shares one `.microfiche/` folder with
+   `microfiche-config.toml` (`core.config.MICROFICHE_DIRNAME`, used by both `core` and the CLI),
+   rather than living in a separate `.microfiche-logs/` folder.
+3. **Wire `resort --apply` to the filer** (`core.filer.file_batch`), reusing the job/ledger/audit
+   persistence from (1).
 4. **Open decision — not resolved here:** are `review` and `index` in MVP scope, or should
    they be explicitly descoped (removed from `cli/app.py` and marked "planned" in the README)
    rather than shipping as a stub that exits 1? This doc surfaces the question; the
@@ -57,7 +60,7 @@ RAG, and knowledge-graph work are future-roadmap items, not MVP scope.
 ## See also
 
 - [architecture.md](architecture.md) — the current design this status is measured against.
-- [data-model.md](data-model.md) — the sidecar/audit/rollback schemas referenced above.
+- [data-model.md](data-model.md) — the ledger/audit/rollback schemas referenced above.
 - [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to MVP
   (Plan/Design/Build/Test/Deploy per stage), if you're sequencing the work in this doc rather
   than just tracking status.

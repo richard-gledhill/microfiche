@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-09-27. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-04. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -25,9 +25,9 @@ flowchart TD
         core_scanner["scanner.py"]
         core_extractor["extractor.py"]
         core_classifier["classifier.py"]
-        core_filer["filer.py"]
+        core_filer["filer.py (file_batch + rollback_job)"]
+        core_ledger["ledger.py"]
         core_resort["resort.py"]
-        core_rollback["rollback.py"]
         core_config["config.py"]
     end
 
@@ -38,6 +38,7 @@ flowchart TD
         m_classification["classification.py"]
         m_audit["audit_event.py"]
         m_job["job.py"]
+        m_ledger["ledger.py"]
     end
 
     subgraph PARSERS["core/parsers"]
@@ -83,7 +84,7 @@ flowchart TD
 
     subgraph UTILS["core/utils"]
         u_filesystem["filesystem.py"]
-        u_hashing["hashing.py (unused)"]
+        u_hashing["hashing.py"]
         u_logging["logging.py (unused)"]
         u_validation["validation.py (unused)"]
     end
@@ -97,7 +98,7 @@ flowchart TD
     cli_commands --> l_suggester
     cli_commands --> core_organizer
     cli_commands --> core_resort
-    cli_commands --> core_rollback
+    cli_commands --> core_filer
     cli_commands --> core_scanner
     cli_display --> core_config
     cli_display --> core_organizer
@@ -110,6 +111,7 @@ flowchart TD
     core_organizer --> l_taxonomy
     core_organizer --> m_audit
     core_organizer --> m_classification
+    core_organizer --> m_job
     core_organizer --> m_unit
     core_organizer --> r_engine
     core_organizer --> core_scanner
@@ -128,12 +130,19 @@ flowchart TD
     core_classifier --> r_confidence
     core_classifier --> r_engine
 
+    core_filer --> core_config
+    core_filer --> core_ledger
     core_filer --> l_folder_mapping
     core_filer --> l_naming
     core_filer --> m_audit
     core_filer --> m_classification
+    core_filer --> m_job
+    core_filer --> m_ledger
     core_filer --> m_unit
     core_filer --> u_filesystem
+    core_filer --> u_hashing
+
+    core_ledger --> m_ledger
 
     core_resort --> core_classifier
     core_resort --> core_config
@@ -144,10 +153,6 @@ flowchart TD
     core_resort --> p_init
     core_resort --> r_engine
     core_resort --> u_filesystem
-
-    core_rollback --> m_audit
-    core_rollback --> m_job
-    core_rollback --> u_filesystem
 
     m_unit --> m_document
     m_job --> m_audit
@@ -191,8 +196,9 @@ flowchart TD
 ```
 
 **Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`openai_provider.py`,
-`templates.py`, the three `core/utils` helpers, and the entire `core/obsidian` subgraph) aren't
-dead code — they're implemented and tested, just not yet called from `organizer.py`/`filer.py`.
+`templates.py`, the `logging.py` and `validation.py` helpers, and the entire `core/obsidian`
+subgraph) aren't dead code — they're implemented and tested, just not yet called from
+`organizer.py`/`filer.py`.
 That's the gap this roadmap doc tracks, not a diagramming omission.
 
 ## 2. Sort pipeline data flow
@@ -218,29 +224,31 @@ flowchart TD
     RulesEngine -->|"confidence < 0.6 and --use-ai"| LLM["LLMClassifier\n(OllamaProvider today; OpenAIProvider exists,\nnot wired to a CLI flag)"]
     LLM --> Result
 
-    Result -->|">= threshold"| FileUnit["filer.file_unit()"]
+    Result -->|">= threshold"| FileUnit["filer.file_batch()\n(one Job per run)"]
     Result -->|"< threshold"| NeedsReview[["SortReport.needs_review\n(microfiche review is a stub - see mvp-roadmap.md)"]]
 
     FileUnit --> FiledDoc[("moved into\nresolved group/category folder")]
-    FileUnit --> Sidecar[("*.metadata.json sidecar")]
-    FileUnit --> AuditEvent["AuditEvent\n(in memory: SortReport.audit_events)"]
-
-    AuditEvent -.->|"NOT WIRED YET: save_job() is never\ncalled from run_sort() - see mvp-roadmap.md"| JobFile[(".microfiche/rollback/job_ID.json")]
-    JobFile -->|"rollback_job()"| Rollback["replays AuditEvents\nin reverse order"]
+    FileUnit --> Ledger[(".microfiche/ledger.jsonl\n(what, where, why; keyed by path + hash)")]
+    FileUnit --> AuditLog[(".microfiche/audit.log\n(one line per move)")]
+    FileUnit --> JobFile[(".microfiche/rollback/job_ID.json")]
+    JobFile -->|"rollback_job()"| Rollback["replays the Job's moves\nin reverse order"]
+    Rollback --> Ledger
+    Rollback --> AuditLog
 
     FiledDoc -.->|"NOT WIRED YET: index_writer/tag_mapper\nare implemented but not called from filer.py"| ObsidianOut[("index.md / TagIndex.md")]
 
     classDef gap fill:#fff3cd,stroke:#c9a227,stroke-width:2px
-    class NeedsReview,JobFile,Rollback,ObsidianOut gap
+    class NeedsReview,ObsidianOut gap
 ```
 
-Solid arrows are wired end to end today; dashed arrows and the highlighted boxes are real,
-tested code paths (`rollback.py`, `core/obsidian/`) that nothing in the `sort` pipeline calls
-yet. `resort.py` reuses `Classifier`/`RulesEngine` the same way against already-filed documents
-instead of the `_sorting/` inbox, and is dry-run only until `--apply` is wired to `filer.py`.
+Solid arrows are wired end to end today; dashed arrows and the highlighted boxes are real code
+paths (`core/obsidian/`, the `review` queue) that nothing in the `sort` pipeline calls yet.
+`resort.py` reuses `Classifier`/`RulesEngine` the same way against already-filed documents
+instead of the `_sorting/` inbox, and is dry-run only until `--apply` is wired to
+`filer.file_batch`.
 
 ## See also
 
 - [architecture.md](architecture.md) — the design narrative these diagrams visualize.
 - [mvp-roadmap.md](mvp-roadmap.md) — status per feature; explains every "not yet wired" node above.
-- [data-model.md](data-model.md) — the `AuditEvent`/`Job`/sidecar schemas referenced here.
+- [data-model.md](data-model.md) — the ledger, `AuditEvent`, `Job` and `audit.log` schemas referenced here.

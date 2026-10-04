@@ -47,6 +47,11 @@ def render_sort_report(console: Console, report: SortReport) -> None:
         )
     for unit, classification in report.needs_review:
         console.print(f"  [yellow]{unit.source_path.name}[/yellow] — {classification.category.reason}")
+    if report.job is not None:
+        console.print(f"Job: {report.job.job_id}", soft_wrap=True)
+        console.print(
+            f"Undo with: microfiche rollback --library <your library> --job-id {report.job.job_id}", soft_wrap=True
+        )
 
 
 def render_resort_table(console: Console, proposals: list[ResortProposal]) -> None:

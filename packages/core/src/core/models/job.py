@@ -10,8 +10,12 @@ from core.models.audit_event import AuditEvent
 
 
 class Job(BaseModel):
-    """Everything needed to undo one run. Persisted to ``<library>/.microfiche-logs/rollback/job_<id>.json``."""
+    """Everything needed to undo one run. Persisted to ``<library>/.microfiche/rollback/job_<id>.json``.
+
+    ``rolled_back_at`` is set once the job has been rolled back, so it can't be rolled back twice.
+    """
 
     job_id: str
     created_at: datetime = Field(default_factory=datetime.now)
     moves: list[AuditEvent] = Field(default_factory=list)
+    rolled_back_at: datetime | None = None

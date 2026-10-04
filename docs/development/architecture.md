@@ -2,7 +2,8 @@
 
 This supersedes the folder/module layout in [20260707_microfiche_prd_concept_1b.md](archive/20260707_microfiche_prd_concept_1b.md)
 for the points below. Concept 1b's core principle — **the filesystem is the source of truth, no database,
-JSON sidecars + JSON rollback jobs** — is unchanged and still governs everything here.
+plain files only (originally JSON sidecars; now a JSONL ledger in `.microfiche/`, see §7) plus JSON rollback jobs**
+— is unchanged and still governs everything here.
 
 ## Why this revision exists
 
@@ -98,7 +99,7 @@ core/models/unit.py
 **Decision — mixed-category folders:** dominant category wins. Every document inside a folder unit is
 classified individually (both stages); the folder is filed as a whole under whichever `(group, category)` pair
 has the highest combined confidence / vote count across its documents. Per-document classification results are
-still recorded (in the folder's sidecar, see §6) even though only one filing decision is physically applied —
+meant to be recorded (in the ledger, see §7 — not implemented yet) even though only one filing decision is physically applied —
 so a human can see *why* a folder landed where it did. A folder with no majority (e.g. an even split across two
 groups) is treated as "no group found" and routed to review, same as an individual unresolved document.
 
@@ -161,21 +162,21 @@ so it always reflects current contents. Format:
 Relative markdown links `[Title](file.ext)` are used for non-Markdown files (PDF/DOCX); `[[wikilinks]]` for
 `.md` notes, matching normal Obsidian conventions.
 
-## 7. Sidecar metadata schema (extended)
+## 7. Classification ledger (replaces per-file sidecars)
 
-`*.metadata.json` gains fields beyond concept 1b's original three:
+Concept 1b wrote a `*.metadata.json` sidecar beside every filed document. That is replaced by a single
+append-only ledger, `.microfiche/ledger.jsonl`, with one record per filing (and one per rollback):
 ```json
-{
-  "group": "Project Phoenix",
-  "category": "01 Requirements",
-  "unit_type": "file",
-  "confidence": 0.91,
-  "classified_by": "rules_engine",
-  "tags": ["requirements", "phoenix"],
-  "processed_date": "2026-09-07"
-}
+{"event": "filed", "job_id": "20261004-153012-a1b2c3", "path": "Project Phoenix/01 Requirements/architecture_review.md",
+ "original_path": "_sorting/architecture_review.md", "content_hash": "9f2c…", "unit_type": "file",
+ "group": "Project Phoenix", "category": "01 Requirements", "confidence": 0.91, "classified_by": "rules_engine", …}
 ```
-A folder unit's sidecar additionally carries the per-document breakdown used to pick the dominant category.
+Why: sidecars doubled the file count of a vault, went stale when a file was renamed or moved outside microfiche, were
+left behind by rollback (nothing recorded them), and nothing ever read them. The ledger lives with the rest of
+microfiche's own state in the hidden `.microfiche/` folder, is keyed by **path + content hash** so a record can be
+found again after a move or rename, and is replayed to get the library's current state. Full schema and semantics:
+[data-model.md](data-model.md). Still to add: `tags`, and for a folder unit the per-document breakdown used to pick
+the dominant category.
 
 ## 8. CLI surface (supersedes concept 1a's command list)
 
@@ -198,5 +199,5 @@ resolution and for `propose-categories --use-ai`, not a always-on classification
 ## See also
 
 - [mvp-roadmap.md](mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
-- [data-model.md](data-model.md) — the sidecar/`AuditEvent`/`Job` schemas as actually implemented.
+- [data-model.md](data-model.md) — the ledger/`AuditEvent`/`Job`/`audit.log` schemas as actually implemented.
 - [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to this design.

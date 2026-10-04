@@ -77,6 +77,8 @@ Filed: 12
 Needs review: 3
   architecture_notes.docx -> Project Phoenix/02 Architecture (confidence 0.91, via rules_engine)
   ...
+Job: 20261004-153012-a1b2c3
+Undo with: microfiche rollback --library <your library> --job-id 20261004-153012-a1b2c3
 ```
 
 Other commands:
