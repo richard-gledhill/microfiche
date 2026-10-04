@@ -148,7 +148,8 @@ class ClassificationConfig(BaseModel):
             weaker of its group and category confidence reaches this; otherwise it is left for
             review. Higher is stricter. Today's signal strengths are 0.9-1.0 for exact names,
             0.95 for filename rules, 0.75 for keyword hints and 0.70 for AI answers, so the
-            default of 0.8 leaves hint and AI matches for review; lower it to file those too.
+            default of 0.75 files everything except AI answers; raise it to 0.8 to hold keyword-hint
+            matches for review too, or lower it to 0.7 to file AI answers.
     """
 
     confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0.0, le=1.0)

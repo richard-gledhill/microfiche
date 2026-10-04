@@ -259,17 +259,19 @@ def test_a_scope_outside_the_library_is_refused(tmp_path: Path) -> None:
 
 
 def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_moved(tmp_path: Path) -> None:
+    """A keyword hint scores 0.75: it is moved at the default threshold, held if the library raises it."""
+
     library = _library(tmp_path)
     _write(library, f"{_RESEARCH}/backlog.md", "Project Phoenix user story backlog.")  # keyword hint: 0.75
     lib = Library(library)
 
     at_default = _by_name(run_reclassify(lib))["backlog.md"]
-    lib.config.classification.confidence_threshold = 0.75
-    lowered = _by_name(run_reclassify(lib))["backlog.md"]
+    lib.config.classification.confidence_threshold = 0.8
+    raised = _by_name(run_reclassify(lib))["backlog.md"]
 
-    assert at_default.action == "review"
-    assert lowered.action == "move"
-    assert lowered.destination == library / _REQUIREMENTS / "backlog.md"
+    assert at_default.action == "move"
+    assert at_default.destination == library / _REQUIREMENTS / "backlog.md"
+    assert raised.action == "review"
 
 
 def test_an_unreadable_file_is_left_for_review_and_does_not_stop_the_rest(tmp_path: Path) -> None:

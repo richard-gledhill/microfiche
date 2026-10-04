@@ -1,0 +1,22 @@
+{
+  "Databases/01 Lectures/normalisation-lectures.md": "clear",
+  "Databases/02 Assignments/schema-assignment.md": "hint",
+  "Databases/03 Readings/textbook-ch2.md": "hint",
+  "Databases/04 Exams/revision.md": "hint",
+  "Linear Algebra/01 Lectures/eigen-lectures.md": "clear",
+  "Linear Algebra/02 Assignments/hw3.md": "hint",
+  "Linear Algebra/03 Readings/text-ch2.md": "hint",
+  "Linear Algebra/04 Exams/exam-info.md": "hint",
+  "Machine Learning/01 Lectures/feature-store.md": "fuzzy",
+  "Machine Learning/01 Lectures/kernel-lecture.md": "shortform",
+  "Machine Learning/01 Lectures/reg-slides.md": "hint",
+  "Machine Learning/01 Lectures/week5.md": "clear",
+  "Machine Learning/02 Assignments/a2.md": "hint",
+  "Machine Learning/02 Assignments/a4.md": "crossref",
+  "Machine Learning/03 Readings/ch4.md": "hint",
+  "Machine Learning/03 Readings/optimiser-list.md": "incidental-hint",
+  "Machine Learning/04 Exams/mid-practice.md": "hint",
+  "_unfiled/course-survey.md": "nogroup",
+  "_unfiled/data-structures.md": "lookalike",
+  "_unfiled/library-hours.md": "nogroup"
+}

@@ -1,0 +1,1 @@
+Project Phoenix - System Architecture Notes. Scan events are published to a message queue rather than written directly to the database, so the dashboard service can consume them independently of ingestion.

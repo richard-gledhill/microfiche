@@ -133,31 +133,31 @@ def test_a_sort_can_be_rolled_back_to_the_exact_pre_sort_library(tmp_path: Path)
     assert Ledger(library / MICROFICHE_DIRNAME).current() == []
 
 
-# "user story" is a keyword hint for 01 Requirements, which scores 0.75: below the default threshold
-# of 0.8, so it is left for review unless the library lowers the threshold.
+# "user story" is a keyword hint for 01 Requirements, which scores 0.75: it files at the default
+# threshold (0.75), and is left for review if the library raises the threshold above it.
 _HINT_ONLY_TEXT = "Project Phoenix user story backlog."
 
 
-def test_a_keyword_hint_match_is_left_for_review_at_the_default_threshold(tmp_path: Path) -> None:
+def test_a_keyword_hint_match_is_filed_at_the_default_threshold(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
 
     report = run_sort(Library(library))
 
-    assert "backlog.md" in [unit.source_path.name for unit, _ in report.needs_review]
-    assert (library / "_sorting" / "backlog.md").exists()
+    assert "backlog.md" in [unit.source_path.name for unit, _ in report.filed]
+    assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()
 
 
-def test_lowering_the_libraries_threshold_files_the_keyword_hint_match(tmp_path: Path) -> None:
+def test_raising_the_libraries_threshold_leaves_the_keyword_hint_match_for_review(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
     lib = Library(library)
-    lib.config.classification.confidence_threshold = 0.75
+    lib.config.classification.confidence_threshold = 0.8
 
     report = run_sort(lib)
 
-    assert "backlog.md" in [unit.source_path.name for unit, _ in report.filed]
-    assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()
+    assert "backlog.md" in [unit.source_path.name for unit, _ in report.needs_review]
+    assert (library / "_sorting" / "backlog.md").exists()
 
 
 def test_one_unreadable_file_does_not_stop_the_rest_of_the_inbox_being_sorted(tmp_path: Path) -> None:

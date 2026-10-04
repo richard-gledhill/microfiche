@@ -94,10 +94,16 @@ def test_the_threshold_boundary_is_inclusive() -> None:
     assert Classifier(rules, threshold=0.81).classify_document(_document(), TAXONOMY).confident is False
 
 
-def test_the_default_threshold_is_high_enough_to_leave_keyword_hint_matches_for_review() -> None:
+def test_the_default_threshold_files_keyword_hint_matches() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.75))  # a keyword-hint score
 
-    result = Classifier(rules).classify_document(_document(), TAXONOMY)
+    assert Classifier(rules).classify_document(_document(), TAXONOMY).confident is True
+
+
+def test_a_stricter_threshold_leaves_keyword_hint_matches_for_review() -> None:
+    rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.75))
+
+    result = Classifier(rules, threshold=0.8).classify_document(_document(), TAXONOMY)
 
     assert result.confident is False
     assert result.category.name == ARCH  # still suggested, just not filed
@@ -143,7 +149,7 @@ def test_the_ai_saying_none_keeps_the_weak_rules_suggestion() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 0.85), _category(ARCH, 0.75))
     fallback = FakeResolver("ai_fallback", _group(None), _category(None))
 
-    result = Classifier(rules, fallback).classify_document(_document(), TAXONOMY)
+    result = Classifier(rules, fallback, threshold=0.8).classify_document(_document(), TAXONOMY)  # 0.75 is weak at 0.8
 
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
     assert result.classified_by == "rules_engine"
@@ -164,7 +170,7 @@ def test_an_ai_answer_below_the_threshold_is_used_but_not_confident() -> None:
     rules = FakeResolver("rules_engine", _group(None), _category(None))
     fallback = FakeResolver("ai_fallback", _group(PHOENIX, 0.7), _category(ARCH, 0.7))
 
-    result = Classifier(rules, fallback).classify_document(_document(), TAXONOMY)  # default threshold 0.8
+    result = Classifier(rules, fallback).classify_document(_document(), TAXONOMY)  # default threshold 0.75
 
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
     assert result.confident is False

@@ -1,0 +1,18 @@
+{
+  "Car/Bills/service-invoice.md": "hint",
+  "Car/Documents/mot.md": "hint",
+  "Car/Insurance/renewal.md": "clear",
+  "Health/Bills/physio-invoice.md": "hint",
+  "Health/Documents/vaccination.md": "hint",
+  "Health/Insurance/health-insurance.md": "clear",
+  "Health/Insurance/plan-renewal.md": "shortname",
+  "Home/Bills/card-statement.md": "shortname",
+  "Home/Bills/council-tax.md": "shortform",
+  "Home/Bills/energy-bill.md": "hint",
+  "Home/Documents/cert-copy.md": "crossref",
+  "Home/Documents/title-deeds.md": "clear",
+  "Home/Insurance/home-insurance.md": "clear",
+  "_unfiled/gift-list.md": "nogroup",
+  "_unfiled/party-ideas.md": "nogroup",
+  "_unfiled/weekend-away.md": "nogroup"
+}

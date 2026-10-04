@@ -1,0 +1,1 @@
+Project Phoenix DR-007: use a message queue between the scanner gateway and the database. Status: accepted. Context: ingestion bursts at shift change. Decision: RabbitMQ. The system diagram is on the wiki.

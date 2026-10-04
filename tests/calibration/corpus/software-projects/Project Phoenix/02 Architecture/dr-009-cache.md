@@ -1,0 +1,1 @@
+Project Phoenix DR-009: add a cache in front of the dashboard queries. Context: the requirement for sub-second refresh rules out hitting the primary database on every poll. Decision: Redis with a 5 second TTL. See the system diagram.

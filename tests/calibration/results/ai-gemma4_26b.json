@@ -1,0 +1,1713 @@
+[
+  {
+    "taxonomy": "client-work",
+    "path": "_unfiled/invoice-template.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "_unfiled/supplier-onboarding.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "_unfiled/year-end.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Contracts/contracts-register.md",
+    "kind": "clear",
+    "truth": [
+      "Acme Ltd",
+      "Contracts"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Contracts",
+    "category_raw": "Contracts"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Contracts/limited-draft.md",
+    "kind": "fuzzy",
+    "truth": [
+      "Acme Ltd",
+      "Contracts"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Contracts",
+    "category_raw": "Contracts"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Contracts/services-agreement.md",
+    "kind": "hint",
+    "truth": [
+      "Acme Ltd",
+      "Contracts"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Contracts",
+    "category_raw": "Contracts"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Correspondence/renewal-thread.md",
+    "kind": "clear",
+    "truth": [
+      "Acme Ltd",
+      "Correspondence"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Correspondence",
+    "category_raw": "Correspondence"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Correspondence/resend-signed.md",
+    "kind": "hintcollision",
+    "truth": [
+      "Acme Ltd",
+      "Correspondence"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Correspondence",
+    "category_raw": "Correspondence"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Invoices/acme-invoice-0413.md",
+    "kind": "shortform",
+    "truth": [
+      "Acme Ltd",
+      "Invoices"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Invoices",
+    "category_raw": "Invoices"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Invoices/invoice-2026-0412.md",
+    "kind": "rule",
+    "truth": [
+      "Acme Ltd",
+      "Invoices"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Invoices",
+    "category_raw": "Invoices"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Invoices/march-charges.md",
+    "kind": "hint",
+    "truth": [
+      "Acme Ltd",
+      "Invoices"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Invoices",
+    "category_raw": "Invoices"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Reports/onboarding-review.md",
+    "kind": "incidental-hint",
+    "truth": [
+      "Acme Ltd",
+      "Reports"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Reports",
+    "category_raw": "Reports"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Acme Ltd/Reports/q1-summary.md",
+    "kind": "hint",
+    "truth": [
+      "Acme Ltd",
+      "Reports"
+    ],
+    "group": "Acme Ltd",
+    "group_raw": "Acme Ltd",
+    "category": "Reports",
+    "category_raw": "Reports"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Globex/Contracts/retainer-terms.md",
+    "kind": "hint",
+    "truth": [
+      "Globex",
+      "Contracts"
+    ],
+    "group": "Globex",
+    "group_raw": "Globex",
+    "category": "Contracts",
+    "category_raw": "Contracts"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Globex/Correspondence/change-requests.md",
+    "kind": "clear",
+    "truth": [
+      "Globex",
+      "Correspondence"
+    ],
+    "group": "Globex",
+    "group_raw": "Globex",
+    "category": "Correspondence",
+    "category_raw": "Correspondence"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Globex/Invoices/invoice-2026-0388.md",
+    "kind": "rule",
+    "truth": [
+      "Globex",
+      "Invoices"
+    ],
+    "group": "Globex",
+    "group_raw": "Globex",
+    "category": "Invoices",
+    "category_raw": "Invoices"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Globex/Reports/benchmark.md",
+    "kind": "crossref",
+    "truth": [
+      "Globex",
+      "Reports"
+    ],
+    "group": "Globex",
+    "group_raw": "Globex",
+    "category": "Reports",
+    "category_raw": "Reports"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Globex/Reports/retainer-year.md",
+    "kind": "hint",
+    "truth": [
+      "Globex",
+      "Reports"
+    ],
+    "group": "Globex",
+    "group_raw": "Globex",
+    "category": "Reports",
+    "category_raw": "Reports"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Initech/Contracts/migration-sow.md",
+    "kind": "hint",
+    "truth": [
+      "Initech",
+      "Contracts"
+    ],
+    "group": "Initech",
+    "group_raw": "Initech",
+    "category": "Contracts",
+    "category_raw": "Contracts"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Initech/Correspondence/forwarded-terms.md",
+    "kind": "crossref",
+    "truth": [
+      "Initech",
+      "Correspondence"
+    ],
+    "group": "Initech",
+    "group_raw": "Initech",
+    "category": "Correspondence",
+    "category_raw": "Correspondence"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Initech/Correspondence/move-review.md",
+    "kind": "hint",
+    "truth": [
+      "Initech",
+      "Correspondence"
+    ],
+    "group": "Initech",
+    "group_raw": "Initech",
+    "category": "Correspondence",
+    "category_raw": "Correspondence"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Initech/Invoices/milestone-3.md",
+    "kind": "hint",
+    "truth": [
+      "Initech",
+      "Invoices"
+    ],
+    "group": "Initech",
+    "group_raw": "Initech",
+    "category": "Invoices",
+    "category_raw": "Invoices"
+  },
+  {
+    "taxonomy": "client-work",
+    "path": "Initech/Reports/migration-progress.md",
+    "kind": "hint",
+    "truth": [
+      "Initech",
+      "Reports"
+    ],
+    "group": "Initech",
+    "group_raw": "Initech",
+    "category": "Reports",
+    "category_raw": "Reports"
+  },
+  {
+    "taxonomy": "household",
+    "path": "_unfiled/gift-list.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "household",
+    "path": "_unfiled/party-ideas.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "household",
+    "path": "_unfiled/weekend-away.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "household",
+    "path": "Car/Bills/service-invoice.md",
+    "kind": "hint",
+    "truth": [
+      "Car",
+      "Bills"
+    ],
+    "group": "Car",
+    "group_raw": "Car",
+    "category": "Bills",
+    "category_raw": "Bills"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Car/Documents/mot.md",
+    "kind": "hint",
+    "truth": [
+      "Car",
+      "Documents"
+    ],
+    "group": "Car",
+    "group_raw": "Car",
+    "category": "Documents",
+    "category_raw": "Documents"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Car/Insurance/renewal.md",
+    "kind": "clear",
+    "truth": [
+      "Car",
+      "Insurance"
+    ],
+    "group": "Car",
+    "group_raw": "Car",
+    "category": "Insurance",
+    "category_raw": "Insurance"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Health/Bills/physio-invoice.md",
+    "kind": "hint",
+    "truth": [
+      "Health",
+      "Bills"
+    ],
+    "group": "Health",
+    "group_raw": "Health",
+    "category": "Bills",
+    "category_raw": "Bills"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Health/Documents/vaccination.md",
+    "kind": "hint",
+    "truth": [
+      "Health",
+      "Documents"
+    ],
+    "group": "Health",
+    "group_raw": "Health",
+    "category": "Documents",
+    "category_raw": "Documents"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Health/Insurance/health-insurance.md",
+    "kind": "clear",
+    "truth": [
+      "Health",
+      "Insurance"
+    ],
+    "group": "Health",
+    "group_raw": "Health",
+    "category": "Insurance",
+    "category_raw": "Insurance"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Health/Insurance/plan-renewal.md",
+    "kind": "shortname",
+    "truth": [
+      "Health",
+      "Insurance"
+    ],
+    "group": "Health",
+    "group_raw": "Health",
+    "category": "Insurance",
+    "category_raw": "Insurance"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Bills/card-statement.md",
+    "kind": "shortname",
+    "truth": [
+      "Home",
+      "Bills"
+    ],
+    "group": "Home",
+    "group_raw": "Home",
+    "category": "Bills",
+    "category_raw": "Bills"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Bills/council-tax.md",
+    "kind": "shortform",
+    "truth": [
+      "Home",
+      "Bills"
+    ],
+    "group": "Home",
+    "group_raw": "Home",
+    "category": "Bills",
+    "category_raw": "Bills"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Bills/energy-bill.md",
+    "kind": "hint",
+    "truth": [
+      "Home",
+      "Bills"
+    ],
+    "group": "Home",
+    "group_raw": "Home",
+    "category": "Bills",
+    "category_raw": "Bills"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Documents/cert-copy.md",
+    "kind": "crossref",
+    "truth": [
+      "Home",
+      "Documents"
+    ],
+    "group": "Health",
+    "group_raw": "Health",
+    "category": "Insurance",
+    "category_raw": "Insurance"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Documents/title-deeds.md",
+    "kind": "clear",
+    "truth": [
+      "Home",
+      "Documents"
+    ],
+    "group": "Home",
+    "group_raw": "Home",
+    "category": "Documents",
+    "category_raw": "Documents"
+  },
+  {
+    "taxonomy": "household",
+    "path": "Home/Insurance/home-insurance.md",
+    "kind": "clear",
+    "truth": [
+      "Home",
+      "Insurance"
+    ],
+    "group": "Home",
+    "group_raw": "Home",
+    "category": "Insurance",
+    "category_raw": "Insurance"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "_unfiled/laptop-refresh.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "_unfiled/offsite-agenda.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/01 Discovery/carrier-discovery.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "01 Discovery"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "01 Discovery",
+    "category_raw": "01 Discovery"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/02 Design/planner-mockup.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "02 Design"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "02 Design",
+    "category_raw": "02 Design"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/02 Design/wireframe-planner.md",
+    "kind": "shortform",
+    "truth": [
+      "Project Atlas",
+      "02 Design"
+    ],
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/03 Build/engine-impl.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "03 Build"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "03 Build",
+    "category_raw": "03 Build"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/03 Build/frozen-design.md",
+    "kind": "incidental",
+    "truth": [
+      "Project Atlas",
+      "03 Build"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "03 Build",
+    "category_raw": "03 Build"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Atlas/04 Launch/launch-checklist.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "04 Launch"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/01 Discovery/discovery-interviews.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "01 Discovery"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Discovery",
+    "category_raw": "01 Discovery"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/01 Discovery/problem-statement.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "01 Discovery"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Discovery",
+    "category_raw": "01 Discovery"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/01 Discovery/research-summary.md",
+    "kind": "incidental",
+    "truth": [
+      "Project Phoenix",
+      "01 Discovery"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Discovery",
+    "category_raw": "01 Discovery"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/02 Design/banner-decision.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "02 Design"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Design",
+    "category_raw": "02 Design"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/02 Design/design-review.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "02 Design"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Design",
+    "category_raw": "02 Design"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/02 Design/wireframe-v3.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "02 Design"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Design",
+    "category_raw": "02 Design"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/03 Build/phoenix-dependency.md",
+    "kind": "crossref",
+    "truth": [
+      "Project Phoenix",
+      "03 Build"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Build",
+    "category_raw": "03 Build"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/03 Build/pr-214.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "03 Build"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Build",
+    "category_raw": "03 Build"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/03 Build/sprint-4-build-log.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "03 Build"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Build",
+    "category_raw": "03 Build"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/04 Launch/go-live-checklist.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "04 Launch"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/04 Launch/launch-plan-v1.md",
+    "kind": "rule",
+    "truth": [
+      "Project Phoenix",
+      "04 Launch"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/04 Launch/launch-retro.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "04 Launch"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/04 Launch/pilot-notes.md",
+    "kind": "incidental",
+    "truth": [
+      "Project Phoenix",
+      "04 Launch"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "project-stages",
+    "path": "Project Phoenix/04 Launch/release-1-0.md",
+    "kind": "hintcollision",
+    "truth": [
+      "Project Phoenix",
+      "04 Launch"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Launch",
+    "category_raw": "04 Launch"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/atlantic-kickoff.md",
+    "kind": "lookalike",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/expense-policy.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/holiday-rota.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/newsletter.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/office-move.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/phoenix-rising.md",
+    "kind": "lookalike",
+    "truth": null,
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/security-training.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "_unfiled/zeppelin-notes.md",
+    "kind": "lookalike",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/01 Requirements/planner-story.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "01 Requirements"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/01 Requirements/rate-engine-spec.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "01 Requirements"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/01 Requirements/scan-feed-need.md",
+    "kind": "crossref",
+    "truth": [
+      "Project Atlas",
+      "01 Requirements"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/02 Architecture/rate-engine-architecture.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "02 Architecture"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/02 Architecture/tariff-reload.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "02 Architecture"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/03 Research/competitor-quotes.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "03 Research"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/03 Research/dynamic-pricing.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "03 Research"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/04 Meeting Notes/launch-retro.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/04 Meeting Notes/meeting-notes-2026-02-17.md",
+    "kind": "rule",
+    "truth": [
+      "Project Atlas",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/05 Correspondence/sandbox-access.md",
+    "kind": "hint",
+    "truth": [
+      "Project Atlas",
+      "05 Correspondence"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Atlas/05 Correspondence/tariff-vendor.md",
+    "kind": "clear",
+    "truth": [
+      "Project Atlas",
+      "05 Correspondence"
+    ],
+    "group": "Project Atlas",
+    "group_raw": "Project Atlas",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/alert-rules.md",
+    "kind": "incidental-hint",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/backlog-march.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/functional-spec.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/manifest-import.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/release-plan.md",
+    "kind": "shortform",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/01 Requirements/scanner-features.md",
+    "kind": "incidental",
+    "truth": [
+      "Project Phoenix",
+      "01 Requirements"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/02 Architecture/architecture-notes.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "02 Architecture"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/02 Architecture/carrier-adapter.md",
+    "kind": "crossref",
+    "truth": [
+      "Project Phoenix",
+      "02 Architecture"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/02 Architecture/deployment.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "02 Architecture"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/02 Architecture/dr-007-queue.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "02 Architecture"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/02 Architecture/dr-009-cache.md",
+    "kind": "hintcollision",
+    "truth": [
+      "Project Phoenix",
+      "02 Architecture"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/03 Research/broker-reading.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "03 Research"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/03 Research/kafka-vs-rabbit.md",
+    "kind": "incidental",
+    "truth": [
+      "Project Phoenix",
+      "03 Research"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/03 Research/scanner-vendors.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "03 Research"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/03 Research/vendor-demo.md",
+    "kind": "fuzzy",
+    "truth": [
+      "Project Phoenix",
+      "03 Research"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/03 Research/vision-scanning.md",
+    "kind": "crossref",
+    "truth": [
+      "Project Phoenix",
+      "03 Research"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/04 Meeting Notes/kickoff.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/04 Meeting Notes/meeting-notes-2026-03-02.md",
+    "kind": "rule",
+    "truth": [
+      "Project Phoenix",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/04 Meeting Notes/retro.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/04 Meeting Notes/sprint-12-review.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/04 Meeting Notes/steering-2026-03-30.md",
+    "kind": "shortform",
+    "truth": [
+      "Project Phoenix",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/05 Correspondence/carrier-thread.md",
+    "kind": "clear",
+    "truth": [
+      "Project Phoenix",
+      "05 Correspondence"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/05 Correspondence/pilot-confirmation.md",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "05 Correspondence"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Phoenix/05 Correspondence/re-pilot-site.eml",
+    "kind": "hint",
+    "truth": [
+      "Project Phoenix",
+      "05 Correspondence"
+    ],
+    "group": "Project Phoenix",
+    "group_raw": "Project Phoenix",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/01 Requirements/driver-app-spec.md",
+    "kind": "clear",
+    "truth": [
+      "Project Zephyr",
+      "01 Requirements"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/01 Requirements/offline-story.md",
+    "kind": "hint",
+    "truth": [
+      "Project Zephyr",
+      "01 Requirements"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/01 Requirements/pilot-scope.md",
+    "kind": "incidental-hint",
+    "truth": [
+      "Project Zephyr",
+      "01 Requirements"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "01 Requirements",
+    "category_raw": "01 Requirements"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/02 Architecture/app-architecture.md",
+    "kind": "clear",
+    "truth": [
+      "Project Zephyr",
+      "02 Architecture"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/02 Architecture/photo-flow.md",
+    "kind": "hint",
+    "truth": [
+      "Project Zephyr",
+      "02 Architecture"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/02 Architecture/route-adapter.md",
+    "kind": "crossref",
+    "truth": [
+      "Project Zephyr",
+      "02 Architecture"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "02 Architecture",
+    "category_raw": "02 Architecture"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/03 Research/mobile-whitepaper.md",
+    "kind": "hint",
+    "truth": [
+      "Project Zephyr",
+      "03 Research"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/03 Research/sync-libraries.md",
+    "kind": "clear",
+    "truth": [
+      "Project Zephyr",
+      "03 Research"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "03 Research",
+    "category_raw": "03 Research"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/04 Meeting Notes/demo-review.md",
+    "kind": "hint",
+    "truth": [
+      "Project Zephyr",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/04 Meeting Notes/meeting-notes-2026-03-09.md",
+    "kind": "rule",
+    "truth": [
+      "Project Zephyr",
+      "04 Meeting Notes"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "04 Meeting Notes",
+    "category_raw": "04 Meeting Notes"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/05 Correspondence/depot-manager.md",
+    "kind": "clear",
+    "truth": [
+      "Project Zephyr",
+      "05 Correspondence"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "software-projects",
+    "path": "Project Zephyr/05 Correspondence/device-quote.md",
+    "kind": "hint",
+    "truth": [
+      "Project Zephyr",
+      "05 Correspondence"
+    ],
+    "group": "Project Zephyr",
+    "group_raw": "Project Zephyr",
+    "category": "05 Correspondence",
+    "category_raw": "05 Correspondence"
+  },
+  {
+    "taxonomy": "study",
+    "path": "_unfiled/course-survey.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "study",
+    "path": "_unfiled/data-structures.md",
+    "kind": "lookalike",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "study",
+    "path": "_unfiled/library-hours.md",
+    "kind": "nogroup",
+    "truth": null,
+    "group": null,
+    "group_raw": "NONE",
+    "category": null,
+    "category_raw": ""
+  },
+  {
+    "taxonomy": "study",
+    "path": "Databases/01 Lectures/normalisation-lectures.md",
+    "kind": "clear",
+    "truth": [
+      "Databases",
+      "01 Lectures"
+    ],
+    "group": "Databases",
+    "group_raw": "Databases",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Databases/02 Assignments/schema-assignment.md",
+    "kind": "hint",
+    "truth": [
+      "Databases",
+      "02 Assignments"
+    ],
+    "group": "Databases",
+    "group_raw": "Databases",
+    "category": "02 Assignments",
+    "category_raw": "02 Assignments"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Databases/03 Readings/textbook-ch2.md",
+    "kind": "hint",
+    "truth": [
+      "Databases",
+      "03 Readings"
+    ],
+    "group": "Databases",
+    "group_raw": "Databases",
+    "category": "03 Readings",
+    "category_raw": "03 Readings"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Databases/04 Exams/revision.md",
+    "kind": "hint",
+    "truth": [
+      "Databases",
+      "04 Exams"
+    ],
+    "group": "Databases",
+    "group_raw": "Databases",
+    "category": "04 Exams",
+    "category_raw": "04 Exams"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Linear Algebra/01 Lectures/eigen-lectures.md",
+    "kind": "clear",
+    "truth": [
+      "Linear Algebra",
+      "01 Lectures"
+    ],
+    "group": "Linear Algebra",
+    "group_raw": "Linear Algebra",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Linear Algebra/02 Assignments/hw3.md",
+    "kind": "hint",
+    "truth": [
+      "Linear Algebra",
+      "02 Assignments"
+    ],
+    "group": "Linear Algebra",
+    "group_raw": "Linear Algebra",
+    "category": "02 Assignments",
+    "category_raw": "02 Assignments"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Linear Algebra/03 Readings/text-ch2.md",
+    "kind": "hint",
+    "truth": [
+      "Linear Algebra",
+      "03 Readings"
+    ],
+    "group": "Linear Algebra",
+    "group_raw": "Linear Algebra",
+    "category": "03 Readings",
+    "category_raw": "03 Readings"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Linear Algebra/04 Exams/exam-info.md",
+    "kind": "hint",
+    "truth": [
+      "Linear Algebra",
+      "04 Exams"
+    ],
+    "group": "Linear Algebra",
+    "group_raw": "Linear Algebra",
+    "category": "04 Exams",
+    "category_raw": "04 Exams"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/01 Lectures/feature-store.md",
+    "kind": "fuzzy",
+    "truth": [
+      "Machine Learning",
+      "01 Lectures"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/01 Lectures/kernel-lecture.md",
+    "kind": "shortform",
+    "truth": [
+      "Machine Learning",
+      "01 Lectures"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/01 Lectures/reg-slides.md",
+    "kind": "hint",
+    "truth": [
+      "Machine Learning",
+      "01 Lectures"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/01 Lectures/week5.md",
+    "kind": "clear",
+    "truth": [
+      "Machine Learning",
+      "01 Lectures"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "01 Lectures",
+    "category_raw": "01 Lectures"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/02 Assignments/a2.md",
+    "kind": "hint",
+    "truth": [
+      "Machine Learning",
+      "02 Assignments"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "02 Assignments",
+    "category_raw": "02 Assignments"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/02 Assignments/a4.md",
+    "kind": "crossref",
+    "truth": [
+      "Machine Learning",
+      "02 Assignments"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "02 Assignments",
+    "category_raw": "02 Assignments"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/03 Readings/ch4.md",
+    "kind": "hint",
+    "truth": [
+      "Machine Learning",
+      "03 Readings"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "03 Readings",
+    "category_raw": "03 Readings"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/03 Readings/optimiser-list.md",
+    "kind": "incidental-hint",
+    "truth": [
+      "Machine Learning",
+      "03 Readings"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "03 Readings",
+    "category_raw": "03 Readings"
+  },
+  {
+    "taxonomy": "study",
+    "path": "Machine Learning/04 Exams/mid-practice.md",
+    "kind": "hint",
+    "truth": [
+      "Machine Learning",
+      "04 Exams"
+    ],
+    "group": "Machine Learning",
+    "group_raw": "Machine Learning",
+    "category": "04 Exams",
+    "category_raw": "04 Exams"
+  }
+]
