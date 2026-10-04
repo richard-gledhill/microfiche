@@ -32,7 +32,7 @@ def run_resort(library_root: Path, config: MicroficheConfig, *, scope: Path | No
     exclusions) and report where the classifier would file them now.
 
     Never moves anything - the caller (the CLI) is responsible for presenting this and, if the
-    user confirms with `--apply`, filing the proposals through ``core.filer.file_unit`` exactly
+    user confirms with `--apply`, filing the proposals through ``core.filer.file_batch`` exactly
     like an initial sort.
     """
 

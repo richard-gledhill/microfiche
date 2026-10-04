@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import NoReturn
 
 import typer
 from core.ai.llm_classifier import LLMClassifier
 from core.ai.ollama_provider import OllamaProvider
-from core.config import load_config
+from core.config import MICROFICHE_DIRNAME, load_config
+from core.filer import (
+    AUDIT_LOG_FILENAME,
+    JobAlreadyRolledBackError,
+    JobMoveMissingError,
+    JobNotFoundError,
+    rollback_job,
+)
 from core.library.category_suggester import suggest_categories
 from core.organizer import run_sort
 from core.resort import run_resort
-from core.rollback import rollback_job
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
+from rich.markup import escape
 
 from cli.display import render_config, render_resort_table, render_sort_report
 
@@ -23,11 +31,6 @@ _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, h
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
 _SCOPE_OPTION = typer.Option(None, "--scope")
-
-# Dot-prefixed so Obsidian's file explorer hides them by default in a vault-backed library.
-# todo: combine DIRNAMES
-_CONFIG_DIRNAME = ".microfiche"
-_LOGS_DIRNAME = ".microfiche"
 
 
 def sort(
@@ -41,7 +44,7 @@ def sort(
 ) -> None:
     """Process the library's _sorting/ inbox: classify and file everything above the confidence threshold."""
 
-    config = load_config(library / _CONFIG_DIRNAME)
+    config = load_config(library / MICROFICHE_DIRNAME)
     ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None
     report = run_sort(library, config, keep_folders=keep_folders, ai_classifier=ai_classifier)
     render_sort_report(console, report)
@@ -76,7 +79,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
 def config(library: Path = _LIBRARY_OPTION) -> None:
     """Library configuration."""
 
-    config = load_config(library / _CONFIG_DIRNAME)
+    config = load_config(library / MICROFICHE_DIRNAME)
     render_config(console, config)
 
 
@@ -87,7 +90,7 @@ def resort(
 ) -> None:
     """Re-review already-filed documents and report where the classifier would file them now."""
 
-    config = load_config(library / _CONFIG_DIRNAME)
+    config = load_config(library / MICROFICHE_DIRNAME)
     proposals = run_resort(library, config, scope=folder)
     render_resort_table(console, proposals)
     if apply:
@@ -104,15 +107,31 @@ def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -
 def audit(library: Path = _LIBRARY_OPTION) -> None:
     """Show the audit log."""
 
-    log_path = library / _LOGS_DIRNAME / "audit.log"
+    log_path = library / MICROFICHE_DIRNAME / AUDIT_LOG_FILENAME
     if not log_path.exists():
         console.print("[yellow]No audit log found yet.[/yellow]")
         return
-    console.print(log_path.read_text(encoding="utf-8"))
+    # markup=False: audit lines contain file paths, and "[...]" in a name must not be read as markup.
+    console.print(log_path.read_text(encoding="utf-8"), markup=False, highlight=False, soft_wrap=True)
 
 
 def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "--job-id")) -> None:
-    """Undo a filing job by id."""
+    """Undo a filing job by id (the id `sort` prints)."""
 
-    events = rollback_job(library / _LOGS_DIRNAME, job_id)
-    console.print(f"Reverted {len(events)} move(s) from job {job_id}.")
+    try:
+        job = rollback_job(library, job_id)
+    except (JobNotFoundError, JobAlreadyRolledBackError) as err:
+        _fail(str(err))
+    except (JobMoveMissingError, FileExistsError) as err:
+        _fail(
+            f"{err}\nRollback stopped part-way; the moves already reversed are recorded. "
+            "Fix the problem above and re-run the same command to finish."
+        )
+    console.print(f"Reverted {len(job.moves)} move(s) from job {job_id}.", soft_wrap=True)
+
+
+def _fail(message: str) -> NoReturn:
+    """Print ``message`` as an error and exit with a non-zero status."""
+
+    console.print(f"[red]{escape(message)}[/red]", soft_wrap=True)
+    raise typer.Exit(code=1)

@@ -15,6 +15,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 CONFIG_FILENAME = "microfiche-config.toml"
+# Per-library folder holding the config and everything microfiche writes about its own work
+# (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
+MICROFICHE_DIRNAME = ".microfiche"
 
 
 class LibraryStructureConfig(BaseModel):
