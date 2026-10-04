@@ -1,7 +1,7 @@
 """Scans the library's _sorting/ inbox and builds the list of SortableUnits to process.
 
 Per the ADR, `_sorting/` is a single, library-wide inbox at the library root - not one per
-project/group.
+group.
 """
 
 from __future__ import annotations
