@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from core.models.document import Document
+from core.models.document import Document, UnreadableDocument
 
 # Todo: Review if it makes sense to keep SortableUnit in a separate file from document.py.
 
@@ -33,6 +33,9 @@ class SortableUnit(BaseModel):
             whether it is a file or a folder.
         documents (list[Document]): A collection of document objects associated
             with this unit.
+        unreadable (list[UnreadableDocument]): Supported files in the unit that could not be
+            read. They don't take part in classification; a unit with no readable document at
+            all is left for review, with these as the reason.
     Todo
         - Is there a skeleton class for a folder unit, or can this be extended from SortableUnit?
     """
@@ -40,3 +43,4 @@ class SortableUnit(BaseModel):
     source_path: Path
     kind: Literal["file", "folder"]
     documents: list[Document]
+    unreadable: list[UnreadableDocument] = Field(default_factory=list)

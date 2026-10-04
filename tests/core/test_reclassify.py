@@ -270,3 +270,22 @@ def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_move
     assert at_default.action == "review"
     assert lowered.action == "move"
     assert lowered.destination == library / _REQUIREMENTS / "backlog.md"
+
+
+def test_an_unreadable_file_is_left_for_review_and_does_not_stop_the_rest(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _write(library, f"{_RESEARCH}/broken.docx", "this is not a zip file")
+    _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
+    lib = Library(library)
+
+    proposals = _by_name(run_reclassify(lib))
+
+    assert proposals["broken.docx"].action == "review"
+    assert proposals["broken.docx"].classification.classified_by == "unreadable"
+    assert proposals["broken.docx"].classification.category.reason.startswith("Could not read 'broken.docx':")
+    assert proposals["misfiled.md"].action == "move"
+
+    apply_reclassification(lib, list(proposals.values()))
+
+    assert (library / _RESEARCH / "broken.docx").exists()
+    assert (library / _ARCHITECTURE / "misfiled.md").exists()

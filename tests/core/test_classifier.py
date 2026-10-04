@@ -6,7 +6,7 @@ import pytest
 from core.classifier import Classifier
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
-from core.models.document import Document
+from core.models.document import Document, UnreadableDocument
 from core.models.unit import SortableUnit
 
 PHOENIX = "Project Phoenix"
@@ -354,3 +354,66 @@ def test_a_folders_result_carries_the_classifiers_threshold_decision(threshold: 
     result = classifier.classify_unit(_unit(["a.md", "b.md"]), TAXONOMY)
 
     assert result.confident is (threshold <= 0.9)
+
+
+# --- units with nothing readable ---------------------------------------------------------------
+
+
+def _unreadable(name: str, reason: str = "PackageNotFoundError: not a zip") -> UnreadableDocument:
+    return UnreadableDocument(file_path=Path(name), reason=reason)
+
+
+def test_a_unit_with_no_readable_document_is_left_unresolved_with_the_reason() -> None:
+    rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
+    unit = SortableUnit(
+        source_path=Path("broken.docx"), kind="file", documents=[], unreadable=[_unreadable("broken.docx")]
+    )
+
+    result = Classifier(rules).classify_unit(unit, TAXONOMY)
+
+    assert result.group.name is None
+    assert result.category.name is None
+    assert result.confident is False
+    assert result.classified_by == "unreadable"
+    assert result.category.reason == "Could not read 'broken.docx': PackageNotFoundError: not a zip"
+    assert rules.group_calls == 0  # nothing to classify, so the resolvers are never asked
+
+
+def test_every_unreadable_file_is_named_in_the_reason() -> None:
+    unit = SortableUnit(
+        source_path=Path("bundle"),
+        kind="folder",
+        documents=[],
+        unreadable=[_unreadable("a.docx", "reason a"), _unreadable("b.pdf", "reason b")],
+    )
+
+    result = Classifier(FakeResolver("rules_engine", _group(None), _category(None))).classify_unit(unit, TAXONOMY)
+
+    assert "Could not read 'a.docx': reason a" in result.category.reason
+    assert "Could not read 'b.pdf': reason b" in result.category.reason
+
+
+def test_a_unit_with_no_documents_at_all_says_so() -> None:
+    unit = SortableUnit(source_path=Path("empty"), kind="folder", documents=[])
+
+    result = Classifier(FakeResolver("rules_engine", _group(None), _category(None))).classify_unit(unit, TAXONOMY)
+
+    assert result.category.reason == "No readable documents"
+    assert result.confident is False
+
+
+def test_unreadable_files_in_a_folder_do_not_vote_and_do_not_block_classification() -> None:
+    unit = SortableUnit(
+        source_path=Path("folder"),
+        kind="folder",
+        documents=[_document(file_name="a.md"), _document(file_name="b.md")],
+        unreadable=[_unreadable("c.docx")],
+    )
+    classifier = _voting_classifier({
+        "a.md": (_group(PHOENIX), _category(ARCH)),
+        "b.md": (_group(PHOENIX), _category(ARCH)),
+    })
+
+    result = classifier.classify_unit(unit, TAXONOMY)
+
+    assert (result.group.name, result.category.name) == (PHOENIX, ARCH)

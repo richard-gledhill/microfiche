@@ -158,3 +158,35 @@ def test_lowering_the_libraries_threshold_files_the_keyword_hint_match(tmp_path:
 
     assert "backlog.md" in [unit.source_path.name for unit, _ in report.filed]
     assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()
+
+
+def test_one_unreadable_file_does_not_stop_the_rest_of_the_inbox_being_sorted(tmp_path: Path) -> None:
+    """Regression: a corrupt file used to raise out of the scan, so nothing at all was filed."""
+
+    library = _library(tmp_path)
+    broken = library / "_sorting" / "broken.docx"
+    broken.write_text("this is not a zip file", encoding="utf-8")
+
+    report = run_sort(Library(library))
+
+    assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]
+    needs_review = {unit.source_path.name: classification for unit, classification in report.needs_review}
+    assert set(needs_review) == {_SOLAR_NOTE, "broken.docx"}
+    assert needs_review["broken.docx"].category.reason.startswith("Could not read 'broken.docx':")
+    assert broken.exists()  # left in the inbox, untouched
+    assert (library / _PHOENIX_DESTINATION).exists()
+    assert report.job is not None
+    assert [move.new_path for move in report.job.moves] == [library / _PHOENIX_DESTINATION]
+
+
+def test_an_inbox_holding_only_an_unreadable_file_files_nothing_and_writes_no_job(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / _PHOENIX_NOTE).unlink()
+    (library / "_sorting" / _SOLAR_NOTE).unlink()
+    (library / "_sorting" / "broken.docx").write_text("not a zip", encoding="utf-8")
+
+    report = run_sort(Library(library))
+
+    assert report.job is None
+    assert [unit.source_path.name for unit, _ in report.needs_review] == ["broken.docx"]
+    assert not (library / MICROFICHE_DIRNAME / "rollback").exists()

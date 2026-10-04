@@ -47,7 +47,10 @@ def render_sort_report(console: Console, report: SortReport) -> None:
             f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})"
         )
     for unit, classification in report.needs_review:
-        console.print(f"  [yellow]{unit.source_path.name}[/yellow] — {classification.category.reason}")
+        console.print(
+            f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.category.reason)}",
+            soft_wrap=True,
+        )
     if report.job is not None:
         _render_job(console, report.job)
 
@@ -95,6 +98,11 @@ def render_reclassify_result(
         f"Skipped, destination taken: {counts['conflict']}"
     )
     for proposal in proposals:
+        if proposal.classification.classified_by == "unreadable":
+            console.print(
+                f"  [yellow]{escape(str(proposal.current_path))}[/yellow] — {escape(proposal.classification.category.reason)}",
+                soft_wrap=True,
+            )
         if proposal.action == "conflict":
             console.print(
                 f"  [red]{escape(str(proposal.current_path))}[/red] — {escape(str(proposal.destination))} is taken",

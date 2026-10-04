@@ -73,3 +73,62 @@ def test_a_folder_with_no_supported_files_is_not_a_unit(tmp_path: Path) -> None:
     _write(tmp_path / "_sorting" / "photos" / "a.png")
 
     assert scan_sorting_inbox(Library(tmp_path), keep_folders=True) == []
+
+
+# --- files that can't be read ------------------------------------------------------------------
+
+
+def _corrupt(path: Path) -> Path:
+    return _write(path, "this is not a zip file")  # a .docx is a zip, so this can't be parsed
+
+
+def test_an_unreadable_file_becomes_a_unit_with_no_documents_instead_of_stopping_the_scan(tmp_path: Path) -> None:
+    bad = _corrupt(tmp_path / "_sorting" / "broken.docx")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path))
+
+    assert unit.source_path == bad
+    assert unit.documents == []
+    (unreadable,) = unit.unreadable
+    assert unreadable.file_path == bad
+    assert "PackageNotFoundError" in unreadable.reason
+
+
+def test_readable_files_are_still_scanned_alongside_an_unreadable_one(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "a.md")
+    _corrupt(tmp_path / "_sorting" / "b.docx")
+    _write(tmp_path / "_sorting" / "c.md")
+
+    units = scan_sorting_inbox(Library(tmp_path))
+
+    assert [unit.source_path.name for unit in units] == ["a.md", "b.docx", "c.md"]
+    assert [len(unit.documents) for unit in units] == [1, 0, 1]
+
+
+def test_a_folder_keeps_its_readable_documents_and_lists_the_unreadable_ones(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+    _corrupt(tmp_path / "_sorting" / "bundle" / "bad.docx")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
+
+    assert [document.file_name for document in unit.documents] == ["good.md"]
+    assert [u.file_path.name for u in unit.unreadable] == ["bad.docx"]
+
+
+def test_a_folder_of_only_unreadable_files_is_still_a_unit(tmp_path: Path) -> None:
+    _corrupt(tmp_path / "_sorting" / "bundle" / "bad.docx")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
+
+    assert unit.documents == []
+    assert [u.file_path.name for u in unit.unreadable] == ["bad.docx"]
+
+
+def test_unsupported_files_inside_a_folder_are_neither_documents_nor_unreadable(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+    _write(tmp_path / "_sorting" / "bundle" / "photo.png")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
+
+    assert [document.file_name for document in unit.documents] == ["good.md"]
+    assert unit.unreadable == []

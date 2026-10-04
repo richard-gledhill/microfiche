@@ -13,13 +13,12 @@ from pathlib import Path
 from typing import Literal
 
 from core.classifier import Classifier
-from core.extractor import extract
 from core.filer import destination_for, file_batch
 from core.library.library import Library
 from core.models.classification import ClassificationResult
 from core.models.job import Job
 from core.models.unit import SortableUnit
-from core.parsers import SUPPORTED_EXTENSIONS
+from core.parsers import is_supported, read_documents
 
 ReclassifyAction = Literal["move", "keep", "review", "conflict"]
 
@@ -73,11 +72,11 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
     claimed: set[Path] = set()
     proposals: list[ReclassifyProposal] = []
     for file_path in library.files(scope):
-        if file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        if not is_supported(file_path):
             continue
 
-        document = extract(file_path)
-        unit = SortableUnit(source_path=file_path, kind="file", documents=[document])
+        read = read_documents([file_path])
+        unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
         classification = classifier.classify_unit(unit, taxonomy)
         proposals.append(_plan(unit, classification, library, claimed))
 
