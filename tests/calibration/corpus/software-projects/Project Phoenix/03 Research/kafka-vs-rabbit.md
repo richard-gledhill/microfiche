@@ -1,0 +1,1 @@
+Project Phoenix message broker comparison. Kafka is faster at very high volume, RabbitMQ is simpler to run. Our volume is well inside RabbitMQ's range. Implications for the architecture are in DR-007.

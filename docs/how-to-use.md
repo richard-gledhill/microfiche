@@ -133,14 +133,9 @@ Library/
 
 Stage names rarely appear word for word in a document, so give each one keyword hints in
 `.microfiche/microfiche-config.toml`. The keys must match the category folder names exactly,
-including any leading number. Hint matches are weaker than a name match, so also set the
-[confidence threshold](#how-sure-microfiche-has-to-be) to `0.75` (as below) or they will be
-listed under **Needs review** instead of being filed:
+including any leading number:
 
 ```toml
-[classification]
-confidence_threshold = 0.75   # let keyword-hint matches file automatically
-
 [category_hints.categories]
 "01 Discovery" = ["interview", "problem statement", "user research"]
 "02 Design" = ["wireframe", "mockup", "design decision"]
@@ -192,17 +187,43 @@ microfiche only files a document on its own when it is confident enough; anythin
 | An answer from the AI fallback | 0.70 |
 
 A document is only as confident as the weaker of its group and category. The threshold is set per
-library in `.microfiche/microfiche-config.toml`, from 0 to 1, and defaults to a deliberately high
-**0.8**: exact names and filename rules file automatically; keyword hints and AI answers are left
+library in `.microfiche/microfiche-config.toml`, from 0 to 1, and defaults to **0.75**: filename rules,
+category names and keyword hints all file automatically; answers from the AI fallback (0.70) are left
 for you to review.
 
 ```toml
 [classification]
-confidence_threshold = 0.75   # also file keyword-hint matches
+confidence_threshold = 0.75
 ```
 
-Use `0.75` to let keyword hints file automatically, or `0.7` to let AI answers file too. The default
-has not been tested against real documents yet, so treat it as a cautious starting point.
+| Threshold | What files automatically |
+|---|---|
+| `0.7` | everything above, plus AI answers (see [`--use-ai`](#3-sort-documents)) |
+| `0.75` (default) | group and category names, filename rules, keyword hints |
+| `0.8` – `0.9` | the same, but keyword-hint matches are held for review |
+| `0.95` | filename rules only |
+
+**Raising the threshold files less; it doesn't file more accurately.** The score says what *kind* of
+evidence was found, not how reliable it is, so a stray word in the text can score higher than a
+correct hint. In testing, the share of automatically filed documents that were wrong was about the
+same at `0.75` as at `0.8` — the higher setting just held back far more documents. Measurements and
+method: [calibration write-up](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
+
+If documents are being misfiled, the usual causes are in the names, not the threshold:
+
+- **Group names that are short or common words** (`Car`, `Home`) match inside other words
+  (`carrier`, `homework`). Prefer distinctive names, like `Project Phoenix` or `Acme Ltd`.
+- **Documents that mention another group** can be filed under it: of the groups named in the text, the
+  one whose folder name sorts first wins, not the one the document is about. These are filed
+  confidently, so they won't appear under **Needs review**; a `reclassify` dry run shows them as **move**.
+- **Overlapping hints** — a word that is a hint for two categories goes to the category whose folder
+  name sorts first. Keep hints specific.
+
+**Check it on your own library.** Run `reclassify` (a dry run) on a library whose documents are
+already filed correctly. **keep** means microfiche agrees with where you put a document; **move** means
+it would have misfiled it. Change `confidence_threshold` and run it again to see how the numbers
+change for *your* documents. The calibration write-up also describes a script that does this in
+bulk.
 
 ## 3. Sort documents
 
@@ -366,8 +387,9 @@ same command again):
 microfiche is pre-release. At the moment:
 
 - `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
-- At the default confidence threshold, documents matched only by a keyword hint or by the AI
-  fallback are left for review. See [How sure microfiche has to be](#how-sure-microfiche-has-to-be).
+- At the default confidence threshold, documents matched only by the AI fallback are left for
+  review, so `--use-ai` only suggests until you lower the threshold to `0.7`. See
+  [How sure microfiche has to be](#how-sure-microfiche-has-to-be).
 - When the documents in a dropped folder disagree about where it belongs (a tie), the folder is
   left for review rather than guessed.
 - If you re-file a document with `reclassify --apply` after a `sort`, undo the newer job first —

@@ -1,0 +1,1 @@
+Project Atlas - Requirements for the carrier rate engine. The engine must quote a rate within 500 ms for any lane in the network and must fall back to the contract tariff if the live API is unavailable.

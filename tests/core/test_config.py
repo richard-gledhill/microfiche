@@ -35,8 +35,10 @@ def test_load_config_falls_back_to_defaults_when_files_are_missing(tmp_path: Pat
     assert config.exclusions.exclude == []
 
 
-def test_the_default_confidence_threshold_is_high() -> None:
-    assert DEFAULT_CONFIDENCE_THRESHOLD == 0.8
+def test_the_default_confidence_threshold_is_the_keyword_hint_score() -> None:
+    """Set by calibration (docs/development/calibration.md): hint matches file, AI answers do not."""
+
+    assert DEFAULT_CONFIDENCE_THRESHOLD == 0.75
 
 
 def test_the_shipped_config_uses_the_default_confidence_threshold() -> None:

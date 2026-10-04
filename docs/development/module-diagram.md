@@ -229,7 +229,7 @@ flowchart TD
     Taxonomy --> ClassifyUnit
     Config -.->|"category_hints, filing_rules"| RulesEngine
     ClassifyUnit --> RulesEngine["RulesEngine\n(group_rules -> keyword_rules/metadata_rules\n-> confidence.combine_confidence, min not average)"]
-    RulesEngine -->|"confident: both stages resolved and\nconfidence >= threshold (default 0.8)"| Result["ClassificationResult"]
+    RulesEngine -->|"confident: both stages resolved and\nconfidence >= threshold (default 0.75)"| Result["ClassificationResult"]
     RulesEngine -->|"a stage below threshold and --use-ai\n(asked per stage, group then category)"| LLM["LLMClassifier\n(OllamaProvider today; OpenAIProvider exists,\nnot wired to a CLI flag)"]
     LLM --> Result
 

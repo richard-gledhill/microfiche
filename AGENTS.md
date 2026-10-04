@@ -94,8 +94,9 @@ workspace `.venv`.
      existing folder counts as unresolved, so nothing is ever filed into an invented folder.
    - A result is `confident` when both stages resolved and the overall confidence reaches the
      threshold: `[classification] confidence_threshold` in the library's config, defaulting to
-     `DEFAULT_CONFIDENCE_THRESHOLD` (0.8, in `rules/confidence.py`). At the default, keyword-hint
-     matches (0.75) and AI-only answers (0.70) go to review rather than being filed.
+     `DEFAULT_CONFIDENCE_THRESHOLD` (0.75, in `rules/confidence.py`, chosen by measurement — see
+     `docs/development/calibration.md`). At the default, keyword-hint matches (0.75) file but AI-only
+     answers (0.70) go to review; a higher threshold files less without filing more accurately.
      `classified_by` names which resolver(s) decided: `rules_engine`, `ai_fallback` or
      `rules_engine+ai_fallback`.
    - A folder unit is classified document-by-document; the whole folder is filed under whichever
@@ -108,6 +109,11 @@ workspace `.venv`.
 
 ### Everything else keys off that same taxonomy/classification core
 
+- **`tests/calibration/`** — a labelled corpus (five small libraries, 136 documents) and a harness that
+  measures what each confidence threshold does to auto-filing and misfiling, plus saved AI-fallback
+  answers. `uv run python tests/calibration/report.py` prints the report; `test_calibration.py` pins
+  the findings behind the default threshold, so changing the classifier or the default means
+  re-running it and updating `docs/development/calibration.md`.
 - **`reclassify.py`** (the `reclassify` command) re-runs the two-stage classifier against
   already-filed documents and plans each one: `move` / `keep` (already under the right category) /
   `review` (unresolved or below threshold) / `conflict` (destination taken). Dry-run by default;

@@ -1,0 +1,14 @@
+# Project > stage. Hints as recommended in the user guide.
+[exclusions]
+exclude = ["sorting*", "_sorting*", ".*", "_*"]
+
+[category_hints.categories]
+"01 Discovery" = ["interview", "problem statement", "user research"]
+"02 Design" = ["wireframe", "mockup", "design decision"]
+"03 Build" = ["implementation", "pull request", "release notes"]
+"04 Launch" = ["go-live", "rollout", "launch plan"]
+
+[filing_rules]
+rules = [
+  { pattern = "launch-plan*", category = "04 Launch" },
+]

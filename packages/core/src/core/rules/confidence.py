@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 # The confidence a classification must reach before microfiche files a unit on its own.
-# Deliberately high: filing is the risky action, and anything below it is left in the inbox for
-# review. Against today's signal strengths it lets exact group/category names (0.9-1.0), filename
-# rules (0.95) and near-exact fuzzy group matches (>= 0.85) file automatically, but sends keyword-hint
-# matches (0.75) and AI-only answers (0.70) to review. A library can lower it with
-# `[classification] confidence_threshold` in its config. See docs/development/mvp-roadmap.md for the
-# planned calibration of this value against real documents.
-DEFAULT_CONFIDENCE_THRESHOLD = 0.8
+# Chosen by measurement, not guesswork: see docs/development/calibration.md. It equals the keyword-hint
+# score, so exact names (0.9-1.0), filename rules (0.95), near-exact fuzzy group matches (>= 0.85) and
+# keyword-hint matches (0.75) all file automatically, while AI-only answers (0.70) go to review. On the
+# calibration corpus a higher threshold files less but is no more accurate about what it does file.
+# A library can change it with `[classification] confidence_threshold` in its config.
+DEFAULT_CONFIDENCE_THRESHOLD = 0.75
 
 
 def combine_confidence(group_confidence: float, category_confidence: float) -> float:
