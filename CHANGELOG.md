@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- document the classifier seam, the confidence threshold, and add a CONTEXT.md glossary [`93f1d8c`](https://github.com/richard-gledhill/microfiche/commit/93f1d8c)
+- :robot: changelog file generated [`7163566`](https://github.com/richard-gledhill/microfiche/commit/7163566)
 - describe the default taxonomy as library > group > category, with alternatives [`253ce60`](https://github.com/richard-gledhill/microfiche/commit/253ce60)
 - simplify and clarify README project description [`80de590`](https://github.com/richard-gledhill/microfiche/commit/80de590)
 - :robot: changelog file generated [`d06de10`](https://github.com/richard-gledhill/microfiche/commit/d06de10)
@@ -31,6 +33,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #27 from richard-gledhill/refactor/classifier-resolver-seam [`22252d8`](https://github.com/richard-gledhill/microfiche/commit/22252d8)
+- Put the group-then-category decision behind one Classifier; make the confidence threshold configurable [`e48f938`](https://github.com/richard-gledhill/microfiche/commit/e48f938)
 - Merge pull request #26 from richard-gledhill/docs/library-taxonomy [`9c126ee`](https://github.com/richard-gledhill/microfiche/commit/9c126ee)
 - Merge pull request #25 from richard-gledhill/feature/reclassify-apply [`62de9fa`](https://github.com/richard-gledhill/microfiche/commit/62de9fa)
 - Merge pull request #24 from richard-gledhill/refactor/filing-job-ledger [`e8cc882`](https://github.com/richard-gledhill/microfiche/commit/e8cc882)
