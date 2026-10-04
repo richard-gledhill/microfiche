@@ -88,7 +88,7 @@ workspace `.venv`.
 
 ### Everything else keys off that same taxonomy/classification core
 
-- **`reclassify.py`** (the `resort` command) re-runs the two-stage classifier against
+- **`reclassify.py`** (the `reclassify` command) re-runs the two-stage classifier against
   already-filed documents and plans each one: `move` / `keep` (already under the right category) /
   `review` (unresolved or below threshold) / `conflict` (destination taken). Dry-run by default;
   `--apply` files the `move`s through `filer.py::file_batch` as one rollback-able job — how
@@ -102,7 +102,7 @@ workspace `.venv`.
 - **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
   `.microfiche/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
   by that JSON, not by re-deriving anything from the filesystem. `file_batch` writes the job, so
-  `sort` and `resort --apply` are both rollback-able.
+  `sort` and `reclassify --apply` are both rollback-able.
 - **`ledger.py`** — `.microfiche/ledger.jsonl`, an append-only record of every filing (path,
   content hash, group, category, reasons, confidence, `classified_by`) and rollback. Keyed by
   path + content hash; `Ledger.current()` replays it to get what's filed now. It replaced the old

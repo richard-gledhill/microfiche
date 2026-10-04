@@ -83,7 +83,7 @@ def config(library: Path = _LIBRARY_OPTION) -> None:
     render_config(console, config)
 
 
-def resort(
+def reclassify(
     library: Path = _LIBRARY_OPTION,
     folder: Path | None = _FOLDER_OPTION,
     apply: bool = _APPLY_OPTION,

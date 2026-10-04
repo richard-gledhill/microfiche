@@ -171,13 +171,13 @@ with an **Action** for each document and changes nothing:
 === "Bash"
 
     ```bash
-    uv run microfiche resort --library ~/Documents/Projects
+    uv run microfiche reclassify --library ~/Documents/Projects
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche resort --library "$HOME\Documents\Projects"
+    uv run microfiche reclassify --library "$HOME\Documents\Projects"
     ```
 
 The actions are **move** (confident, and not already under the proposed category), **keep**
@@ -190,13 +190,13 @@ Limit the re-check to one folder (it must be inside the library):
 === "Bash"
 
     ```bash
-    uv run microfiche resort --library ~/Documents/Projects --folder ~/Documents/Projects/"Project Phoenix"
+    uv run microfiche reclassify --library ~/Documents/Projects --folder ~/Documents/Projects/"Project Phoenix"
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche resort --library "$HOME\Documents\Projects" --folder "$HOME\Documents\Projects\Project Phoenix"
+    uv run microfiche reclassify --library "$HOME\Documents\Projects" --folder "$HOME\Documents\Projects\Project Phoenix"
     ```
 
 Happy with the preview? Add `--apply` to move the **move** documents. Like `sort`, this is one
@@ -206,13 +206,13 @@ job: it prints a job id, is recorded in the ledger and audit log, and can be und
 === "Bash"
 
     ```bash
-    uv run microfiche resort --library ~/Documents/Projects --apply
+    uv run microfiche reclassify --library ~/Documents/Projects --apply
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche resort --library "$HOME\Documents\Projects" --apply
+    uv run microfiche reclassify --library "$HOME\Documents\Projects" --apply
     ```
 
 `--folder` works with `--apply` too. Preview first: classification is rule-based, so it is worth
@@ -252,8 +252,8 @@ same command again):
 
 microfiche is pre-release. At the moment:
 
-- `resort` doesn't use the Ollama fallback; it only applies the rule-based classifier.
-- If you re-file a document with `resort --apply` after a `sort`, undo the newer job first —
+- `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
+- If you re-file a document with `reclassify --apply` after a `sort`, undo the newer job first —
   rolling back the older one will stop with an error because the file is no longer where it
   was filed.
 - `review` and `index` are placeholders and exit with a "not implemented" message.

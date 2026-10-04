@@ -1,4 +1,4 @@
-"""A rollback job: the set of moves made by one `sort`/`resort --apply` run."""
+"""A rollback job: the set of moves made by one `sort`/`reclassify --apply` run."""
 
 from __future__ import annotations
 

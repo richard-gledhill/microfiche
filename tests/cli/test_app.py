@@ -14,7 +14,7 @@ def test_app_help_lists_all_commands() -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
-    for command_name in ["sort", "review", "propose-categories", "resort", "index", "audit", "rollback", "config"]:
+    for command_name in ["sort", "review", "propose-categories", "reclassify", "index", "audit", "rollback", "config"]:
         assert command_name in result.stdout
 
 
@@ -168,11 +168,11 @@ def _library_with_a_misfiled_note(tmp_path: Path) -> Path:
     return library
 
 
-def test_resort_without_apply_previews_the_move_and_changes_nothing(tmp_path: Path) -> None:
+def test_reclassify_without_apply_previews_the_move_and_changes_nothing(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     before = _tree(library)
 
-    result = runner.invoke(app, ["resort", "--library", str(library)])
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
 
     assert result.exit_code == 0
     assert "Action" in result.stdout
@@ -182,10 +182,10 @@ def test_resort_without_apply_previews_the_move_and_changes_nothing(tmp_path: Pa
     assert _tree(library) == before
 
 
-def test_resort_apply_moves_the_file_and_prints_the_job_id(tmp_path: Path) -> None:
+def test_reclassify_apply_moves_the_file_and_prints_the_job_id(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
 
-    result = runner.invoke(app, ["resort", "--library", str(library), "--apply"])
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
 
     assert result.exit_code == 0, result.stdout
     assert "Moved: 1" in result.stdout
@@ -194,10 +194,10 @@ def test_resort_apply_moves_the_file_and_prints_the_job_id(tmp_path: Path) -> No
     assert not (library / _MISFILED).exists()
 
 
-def test_resort_apply_is_recorded_in_the_audit_log_and_can_be_rolled_back(tmp_path: Path) -> None:
+def test_reclassify_apply_is_recorded_in_the_audit_log_and_can_be_rolled_back(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     before = _tree(library)
-    applied = runner.invoke(app, ["resort", "--library", str(library), "--apply"])
+    applied = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
     match = _JOB_LINE.search(applied.stdout)
     assert match is not None
     job_id = match.group(1)
@@ -210,21 +210,21 @@ def test_resort_apply_is_recorded_in_the_audit_log_and_can_be_rolled_back(tmp_pa
     assert _tree(library) == before
 
 
-def test_resort_apply_with_nothing_to_move_prints_no_job(tmp_path: Path) -> None:
+def test_reclassify_apply_with_nothing_to_move_prints_no_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    result = runner.invoke(app, ["resort", "--library", str(library), "--apply"])
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
 
     assert result.exit_code == 0
     assert "Moved: 0" in result.stdout
     assert "Job:" not in result.stdout
 
 
-def test_resort_apply_reports_a_taken_destination_instead_of_overwriting(tmp_path: Path) -> None:
+def test_reclassify_apply_reports_a_taken_destination_instead_of_overwriting(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     (library / _REFILED).write_text("already here", encoding="utf-8")
 
-    result = runner.invoke(app, ["resort", "--library", str(library), "--apply"])
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
 
     assert result.exit_code == 0
     assert "Skipped, destination taken: 1" in result.stdout
@@ -232,12 +232,12 @@ def test_resort_apply_reports_a_taken_destination_instead_of_overwriting(tmp_pat
     assert (library / _REFILED).read_text(encoding="utf-8") == "already here"
 
 
-def test_resort_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> None:
+def test_reclassify_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> None:
     library = _library(tmp_path)
     outside = tmp_path / "elsewhere"
     outside.mkdir()
 
-    result = runner.invoke(app, ["resort", "--library", str(library), "--folder", str(outside)])
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--folder", str(outside)])
 
     assert result.exit_code == 1
     assert "is not inside the library" in result.stdout

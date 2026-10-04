@@ -153,7 +153,7 @@ behavior for anything the rules engine already handles.
 - Implement the Ollama provider against a local Ollama server.
 - Implement the OpenAI provider as a second, equally-supported option.
 - Wire the classifier to fall back to the AI path only when rules-based confidence is below threshold.
-- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `resort`.
+- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `reclassify`.
 
 **Test**
 - Write unit tests for the AI-fallback trigger condition (below-threshold vs. above-threshold rules results).
@@ -183,11 +183,11 @@ queue interactively via `microfiche review` — completing the CLI surface
 - Design the `TagIndex.md` parser and the `## Proposed` section convention for ungoverned tags.
 
 **Build**
-- Implement folder-note generation that regenerates a touched folder's `index.md` after every sort/resort/rollback.
+- Implement folder-note generation that regenerates a touched folder's `index.md` after every sort/reclassify/rollback.
 - Implement tag governance that fuzzy-matches extracted keywords against `TagIndex.md` and appends unmatched ones to `## Proposed`.
 - Implement the interactive `review` command's accept/modify/create/skip loop over the low-confidence queue.
 - Wire the `index` and `review` commands to this new core logic.
-- Implement `resort --apply`, reusing Stage 3's persistence path.
+- Implement `reclassify --apply`, reusing Stage 3's persistence path.
 
 **Test**
 - Write unit tests for `index.md` generation against a folder with mixed Markdown and non-Markdown files.

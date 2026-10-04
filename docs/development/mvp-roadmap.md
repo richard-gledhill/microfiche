@@ -13,10 +13,10 @@ changes here, update the "Current limitations" list and usage steps in the user-
 | `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. |
 | `review` | Stub | Exits with a "not implemented" message (`cli/commands.py:49-53`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
-| `resort` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `resort` yet. |
+| `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
 | `index` | Stub | Exits with a "not implemented" message (`cli/commands.py:89-93`). The Obsidian modules it would call (`index_writer.py`) exist and are unit-tested in isolation — only the wiring is missing. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
-| `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. `resort --apply` will reuse it once wired. |
+| `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. `reclassify --apply` will reuse it once wired. |
 
 ## Cross-cutting feature status
 
@@ -35,15 +35,15 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 Ranked by how central they are to the product's core promise, not by ease of implementation.
 
-1. ~~Wire audit/rollback persistence into `run_sort` and `resort --apply`.~~ **Done for
+1. ~~Wire audit/rollback persistence into `run_sort` and `reclassify --apply`.~~ **Done for
    `sort`:** `core.filer.file_batch` saves the job, appends the ledger and writes
-   `.microfiche/audit.log`, and `rollback` undoes it. `resort --apply` uses the same path — see 3.
+   `.microfiche/audit.log`, and `rollback` undoes it. `reclassify --apply` uses the same path — see 3.
 2. ~~Reconcile the `.logs` vs `logs` path inconsistency.~~ **Resolved, then further
    consolidated.** `core/models/job.py`'s docstring and the CLI agree on a dot-prefixed
    convention — and that convention now shares one `.microfiche/` folder with
    `microfiche-config.toml` (`core.config.MICROFICHE_DIRNAME`, used by both `core` and the CLI),
    rather than living in a separate `.microfiche-logs/` folder.
-3. ~~Wire `resort --apply` to the filer.~~ **Done:** `core.reclassify.apply_reclassification`
+3. ~~Wire `reclassify --apply` to the filer.~~ **Done:** `core.reclassify.apply_reclassification`
    files the previewed `move`s via `core.filer.file_batch`, reusing the job/ledger/audit
    persistence from (1).
 4. **Open decision — not resolved here:** are `review` and `index` in MVP scope, or should

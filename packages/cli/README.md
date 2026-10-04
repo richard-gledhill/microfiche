@@ -12,7 +12,7 @@ configuration, and [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guid
 | Module | Purpose |
 |---|---|
 | `app.py` | The Typer application; registers every command. |
-| `commands.py` | Command implementations: `sort`, `review`, `propose-categories`, `resort`, `index`, `audit`, `rollback`. |
+| `commands.py` | Command implementations: `sort`, `review`, `propose-categories`, `reclassify`, `index`, `audit`, `rollback`. |
 | `display.py` | Rich rendering helpers for CLI output. |
 | `review.py` | Interactive review-queue workflow (not yet implemented). |
 

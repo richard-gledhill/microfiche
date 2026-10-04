@@ -67,7 +67,7 @@ review flow — but nothing produces them yet.
 
 ## `Job`
 
-`core/models/job.py` — the set of moves made by one `sort` or `resort --apply` run:
+`core/models/job.py` — the set of moves made by one `sort` or `reclassify --apply` run:
 
 ```python
 class Job(BaseModel):
@@ -118,7 +118,7 @@ ledger and the job file are the machine-readable records.
 ├── ledger.jsonl           # append-only classification ledger (above)
 ├── audit.log              # human-readable trail; read by `microfiche audit`
 └── rollback/
-    └── job_<id>.json       # one Job per sort / resort --apply run; read by `microfiche rollback`
+    └── job_<id>.json       # one Job per sort / reclassify --apply run; read by `microfiche rollback`
 ```
 
 `ledger.jsonl`, `audit.log` and `rollback/` are created the first time something is filed; a
