@@ -10,16 +10,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`1ea2c1f`](https://github.com/richard-gledhill/microfiche/commit/1ea2c1f)
 - :robot: changelog file generated [`f42f6ba`](https://github.com/richard-gledhill/microfiche/commit/f42f6ba)
 - :robot: changelog file generated [`7f825f1`](https://github.com/richard-gledhill/microfiche/commit/7f825f1)
 - :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
 
 ### Chore
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
+- bump pre-commit from 4.6.1 to 4.6.2 [`62e61a9`](https://github.com/richard-gledhill/microfiche/commit/62e61a9)
+- bump typer from 0.27.0 to 0.27.2 [`6d702bf`](https://github.com/richard-gledhill/microfiche/commit/6d702bf)
 - bump ollama from 0.6.2 to 0.6.3 [`ee94927`](https://github.com/richard-gledhill/microfiche/commit/ee94927)
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #21 from richard-gledhill/dependabot/uv/typer-0.27.2 [`30a73c4`](https://github.com/richard-gledhill/microfiche/commit/30a73c4)
+- Merge pull request #22 from richard-gledhill/dependabot/uv/pre-commit-4.6.2 [`183e5f2`](https://github.com/richard-gledhill/microfiche/commit/183e5f2)
 - Merge pull request #20 from richard-gledhill/dependabot/uv/ollama-0.6.3 [`7afb25f`](https://github.com/richard-gledhill/microfiche/commit/7afb25f)
 - Merge pull request #19 from richard-gledhill/dependabot/github_actions/github-actions-dependencies-1046ce1340 [`2beb0be`](https://github.com/richard-gledhill/microfiche/commit/2beb0be)
 - Merge pull request #23 from richard-gledhill/ci/changelog-trailing-newline [`37961e8`](https://github.com/richard-gledhill/microfiche/commit/37961e8)
