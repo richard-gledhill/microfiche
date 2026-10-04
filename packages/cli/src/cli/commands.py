@@ -8,7 +8,6 @@ from typing import NoReturn
 import typer
 from core.ai.llm_classifier import LLMClassifier
 from core.ai.ollama_provider import OllamaProvider
-from core.config import MICROFICHE_DIRNAME, load_config
 from core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -17,8 +16,9 @@ from core.filer import (
     rollback_job,
 )
 from core.library.category_suggester import suggest_categories
+from core.library.library import Library, ScopeOutsideLibraryError
 from core.organizer import run_sort
-from core.reclassify import ScopeOutsideLibraryError, apply_reclassification, run_reclassify
+from core.reclassify import apply_reclassification, run_reclassify
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
 from rich.markup import escape
@@ -42,11 +42,10 @@ def sort(
         False, "--use-ai", help="Fall back to a local Ollama model for classifications the rules engine can't resolve."
     ),
 ) -> None:
-    """Process the library's _sorting/ inbox: classify and file everything above the confidence threshold."""
+    """Process the library's inbox: classify and file everything above the confidence threshold."""
 
-    config = load_config(library / MICROFICHE_DIRNAME)
     ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None
-    report = run_sort(library, config, keep_folders=keep_folders, ai_classifier=ai_classifier)
+    report = run_sort(Library(library), keep_folders=keep_folders, ai_classifier=ai_classifier)
     render_sort_report(console, report)
 
 
@@ -64,7 +63,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
     instead of the inbox isn't implemented yet.
     """
 
-    units = scan_sorting_inbox(library, keep_folders=True)
+    units = scan_sorting_inbox(Library(library), keep_folders=True)
     documents = [document for unit in units for document in unit.documents]
     suggestions = suggest_categories(documents)
     if not suggestions:
@@ -79,8 +78,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
 def config(library: Path = _LIBRARY_OPTION) -> None:
     """Library configuration."""
 
-    config = load_config(library / MICROFICHE_DIRNAME)
-    render_config(console, config)
+    render_config(console, Library(library).config)
 
 
 def reclassify(
@@ -94,9 +92,9 @@ def reclassify(
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
-    config = load_config(library / MICROFICHE_DIRNAME)
+    lib = Library(library)
     try:
-        proposals = run_reclassify(library, config, scope=folder)
+        proposals = run_reclassify(lib, scope=folder)
     except ScopeOutsideLibraryError as err:
         _fail(str(err))
     render_reclassify_table(console, proposals, dry_run=not apply)
@@ -104,7 +102,7 @@ def reclassify(
         render_reclassify_result(console, proposals, job=None, dry_run=True)
         return
     try:
-        job = apply_reclassification(library, config, proposals)
+        job = apply_reclassification(lib, proposals)
     except FileExistsError as err:
         _fail(
             f"{err}\nSome files may already have been moved; they are recorded in the job and can be undone "
@@ -123,7 +121,7 @@ def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -
 def audit(library: Path = _LIBRARY_OPTION) -> None:
     """Show the audit log."""
 
-    log_path = library / MICROFICHE_DIRNAME / AUDIT_LOG_FILENAME
+    log_path = Library(library).state_dir / AUDIT_LOG_FILENAME
     if not log_path.exists():
         console.print("[yellow]No audit log found yet.[/yellow]")
         return
@@ -135,7 +133,7 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
     """Undo a filing job by id (the id `sort` prints)."""
 
     try:
-        job = rollback_job(library, job_id)
+        job = rollback_job(Library(library), job_id)
     except (JobNotFoundError, JobAlreadyRolledBackError) as err:
         _fail(str(err))
     except (JobMoveMissingError, FileExistsError) as err:

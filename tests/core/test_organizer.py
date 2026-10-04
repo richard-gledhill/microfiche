@@ -3,9 +3,10 @@
 import shutil
 from pathlib import Path
 
-from core.config import MICROFICHE_DIRNAME, load_config
+from core.config import MICROFICHE_DIRNAME
 from core.filer import AUDIT_LOG_FILENAME, rollback_job
 from core.ledger import Ledger
+from core.library.library import Library
 from core.organizer import run_sort
 from core.utils.hashing import file_hash
 
@@ -38,7 +39,7 @@ def _snapshot(library: Path) -> dict[str, str]:
 def test_sort_files_confident_units_and_leaves_the_rest_in_the_inbox_for_review(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
 
     assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]
     assert [unit.source_path.name for unit, _ in report.needs_review] == [_SOLAR_NOTE]
@@ -50,7 +51,7 @@ def test_sort_files_confident_units_and_leaves_the_rest_in_the_inbox_for_review(
 def test_sort_records_one_job_covering_everything_it_filed(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
 
     assert report.job is not None
     assert [move.new_path for move in report.job.moves] == [library / _PHOENIX_DESTINATION]
@@ -66,7 +67,7 @@ def test_sort_records_one_job_covering_everything_it_filed(tmp_path: Path) -> No
 def test_units_sent_to_review_are_not_moved_or_recorded(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    run_sort(Library(library))
 
     recorded = [record.original_path for record in Ledger(library / MICROFICHE_DIRNAME).read_all()]
     assert recorded == [f"_sorting/{_PHOENIX_NOTE}"]
@@ -77,7 +78,7 @@ def test_sort_with_nothing_confident_enough_writes_no_job_ledger_or_audit_log(tm
     (library / "_sorting" / _PHOENIX_NOTE).unlink()
     before = _snapshot(library)
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
 
     assert report.job is None
     assert report.filed == []
@@ -94,7 +95,7 @@ def test_sort_without_an_inbox_does_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
     shutil.rmtree(library / "_sorting")
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
 
     assert report.job is None
     assert report.filed == []
@@ -108,7 +109,7 @@ def test_a_folder_in_the_inbox_is_filed_whole_when_keep_folders_is_set(tmp_path:
     (bundle / "overview.md").write_text("Project Phoenix architecture overview.", encoding="utf-8")
     (bundle / "decisions.md").write_text("Project Phoenix architecture decisions.", encoding="utf-8")
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME), keep_folders=True)
+    report = run_sort(Library(library), keep_folders=True)
 
     destination = library / "Project Phoenix" / "02 Architecture" / "phoenix-bundle"
     assert (destination / "overview.md").exists()
@@ -122,11 +123,11 @@ def test_a_folder_in_the_inbox_is_filed_whole_when_keep_folders_is_set(tmp_path:
 def test_a_sort_can_be_rolled_back_to_the_exact_pre_sort_library(tmp_path: Path) -> None:
     library = _library(tmp_path)
     before = _snapshot(library)
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
     assert report.job is not None
     assert _snapshot(library) != before
 
-    rollback_job(library, report.job.job_id)
+    rollback_job(Library(library), report.job.job_id)
 
     assert _snapshot(library) == before
     assert Ledger(library / MICROFICHE_DIRNAME).current() == []
@@ -141,7 +142,7 @@ def test_a_keyword_hint_match_is_left_for_review_at_the_default_threshold(tmp_pa
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
 
-    report = run_sort(library, load_config(library / MICROFICHE_DIRNAME))
+    report = run_sort(Library(library))
 
     assert "backlog.md" in [unit.source_path.name for unit, _ in report.needs_review]
     assert (library / "_sorting" / "backlog.md").exists()
@@ -150,10 +151,10 @@ def test_a_keyword_hint_match_is_left_for_review_at_the_default_threshold(tmp_pa
 def test_lowering_the_libraries_threshold_files_the_keyword_hint_match(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
-    config = load_config(library / MICROFICHE_DIRNAME)
-    config.classification.confidence_threshold = 0.75
+    lib = Library(library)
+    lib.config.classification.confidence_threshold = 0.75
 
-    report = run_sort(library, config)
+    report = run_sort(lib)
 
     assert "backlog.md" in [unit.source_path.name for unit, _ in report.filed]
     assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()

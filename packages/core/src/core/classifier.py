@@ -12,11 +12,13 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from typing import Protocol, TypeVar
 
+from core.config import MicroficheConfig
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from core.models.document import Document
 from core.models.unit import SortableUnit
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD, combine_confidence
+from core.rules.rules_engine import RulesEngine
 
 Match = TypeVar("Match", GroupMatch, CategoryMatch)
 
@@ -68,6 +70,18 @@ class Classifier:
         self._rules = rules
         self._fallback = fallback
         self._threshold = threshold
+
+    @classmethod
+    def from_config(cls, config: MicroficheConfig, fallback: Resolver | None = None) -> Classifier:
+        """The default wiring for a library: the rules engine built from its hints and filing
+        rules, an optional fallback resolver, and the library's confidence threshold.
+        """
+
+        return cls(
+            RulesEngine(config.category_hints.categories, config.filing_rules.rules),
+            fallback,
+            threshold=config.classification.confidence_threshold,
+        )
 
     @property
     def threshold(self) -> float:

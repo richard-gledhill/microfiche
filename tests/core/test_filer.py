@@ -14,6 +14,7 @@ from core.filer import (
     rollback_job,
 )
 from core.ledger import Ledger
+from core.library.library import Library
 from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from core.models.document import Document
 from core.models.unit import SortableUnit
@@ -73,7 +74,7 @@ def test_file_batch_moves_each_unit_to_its_group_and_category(tmp_path: Path) ->
     requirements = _file_unit(library, "reqs.md")
     design = _file_unit(library, "design.md")
 
-    job = file_batch(library, [(requirements, _classified()), (design, _classified(ARCHITECTURE))])
+    job = file_batch(Library(library), [(requirements, _classified()), (design, _classified(ARCHITECTURE))])
 
     assert job is not None
     assert (library / GROUP / REQUIREMENTS / "reqs.md").read_text(encoding="utf-8") == "some content"
@@ -85,7 +86,7 @@ def test_file_batch_moves_each_unit_to_its_group_and_category(tmp_path: Path) ->
 def test_file_batch_writes_no_sidecar_files(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    file_batch(library, [(_file_unit(library, "reqs.md"), _classified())])
+    file_batch(Library(library), [(_file_unit(library, "reqs.md"), _classified())])
 
     assert list(library.rglob("*.metadata.json")) == []
 
@@ -93,14 +94,17 @@ def test_file_batch_writes_no_sidecar_files(tmp_path: Path) -> None:
 def test_file_batch_with_nothing_to_file_writes_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    assert file_batch(library, []) is None
+    assert file_batch(Library(library), []) is None
     assert not (library / ".microfiche").exists()
 
 
 def test_file_batch_applies_naming_rules(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    file_batch(library, [(_file_unit(library, "draft_reqs.md"), _classified())], naming_rules={"^draft_": "final_"})
+    lib = Library(library)
+    lib.config.naming_rules.rules = {"^draft_": "final_"}
+
+    file_batch(lib, [(_file_unit(library, "draft_reqs.md"), _classified())])
 
     assert (library / GROUP / REQUIREMENTS / "final_reqs.md").exists()
 
@@ -108,7 +112,7 @@ def test_file_batch_applies_naming_rules(tmp_path: Path) -> None:
 def test_file_batch_saves_a_loadable_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    job = file_batch(library, [(_file_unit(library, "reqs.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "reqs.md"), _classified())])
 
     assert job is not None
     loaded = load_job(library / ".microfiche", job.job_id)
@@ -121,7 +125,7 @@ def test_file_batch_records_what_was_filed_and_why_in_the_ledger(tmp_path: Path)
     unit = _file_unit(library, "reqs.md", text="hash me")
     expected_hash = file_hash(unit.source_path)
 
-    job = file_batch(library, [(unit, _classified())])
+    job = file_batch(Library(library), [(unit, _classified())])
 
     assert job is not None
     (record,) = Ledger(library / ".microfiche").current()
@@ -139,7 +143,7 @@ def test_file_batch_appends_one_readable_audit_line_per_move(tmp_path: Path) -> 
     library = _library(tmp_path)
 
     job = file_batch(
-        library, [(_file_unit(library, "a.md"), _classified()), (_file_unit(library, "b.md"), _classified())]
+        Library(library), [(_file_unit(library, "a.md"), _classified()), (_file_unit(library, "b.md"), _classified())]
     )
 
     assert job is not None
@@ -155,7 +159,7 @@ def test_an_unresolved_classification_aborts_the_whole_batch_before_anything_mov
     bad = _file_unit(library, "bad.md")
 
     with pytest.raises(UnresolvedClassificationError):
-        file_batch(library, [(good, _classified()), (bad, _classified(category=None))])
+        file_batch(Library(library), [(good, _classified()), (bad, _classified(category=None))])
 
     assert good.source_path.exists()
     assert bad.source_path.exists()
@@ -167,7 +171,7 @@ def test_a_folder_unit_is_filed_whole_and_hashed_as_a_manifest(tmp_path: Path) -
     unit = _folder_unit(library, "bundle")
     expected_hash = unit_hash(unit.source_path)
 
-    file_batch(library, [(unit, _classified())])
+    file_batch(Library(library), [(unit, _classified())])
 
     assert (library / GROUP / REQUIREMENTS / "bundle" / "nested" / "two.md").exists()
     (record,) = Ledger(library / ".microfiche").current()
@@ -183,7 +187,7 @@ def test_a_destination_collision_keeps_earlier_moves_in_a_saved_job_that_can_be_
     before = _snapshot(library)
 
     with pytest.raises(FileExistsError):
-        file_batch(library, [(first, _classified()), (second, _classified(ARCHITECTURE))])
+        file_batch(Library(library), [(first, _classified()), (second, _classified(ARCHITECTURE))])
 
     assert (library / GROUP / REQUIREMENTS / "first.md").exists()
     assert second.source_path.exists()
@@ -191,7 +195,7 @@ def test_a_destination_collision_keeps_earlier_moves_in_a_saved_job_that_can_be_
     assert [r.path for r in Ledger(library / ".microfiche").current()] == [f"{GROUP}/{REQUIREMENTS}/first.md"]
     (job_file,) = (library / ".microfiche" / "rollback").glob("job_*.json")
 
-    rollback_job(library, job_file.stem.removeprefix("job_"))
+    rollback_job(Library(library), job_file.stem.removeprefix("job_"))
 
     assert _snapshot(library) == before
 
@@ -200,11 +204,11 @@ def test_rollback_restores_the_exact_pre_sort_tree(tmp_path: Path) -> None:
     library = _library(tmp_path)
     units = [_file_unit(library, "a.md", "alpha"), _file_unit(library, "b.md", "beta"), _folder_unit(library, "bundle")]
     before = _snapshot(library)
-    job = file_batch(library, [(unit, _classified()) for unit in units])
+    job = file_batch(Library(library), [(unit, _classified()) for unit in units])
     assert job is not None
     assert _snapshot(library) != before
 
-    rolled_back = rollback_job(library, job.job_id)
+    rolled_back = rollback_job(Library(library), job.job_id)
 
     assert _snapshot(library) == before
     assert rolled_back.rolled_back_at is not None
@@ -213,10 +217,10 @@ def test_rollback_restores_the_exact_pre_sort_tree(tmp_path: Path) -> None:
 
 def test_rollback_updates_the_ledger_and_the_audit_log(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(library, [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
 
-    rollback_job(library, job.job_id)
+    rollback_job(Library(library), job.job_id)
 
     ledger = Ledger(library / ".microfiche")
     assert ledger.current() == []
@@ -228,12 +232,12 @@ def test_rollback_updates_the_ledger_and_the_audit_log(tmp_path: Path) -> None:
 
 def test_rolling_back_twice_is_refused(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(library, [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
-    rollback_job(library, job.job_id)
+    rollback_job(Library(library), job.job_id)
 
     with pytest.raises(JobAlreadyRolledBackError):
-        rollback_job(library, job.job_id)
+        rollback_job(Library(library), job.job_id)
 
 
 @pytest.mark.parametrize("job_id", ["no-such-job", "../escape", ""])
@@ -241,7 +245,7 @@ def test_rolling_back_an_unknown_or_malformed_job_id_raises_job_not_found(tmp_pa
     library = _library(tmp_path)
 
     with pytest.raises(JobNotFoundError):
-        rollback_job(library, job_id)
+        rollback_job(Library(library), job_id)
 
 
 def test_rollback_that_stops_part_way_can_be_retried_once_the_blocker_is_removed(tmp_path: Path) -> None:
@@ -249,21 +253,21 @@ def test_rollback_that_stops_part_way_can_be_retried_once_the_blocker_is_removed
     first = _file_unit(library, "first.md")
     second = _file_unit(library, "second.md")
     before = _snapshot(library)
-    job = file_batch(library, [(first, _classified()), (second, _classified())])
+    job = file_batch(Library(library), [(first, _classified()), (second, _classified())])
     assert job is not None
     # Something new now occupies the first unit's original location, so reversing it must fail.
     blocker = library / "_sorting" / "first.md"
     blocker.write_text("blocker", encoding="utf-8")
 
     with pytest.raises(FileExistsError):
-        rollback_job(library, job.job_id)
+        rollback_job(Library(library), job.job_id)
 
     assert (library / "_sorting" / "second.md").exists()  # the newer move was already reversed
     assert load_job(library / ".microfiche", job.job_id).rolled_back_at is None
     assert [r.path for r in Ledger(library / ".microfiche").current()] == [f"{GROUP}/{REQUIREMENTS}/first.md"]
 
     blocker.unlink()
-    rollback_job(library, job.job_id)
+    rollback_job(Library(library), job.job_id)
 
     assert _snapshot(library) == before
     assert Ledger(library / ".microfiche").current() == []
@@ -271,11 +275,22 @@ def test_rollback_that_stops_part_way_can_be_retried_once_the_blocker_is_removed
 
 def test_rollback_raises_when_a_filed_unit_has_vanished(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(library, [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
     (library / GROUP / REQUIREMENTS / "a.md").unlink()
 
     with pytest.raises(JobMoveMissingError):
-        rollback_job(library, job.job_id)
+        rollback_job(Library(library), job.job_id)
 
     assert load_job(library / ".microfiche", job.job_id).rolled_back_at is None
+
+
+def test_a_broken_config_file_does_not_stop_a_job_being_rolled_back(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+    assert job is not None
+    (library / ".microfiche" / "microfiche-config.toml").write_text("this is [not valid toml", encoding="utf-8")
+
+    rollback_job(Library(library), job.job_id)  # needs only paths, so never reads the config
+
+    assert (library / "_sorting" / "a.md").exists()

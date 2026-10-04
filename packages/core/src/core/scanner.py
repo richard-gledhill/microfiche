@@ -1,25 +1,21 @@
-"""Scans the library's _sorting/ inbox and builds the list of SortableUnits to process.
+"""Scans the library's inbox and builds the list of SortableUnits to process.
 
-Per the ADR, `_sorting/` is a single, library-wide inbox at the library root - not one per
-group.
+Per the ADR, the inbox is a single, library-wide folder at the library root - not one per group.
 """
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from core.extractor import extract
+from core.library.library import Library
 from core.models.unit import SortableUnit
 from core.parsers import SUPPORTED_EXTENSIONS
 
-# Todo: move this constant into per-library config once config.py supports it.
-SORTING_FOLDER_NAME = "_sorting"
 
-
-def scan_sorting_inbox(library_root: Path, *, keep_folders: bool = False) -> list[SortableUnit]:
+def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[SortableUnit]:
     """
     Scans the inbox folder and identifies the sortable units for files and optional folders.
-    Scan ``library_root/_sorting`` and return the units ready for classification.
+    Scan ``library.inbox`` (``_sorting`` unless the config's ``[library_structure] library_inbox`` says otherwise) and
+    return the units ready for classification.
 
     Loose supported files become single-document units. Sub-folders are only descended into
     (and kept whole as one unit) when ``keep_folders`` is True; otherwise they're left alone
@@ -31,21 +27,20 @@ def scan_sorting_inbox(library_root: Path, *, keep_folders: bool = False) -> lis
     detected files or folders prepared for further processing.
 
     Args:
-        library_root (Path): The root directory of the library containing the sorting inbox folder.
+        library (Library): The library whose inbox to scan.
         keep_folders (bool): Whether to include folders with supported files as sortable units.
             Default is False.
 
     Returns:
         list[SortableUnit]: A list of `SortableUnit` objects representing files and, optionally,
-            folders within the sorting inbox directory.
+            folders within the sorting inbox directory. Empty if the inbox doesn't exist.
     Todo:
         - Raise warning for handle empty sorting inbox directory.
-        - Recursive _sorting folders.
-        - Move SORTING_FOLDER_NAME to microfiche-config.toml to allow alternative sorting folder names.
+        - Recursive inbox folders.
         - Review keep_folders option. Should it default to True by default?
     """
 
-    inbox = library_root / SORTING_FOLDER_NAME
+    inbox = library.inbox
     if not inbox.exists():
         return []
 

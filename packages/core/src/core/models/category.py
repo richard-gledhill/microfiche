@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 class Taxonomy(BaseModel):
     """The library's discovered structure: group name -> list of existing category names.
 
-    This is rebuilt by ``core.library.taxonomy.discover_taxonomy`` on every run rather than
+    This is rebuilt by ``core.library.library.Library.taxonomy`` on every run rather than
     persisted - the library's own folders are the taxonomy, per
     docs/development/architecture.md.
     """

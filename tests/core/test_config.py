@@ -3,7 +3,12 @@
 from pathlib import Path
 
 import pytest
-from core.config import ClassificationConfig, load_config
+from core.config import (
+    DEFAULT_INBOX_DIRNAME,
+    ClassificationConfig,
+    MicroficheConfig,
+    load_config,
+)
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from core.utils.filesystem import is_excluded
 from pydantic import ValidationError
@@ -60,3 +65,31 @@ def test_thresholds_from_zero_to_one_are_accepted(value: float) -> None:
 def test_thresholds_outside_zero_to_one_are_rejected(value: float) -> None:
     with pytest.raises(ValidationError):
         ClassificationConfig(confidence_threshold=value)
+
+
+# --- the library inbox ------------------------------------------------------------------------
+
+
+def test_the_inbox_defaults_to_the_sorting_folder() -> None:
+    assert load_config(Path("does-not-exist")).library_structure.library_inbox == DEFAULT_INBOX_DIRNAME == "_sorting"
+
+
+def test_the_shipped_config_names_the_default_inbox() -> None:
+    assert load_config(_REPO_CONFIG_DIR).library_structure.library_inbox == DEFAULT_INBOX_DIRNAME
+
+
+def test_a_library_can_name_its_own_inbox(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[library_structure]\nlibrary_inbox = "Incoming"\n', encoding="utf-8"
+    )
+
+    assert load_config(tmp_path).library_structure.library_inbox == "Incoming"
+
+
+@pytest.mark.parametrize("name", ["", "   ", "a/b", "a\\b", ".", "..", ".microfiche"])
+def test_an_inbox_that_is_not_a_plain_folder_name_is_rejected(name: str) -> None:
+    config = load_config(Path("does-not-exist")).model_dump()
+    config["library_structure"]["library_inbox"] = name
+
+    with pytest.raises(ValidationError, match="not a valid folder name"):
+        MicroficheConfig.model_validate(config)

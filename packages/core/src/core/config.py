@@ -12,7 +12,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -20,14 +20,46 @@ CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
 MICROFICHE_DIRNAME = ".microfiche"
+# Default name of the library's inbox: the one folder new documents are dropped into.
+DEFAULT_INBOX_DIRNAME = "_sorting"
+
+
+class InvalidInboxNameError(ValueError):
+    """Raised when ``library_inbox`` isn't a usable folder name."""
+
+    def __init__(self, value: str, reason: str) -> None:
+        self.value = value
+        super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
 
 
 class LibraryStructureConfig(BaseModel):
-    """Depth and naming of the library's group/category hierarchy."""
+    """The shape of the library: its group/category hierarchy, and the name of its inbox.
 
+    Attributes:
+        library_inbox (str): Name of the inbox folder at the library root (default ``"_sorting"``).
+            A plain folder name, not a path, and not the state folder's name.
+        depth (int): Depth of the group/category hierarchy. Only 2 is implemented.
+        levels (list[str]): Names of the levels. Not read by the code yet.
+        file_target_level (int): The level files are filed at. Not read by the code yet.
+    """
+
+    library_inbox: str = DEFAULT_INBOX_DIRNAME
     depth: int = 2
     levels: list[str] = Field(default_factory=lambda: ["group", "category"])
     file_target_level: int = 2
+
+    @field_validator("library_inbox")
+    @classmethod
+    def _inbox_is_a_folder_name(cls, value: str) -> str:
+        if not value.strip():
+            raise InvalidInboxNameError(value, "it is empty")
+        if "/" in value or "\\" in value:
+            raise InvalidInboxNameError(value, "it must be a single folder name, not a path")
+        if value in (".", ".."):
+            raise InvalidInboxNameError(value, "it must name a folder inside the library")
+        if value == MICROFICHE_DIRNAME:
+            raise InvalidInboxNameError(value, "that is the library's own state folder")
+        return value
 
 
 class ExclusionsConfig(BaseModel):
