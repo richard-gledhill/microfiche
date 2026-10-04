@@ -7,10 +7,9 @@
 
 A personal library file manager built in python.
 
-`microfiche` automatically organizes, categorizes, and files project reference materials —
-requirements, design notes, research, correspondence — into a structured, Obsidian-friendly
-library, so individual developers can go from a folder of scattered documents to a ready-to-use
-project workspace with minimal manual effort.
+`microfiche` automatically organizes, categorizes, and files reference materials —
+requirements, design notes, research, correspondence — into a structured library. It takes a folder of uncategorized
+documents and sorts them with minimal manual effort. It's Obsidian-friendly, can run as an automated task.
 
 - **Documentation**: <https://richard-gledhill.github.io/microfiche/>
 - **Source code**: <https://github.com/richard-gledhill/microfiche>
