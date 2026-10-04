@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- describe the ledger, job and audit log; mark sort/audit/rollback done [`afab259`](https://github.com/richard-gledhill/microfiche/commit/afab259)
+- :robot: changelog file generated [`d217ae2`](https://github.com/richard-gledhill/microfiche/commit/d217ae2)
 - :robot: changelog file generated [`1ea2c1f`](https://github.com/richard-gledhill/microfiche/commit/1ea2c1f)
 - :robot: changelog file generated [`f42f6ba`](https://github.com/richard-gledhill/microfiche/commit/f42f6ba)
 - :robot: changelog file generated [`7f825f1`](https://github.com/richard-gledhill/microfiche/commit/7f825f1)
@@ -23,6 +25,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #24 from richard-gledhill/refactor/filing-job-ledger [`e8cc882`](https://github.com/richard-gledhill/microfiche/commit/e8cc882)
+- Replace metadata sidecars with a ledger; record and roll back every sort as a job [`b200faf`](https://github.com/richard-gledhill/microfiche/commit/b200faf)
 - Merge pull request #21 from richard-gledhill/dependabot/uv/typer-0.27.2 [`30a73c4`](https://github.com/richard-gledhill/microfiche/commit/30a73c4)
 - Merge pull request #22 from richard-gledhill/dependabot/uv/pre-commit-4.6.2 [`183e5f2`](https://github.com/richard-gledhill/microfiche/commit/183e5f2)
 - Merge pull request #20 from richard-gledhill/dependabot/uv/ollama-0.6.3 [`7afb25f`](https://github.com/richard-gledhill/microfiche/commit/7afb25f)
