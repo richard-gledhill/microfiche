@@ -91,10 +91,13 @@ isn't an existing folder is treated as unresolved, so the filer never creates a 
 **Overall confidence** = combination (min, not average — a confident category guess under an unconfident group
 guess is still an unconfident result) of both stages. A result is *confident* — and so filed without asking —
 when both stages resolved and that overall confidence reaches the **confidence threshold**: the library's
-`[classification] confidence_threshold` (0 to 1), defaulting to 0.8. Today's signal strengths are 1.0 for an
+`[classification] confidence_threshold` (0 to 1), defaulting to 0.75. Today's signal strengths are 1.0 for an
 exact group name, 0.95 for a filename rule, 0.90 for a category name, 0.85–0.99 for a fuzzy group match, 0.75
-for a category keyword hint and 0.70 for an AI answer, so at the default threshold keyword-hint matches and
-AI-only answers are left for review; a library lowers the threshold to file those too. Anything below the
+for a category keyword hint and 0.70 for an AI answer, so at the default threshold everything but AI-only
+answers files; a library raises the threshold to hold hint matches for review, or lowers it to 0.7 to file AI
+answers. The default was set by measurement ([calibration.md](calibration.md)), which found that a higher
+threshold files less without filing more accurately: the scores reflect the kind of evidence, not how reliable
+it is. Anything below the
 threshold goes to the review queue, and
 the review prompt must let the user pick group *and* category, not just category, since group may be the part
 that's actually unresolved.

@@ -21,8 +21,10 @@ changes here, update the "Current limitations" list and usage steps in the user-
 ## Cross-cutting feature status
 
 - **AI fallback** — Ollama is wired via `--use-ai` (`cli/commands.py`), applied per stage by
-  `Classifier`. At the default confidence threshold (0.8) an AI-only answer (0.70) is left for
-  review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file.
+  `Classifier`. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
+  review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file. Measured at
+  98% precision on one local model (see [calibration.md](calibration.md)), but only consulted where
+  the rules are unsure, so it adds little as built.
   `OpenAIProvider`
   (`core/ai/openai_provider.py`) is fully implemented but never imported anywhere else —
   unreachable from the CLI despite `core`'s `ai` extra advertising `openai` support.
@@ -41,7 +43,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
   are matched relative to the library root and always cover the inbox and `.microfiche/`. Not done: nested
   sub-libraries (the shipped exclusion patterns leave room for them).
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
-  the confidence threshold (`[classification] confidence_threshold`, default 0.8), the per-stage AI
+  the confidence threshold (`[classification] confidence_threshold`, default 0.75, calibrated), the per-stage AI
   fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.
 - **Folder dominant-category voting** — wired, in `classifier.py::Classifier.classify_unit`. A tie for
   the most votes is left unresolved for review rather than guessed.
@@ -68,14 +70,25 @@ Ranked by how central they are to the product's core promise, not by ease of imp
 
 ## Future work
 
-- **Calibrate the confidence threshold against real documents, and tell users how to set it.** The default
-  (`DEFAULT_CONFIDENCE_THRESHOLD`, 0.8) was chosen by reasoning about today's fixed signal strengths, not
-  measured. Build a small corpus of test documents with known correct filings (across several taxonomies,
-  e.g. project › document type and project › stage), measure how often each threshold files correctly,
-  files wrongly and sends to review, and use that to confirm or change the default. Then write user
-  guidance in `how-to-use.md`: what the threshold trades off, how to pick one for a library, and when to
-  lower it so keyword hints or AI answers file automatically. The signal strengths themselves (hint 0.75,
-  AI 0.70, and the other "move to config" constants in `rules/`) should be reviewed in the same pass.
+- ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
+  — see [calibration.md](calibration.md). Default changed from 0.8 to 0.75; user guidance is in
+  `how-to-use.md`. It was measured on a synthetic corpus of short documents, so it still wants a pass
+  on real ones (below).
+- **Calibrate on real, longer documents.** Add them to `tests/calibration/corpus/` (or point
+  `report.py` at a library you trust) and re-check the default. The bundled corpus is synthetic,
+  short, and written knowing the rules, so its absolute error rates are not predictive.
+- **Ambiguity check.** Hold a document when more than one group is named in its text, or more than one
+  category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
+  89 → 87. Needs measuring on long documents before it is built.
+- **Match group names on word boundaries.** `Car` matches `carrier` and `card`; short or common group
+  names file with full confidence on a substring (0 of 2 right on the corpus).
+- **Use the AI where the rules are ambiguous or hint-level, and make its score configurable.** Today it is
+  asked only when the rules are unsure, never about their confident mistakes, and always scores 0.70
+  whatever model is behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call
+  took about 5 s against about 2 s with it off on the model measured; its default model (`llama3`) may
+  not be installed.
+- **Review the other signal strengths** (hint 0.75, AI 0.70, and the other "move to config" constants in
+  `rules/`), now that there is a harness to check them against.
 
 ## Deferred beyond MVP
 
