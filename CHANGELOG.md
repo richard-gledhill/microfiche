@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- add the calibration write-up and user guidance for the confidence threshold [`088c64a`](https://github.com/richard-gledhill/microfiche/commit/088c64a)
+- :robot: changelog file generated [`4238476`](https://github.com/richard-gledhill/microfiche/commit/4238476)
 - describe read_documents, unreadable files, and the parsers registry [`b644072`](https://github.com/richard-gledhill/microfiche/commit/b644072)
 - :robot: changelog file generated [`2f1b79f`](https://github.com/richard-gledhill/microfiche/commit/2f1b79f)
 - describe the Library module, the configurable inbox and the exclusion fixes [`143e966`](https://github.com/richard-gledhill/microfiche/commit/143e966)
@@ -38,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #31 from richard-gledhill/feature/threshold-calibration [`a9f7772`](https://github.com/richard-gledhill/microfiche/commit/a9f7772)
+- Calibrate the confidence threshold against a labelled corpus; lower the default from 0.8 to 0.75 [`126ade7`](https://github.com/richard-gledhill/microfiche/commit/126ade7)
 - Merge pull request #30 from richard-gledhill/refactor/documents-module [`85e94f1`](https://github.com/richard-gledhill/microfiche/commit/85e94f1)
 - Collapse extractor.py into the parsers module; one unreadable file no longer aborts a run [`481613d`](https://github.com/richard-gledhill/microfiche/commit/481613d)
 - Merge pull request #29 from richard-gledhill/chore/ignore-temp-dir [`6db777b`](https://github.com/richard-gledhill/microfiche/commit/6db777b)
