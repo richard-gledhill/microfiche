@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- describe read_documents, unreadable files, and the parsers registry [`b644072`](https://github.com/richard-gledhill/microfiche/commit/b644072)
+- :robot: changelog file generated [`2f1b79f`](https://github.com/richard-gledhill/microfiche/commit/2f1b79f)
 - describe the Library module, the configurable inbox and the exclusion fixes [`143e966`](https://github.com/richard-gledhill/microfiche/commit/143e966)
 - :robot: changelog file generated [`03ecfc0`](https://github.com/richard-gledhill/microfiche/commit/03ecfc0)
 - document the classifier seam, the confidence threshold, and add a CONTEXT.md glossary [`93f1d8c`](https://github.com/richard-gledhill/microfiche/commit/93f1d8c)
@@ -36,6 +38,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #30 from richard-gledhill/refactor/documents-module [`85e94f1`](https://github.com/richard-gledhill/microfiche/commit/85e94f1)
+- Collapse extractor.py into the parsers module; one unreadable file no longer aborts a run [`481613d`](https://github.com/richard-gledhill/microfiche/commit/481613d)
 - Merge pull request #29 from richard-gledhill/chore/ignore-temp-dir [`6db777b`](https://github.com/richard-gledhill/microfiche/commit/6db777b)
 - Merge pull request #28 from richard-gledhill/refactor/library-module [`3d32d5e`](https://github.com/richard-gledhill/microfiche/commit/3d32d5e)
 - Add a Library module that owns the library's layout; make the inbox configurable [`6d5c850`](https://github.com/richard-gledhill/microfiche/commit/6d5c850)
