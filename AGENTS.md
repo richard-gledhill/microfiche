@@ -12,10 +12,10 @@ design rationale: [docs/development/architecture.md](docs/development/architectu
 
 **Before assuming a described feature is fully wired, check
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
-actually implemented vs. still stubbed (e.g. `sort` doesn't yet persist an audit trail or
-rollback job, and `review`/`index` are stub commands). See
+actually implemented vs. still stubbed (e.g. `resort --apply` isn't wired to the filer, and
+`review`/`index` are stub commands). See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
-[data-model.md](docs/development/data-model.md) (sidecar/audit/rollback schemas) and
+[data-model.md](docs/development/data-model.md) (ledger/audit/rollback schemas) and
 [mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
 
 ## Commands
@@ -83,7 +83,8 @@ workspace `.venv`.
      package's `pyproject.toml`.
    - A folder unit is classified document-by-document; the whole folder is filed under whichever
      `(group, category)` pair got the most votes across its documents (dominant-category rule).
-4. Anything at/above threshold is filed (`filer.py`) and audited; everything else goes to
+4. Anything at/above threshold is filed as one job (`filer.py::file_batch`: move, ledger record,
+   audit line, rollback job); everything else goes to
    `SortReport.needs_review` for the `review` command instead of being moved.
 
 ### Everything else keys off that same taxonomy/classification core
@@ -96,11 +97,16 @@ workspace `.venv`.
   touch; `tag_index.py`/`tag_mapper.py` fuzzy-match extracted keywords against the library's root
   `TagIndex.md` and append unmatched ones to a `## Proposed` section rather than silently merging
   them in (suggest-only tag governance).
-- **`rollback.py`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
+- **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
   `.microfiche/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
-  by that JSON, not by re-deriving anything from the filesystem. **`save_job` isn't called from
-  `run_sort` yet** — `sort` doesn't currently persist a job, so there's nothing to roll back
-  until that's wired up (tracked in `docs/development/mvp-roadmap.md`).
+  by that JSON, not by re-deriving anything from the filesystem. `file_batch` writes the job, so
+  `sort` is rollback-able; `resort --apply` isn't wired to it yet (tracked in
+  `docs/development/mvp-roadmap.md`).
+- **`ledger.py`** — `.microfiche/ledger.jsonl`, an append-only record of every filing (path,
+  content hash, group, category, reasons, confidence, `classified_by`) and rollback. Keyed by
+  path + content hash; `Ledger.current()` replays it to get what's filed now. It replaced the old
+  per-file `*.metadata.json` sidecars — don't reintroduce files next to the user's documents.
+  Schema: `docs/development/data-model.md`.
 
 ### Config resolution
 

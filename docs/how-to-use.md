@@ -112,7 +112,12 @@ Drop files (`.docx`, `.pdf`, `.md`, `.txt`, `.eml`, `.msg`) into `_sorting/`, th
     ```
 
 Anything classified with enough confidence is filed; the rest is listed under **Needs review**
-and left in the inbox.
+and left in the inbox. Each run that files something is recorded as one *job*, and `sort` prints
+its id (`Job: <id>`) — keep it if you might want to undo the run. Nothing is deleted.
+
+microfiche's own records live in the hidden `.microfiche/` folder inside your library: a ledger
+of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
+per job. No extra files are written next to your documents.
 
 Keep dropped folders together (filed by their dominant category):
 
@@ -202,7 +207,9 @@ View the audit log:
     uv run microfiche audit --library "$HOME\Documents\Projects"
     ```
 
-Undo a filing job:
+Undo a filing job (use the id `sort` printed; each job can be undone once, and if an undo stops
+part-way — for example because a new file now sits where the original was — fix that and run the
+same command again):
 
 === "Bash"
 
@@ -220,8 +227,6 @@ Undo a filing job:
 
 microfiche is pre-release. At the moment:
 
-- `sort` doesn't yet save an audit trail or rollback job, so `audit` and `rollback` have nothing
-  to work with after a sort.
 - `resort --apply` only reports proposals; it doesn't move files yet.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 

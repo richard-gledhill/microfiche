@@ -1,30 +1,51 @@
-# Data model: sidecars, audit events, and rollback jobs
+# Data model: ledger, audit events, and rollback jobs
 
 The target schema for everything microfiche writes to disk outside of the moved files
-themselves. Where the current implementation doesn't yet produce data matching this, that's
-tracked as an open item in [mvp-roadmap.md](mvp-roadmap.md), not restated here — this page
-describes what the schema *is*, not what's currently wired up to write it.
+themselves. Everything lives under the library's dot-prefixed `.microfiche/` folder
+(`core.config.MICROFICHE_DIRNAME`), so Obsidian's file explorer hides it and no file ever gets
+a companion file written next to it. Where the current implementation doesn't yet produce data
+matching this, that's tracked as an open item in [mvp-roadmap.md](mvp-roadmap.md), not restated
+here.
 
-## Sidecar metadata (`*.metadata.json`)
+All of it is written by `core/filer.py` (`file_batch` and `rollback_job`); `core/ledger.py`
+owns reading and writing the ledger file.
 
-Written next to every filed document by `core/filer.py::_write_metadata_sidecar`:
+## Ledger (`.microfiche/ledger.jsonl`)
+
+The record of what microfiche knows about each unit it has filed: where it went, what it was
+classified as, and why. Append-only JSON lines — one `LedgerRecord`
+(`core/models/ledger.py`) per line, never edited or deleted:
 
 ```json
-{
-  "group": "Project Phoenix",
-  "category": "01 Requirements",
-  "unit_type": "file",
-  "confidence": 0.91,
-  "classified_by": "rules_engine",
-  "processed_date": "2026-09-07"
-}
+{"event":"filed","job_id":"20261004-153012-a1b2c3","timestamp":"2026-10-04T15:30:12.481203","path":"Project Phoenix/02 Architecture/architecture_notes.md","original_path":"_sorting/architecture_notes.md","content_hash":"9f2c…","unit_type":"file","group":"Project Phoenix","category":"02 Architecture","group_reason":"Exact match on group name 'Project Phoenix'","category_reason":"Category name '02 Architecture' found in document text","confidence":0.9,"classified_by":"rules_engine"}
 ```
 
-This is narrower than the aspirational schema in `architecture.md` §7, which also lists a
-`tags` field — not populated today, since Obsidian tag governance (`tag_mapper.py`) isn't
-wired into the filing path yet ([mvp-roadmap.md](mvp-roadmap.md)). A folder unit's sidecar is
-meant to additionally carry the per-document breakdown used to pick the dominant category
-(architecture.md §4); that detail isn't in `_write_metadata_sidecar` yet either.
+- **Key: `(path, content_hash)`.** `path` is relative to the library root with forward slashes,
+  so the ledger stays valid if the library is moved between machines or OSes. `content_hash` is
+  the SHA-256 of the file, or — for a folder unit — of a manifest of `relative path:file hash`
+  lines for every file inside (`core/utils/hashing.py::unit_hash`). The hash lets a record be
+  found again after a file is moved or renamed outside microfiche.
+- **Events.** `"filed"` is written when a unit is moved into the library. `"rolled_back"` is
+  written when a rollback moves it out again; it carries only the identifying fields
+  (`job_id`, `path`, `original_path`, `content_hash`, `unit_type`) and leaves the classification
+  fields `null`.
+- **Current state is derived, not stored.** `Ledger.current()` replays the history: a
+  `rolled_back` record cancels the `filed` record with the same job and path, and a `filed`
+  record whose `original_path` was an earlier record's `path` (a re-file) supersedes that
+  earlier record — so rolling the re-file back brings the earlier record back.
+  `Ledger.lookup(path, hash)` matches the exact pair first, then falls back to the hash alone
+  only if exactly one current record has it (identical content filed twice is ambiguous), and
+  never matches a file whose content has changed.
+- **Corruption is loud.** An unreadable line raises `LedgerCorruptError` with its line number
+  rather than being skipped — a bad line means a record of something microfiche did is missing.
+
+Not recorded yet: `tags` (Obsidian tag governance isn't wired into the filing path —
+[mvp-roadmap.md](mvp-roadmap.md)), and the per-document breakdown behind a folder unit's
+dominant-category vote ([architecture.md](architecture.md) §4).
+
+This replaced the per-file `*.metadata.json` sidecars the earlier design wrote beside every
+filed document: nothing ever read them, rollback left them behind, and they doubled the file
+count of a vault. Existing sidecars from earlier builds are not migrated or read.
 
 ## `AuditEvent`
 
@@ -39,50 +60,71 @@ class AuditEvent(BaseModel):
 ```
 
 Of the five `AuditAction` values, only two are actually emitted today: `"move"` (from
-`filer.py::file_unit`) and `"rollback"` (from `rollback.py::rollback_job`). `"rename"`,
+`filer.py::file_batch`) and `"rollback"` (from `filer.py::rollback_job`). `"rename"`,
 `"classify"`, and `"override"` are defined for future use — a rename-rules event, a
 classification-decision event, and a user-override event from the (not yet implemented)
 review flow — but nothing produces them yet.
 
 ## `Job`
 
-`core/models/job.py` — the set of moves made by one `sort`/`resort --apply` run:
+`core/models/job.py` — the set of moves made by one `sort` run:
 
 ```python
 class Job(BaseModel):
-    job_id: str
+    job_id: str                          # e.g. "20261004-153012-a1b2c3"
     created_at: datetime
-    moves: list[AuditEvent]
+    moves: list[AuditEvent]              # absolute paths
+    rolled_back_at: datetime | None      # set once rolled back; a job can't be rolled back twice
 ```
 
-**Canonical path:** `<library_root>/.microfiche/rollback/job_<id>.json` — dot-prefixed, in the
-same `.microfiche/` folder as `microfiche-config.toml`, per `cli/commands.py::_LOGS_DIRNAME`.
-`job.py`'s own docstring agrees with this path.
+**Path:** `<library_root>/.microfiche/rollback/job_<id>.json`.
 
-`core/rollback.py` provides both directions:
+`core/filer.py` provides both directions:
 
-- `save_job(logs_dir, job)` — writes a `Job` to `<logs_dir>/rollback/job_<id>.json`. **Not
-  currently called from anywhere** — see [mvp-roadmap.md](mvp-roadmap.md).
-- `load_job(logs_dir, job_id)` / `rollback_job(logs_dir, job_id)` — read a job back and
-  replay its moves in reverse. These work correctly today, given a job file to read.
+- `file_batch(library_root, items, *, naming_rules)` — moves each unit into its
+  `group/category` folder, then for every move appends to the ledger and the audit log, and
+  saves the `Job`. The whole batch is checked for unresolved classifications before anything
+  moves. If a move fails part-way (for example the destination already exists), the moves
+  already made are still saved as the job so they can be rolled back, and the error is
+  re-raised. Returns `None`, writing nothing, if there is nothing to file.
+- `rollback_job(library_root, job_id)` — reverses the job's moves newest-first, appends
+  `rolled_back` ledger records and `rollback` audit lines, and sets `rolled_back_at`. It is safe
+  to retry: if an earlier attempt stopped part-way, units already back at their original
+  location are skipped. Raises `JobNotFoundError`, `JobAlreadyRolledBackError`,
+  `JobMoveMissingError` (a unit is at neither location) or `FileExistsError` (something now
+  occupies the original location). Job ids are restricted to letters, digits, `-` and `_`.
+- `load_job` / `save_job` — read and write the job file.
+
+Rollback only ever moves things back; it deletes nothing.
+
+## `audit.log`
+
+`.microfiche/audit.log` — the human-readable trail shown by `microfiche audit`. One line is
+appended per `AuditEvent`, with library-relative paths:
+
+```text
+2026-10-04T15:30:12 job=20261004-153012-a1b2c3 move _sorting/architecture_notes.md -> Project Phoenix/02 Architecture/architecture_notes.md
+2026-10-04T15:41:03 job=20261004-153012-a1b2c3 rollback Project Phoenix/02 Architecture/architecture_notes.md -> _sorting/architecture_notes.md
+```
+
+Format: `<ISO timestamp, seconds> job=<id> <action> <from> -> <to>`. It is a log for people; the
+ledger and the job file are the machine-readable records.
 
 ## `.microfiche/` directory layout
 
 ```text
 <library_root>/.microfiche/
 ├── microfiche-config.toml # the library's config — read, not written, by microfiche
+├── ledger.jsonl           # append-only classification ledger (above)
 ├── audit.log              # human-readable trail; read by `microfiche audit`
 └── rollback/
-    └── job_<id>.json       # one Job per sort/resort --apply run; read by `microfiche rollback`
+    └── job_<id>.json       # one Job per sort run; read by `microfiche rollback`
 ```
 
-`audit.log`'s format isn't defined yet — nothing writes it, so there's no implementation to
-derive a format from. The straightforward option is one line per `AuditEvent` (timestamp,
-action, original path, new path), but that's a design decision for whoever wires up
-[mvp-roadmap.md](mvp-roadmap.md)'s first must-fix item, not something this page prescribes.
+`ledger.jsonl`, `audit.log` and `rollback/` are created the first time something is filed; a
+`sort` that files nothing writes none of them.
 
 ## See also
 
-- [architecture.md](architecture.md) §7 — the original sidecar schema sketch this page
-  supersedes with the as-implemented version.
+- [architecture.md](architecture.md) §7 — why the ledger replaced per-file sidecars.
 - [mvp-roadmap.md](mvp-roadmap.md) — tracks which parts of this schema aren't produced yet.
