@@ -68,7 +68,8 @@ workspace `.venv`.
    its config loads lazily from `.microfiche/`). **The library's own folder structure is the taxonomy — nothing is
    persisted or configured separately.** `microfiche-config.toml`'s `[category_hints.categories]` table only supplies
    keyword *hints* for matching against categories that already exist as folders.
-2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s in the library's inbox (`_sorting/` unless the
+2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
+   files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
    or (with `--keep-folders`) a whole folder treated as one unit.
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
@@ -138,8 +139,12 @@ explorer); `microfiche/` at the repo root is the template copied into a new libr
 ### Parsers (`core/parsers/`)
 
 One module per input format (`.docx`, `.eml`/`.msg`, `.pdf`, `.md`, `.txt`), each implementing
-`parsers/base.py`'s interface and returning extracted text for the classifier — `extractor.py` is
-the dispatcher that picks a parser by file extension.
+`parsers/base.py`'s interface and returning extracted text for the classifier. `parsers/registry.py` is
+the dispatcher (re-exported from `core.parsers`): `is_supported(path)`, `parse_document(path)` and
+`read_documents(paths)`. A parser failure never escapes as a raw library exception —
+`parse_document` raises `UnreadableDocumentError` (or `UnsupportedFormatError`), and `read_documents`
+collects unreadable files instead of stopping, so one corrupt file can't abort a `sort` or `reclassify`:
+it becomes a unit (or proposal) left for review, with the reason.
 
 ## Conventions
 

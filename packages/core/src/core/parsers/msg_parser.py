@@ -7,6 +7,7 @@ from pathlib import Path
 import extract_msg
 
 from core.models.document import Document
+from core.parsers.base import document_from
 
 
 def parse(path: Path) -> Document:
@@ -18,12 +19,6 @@ def parse(path: Path) -> Document:
             "to": message.to or "",
             "date": str(message.date or ""),
         }
-        return Document(
-            file_path=path,
-            file_name=path.name,
-            extension=path.suffix.lower(),
-            content=content,
-            metadata=metadata,
-        )
+        return document_from(path, content, metadata)
     finally:
         message.close()

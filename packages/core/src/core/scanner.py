@@ -5,10 +5,9 @@ Per the ADR, the inbox is a single, library-wide folder at the library root - no
 
 from __future__ import annotations
 
-from core.extractor import extract
 from core.library.library import Library
 from core.models.unit import SortableUnit
-from core.parsers import SUPPORTED_EXTENSIONS
+from core.parsers import is_supported, read_documents
 
 
 def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[SortableUnit]:
@@ -16,6 +15,9 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[
     Scans the inbox folder and identifies the sortable units for files and optional folders.
     Scan ``library.inbox`` (``_sorting`` unless the config's ``[library_structure] library_inbox`` says otherwise) and
     return the units ready for classification.
+
+    Files that can't be read (corrupt, say) don't stop the scan: they are recorded on their unit's
+    ``unreadable`` list, so the unit is left for review rather than the whole run failing.
 
     Loose supported files become single-document units. Sub-folders are only descended into
     (and kept whole as one unit) when ``keep_folders`` is True; otherwise they're left alone
@@ -46,15 +48,16 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[
 
     units: list[SortableUnit] = []
     for entry in sorted(inbox.iterdir()):
-        if entry.is_file() and entry.suffix.lower() in SUPPORTED_EXTENSIONS:
-            units.append(SortableUnit(source_path=entry, kind="file", documents=[extract(entry)]))
+        if entry.is_file() and is_supported(entry):
+            read = read_documents([entry])
+            units.append(
+                SortableUnit(source_path=entry, kind="file", documents=read.documents, unreadable=read.unreadable)
+            )
         elif entry.is_dir() and keep_folders:
-            documents = [
-                extract(file_path)
-                for file_path in sorted(entry.rglob("*"))
-                if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_EXTENSIONS
-            ]
-            if documents:
-                units.append(SortableUnit(source_path=entry, kind="folder", documents=documents))
+            read = read_documents(path for path in sorted(entry.rglob("*")) if path.is_file())
+            if read.documents or read.unreadable:
+                units.append(
+                    SortableUnit(source_path=entry, kind="folder", documents=read.documents, unreadable=read.unreadable)
+                )
 
     return units

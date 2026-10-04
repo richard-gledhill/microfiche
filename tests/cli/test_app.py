@@ -303,3 +303,33 @@ def test_config_shows_the_library_inbox(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert "library_inbox" in result.stdout
     assert "_sorting" in result.stdout
+
+
+# --- files that can't be read ------------------------------------------------------------------
+
+
+def test_sort_files_what_it_can_and_names_the_file_it_could_not_read(tmp_path: Path) -> None:
+    """Regression: one corrupt file used to abort the whole sort with a traceback."""
+
+    library = _library(tmp_path)
+    (library / "_sorting" / "broken.docx").write_text("this is not a zip file", encoding="utf-8")
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+    assert "Needs review: 2" in result.stdout
+    assert "broken.docx" in result.stdout
+    assert "Could not read 'broken.docx'" in result.stdout
+    assert (library / "_sorting" / "broken.docx").exists()
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+
+
+def test_reclassify_names_a_file_it_could_not_read(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "Project Phoenix" / "03 Research" / "broken.docx").write_text("not a zip", encoding="utf-8")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Could not read 'broken.docx'" in result.stdout

@@ -32,6 +32,10 @@ changes here, update the "Current limitations" list and usage steps in the user-
 - **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
   sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
   per filing. Not yet recorded: `tags`, and the per-document breakdown for folder units.
+- **Document parsing** (`core/parsers/`) — wired. `read_documents` skips unsupported files and reports
+  unreadable ones (corrupt, truncated) on their unit instead of raising, so one bad file no longer aborts a
+  `sort` or `reclassify`. Not covered: a password-protected PDF is reported unreadable like any other bad
+  file; OCR for scanned (image-only) PDFs isn't attempted, so they read as empty text and go to review.
 - **Library layout** (`core/library/library.py`) — wired. `Library` owns the inbox (configurable via
   `[library_structure] library_inbox`), state folder, target folders, relative paths, exclusions and taxonomy. Exclusions
   are matched relative to the library root and always cover the inbox and `.microfiche/`. Not done: nested

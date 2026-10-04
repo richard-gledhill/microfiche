@@ -7,6 +7,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 from core.models.document import Document
+from core.parsers.base import document_from
 
 
 def parse(path: Path) -> Document:
@@ -21,10 +22,4 @@ def parse(path: Path) -> Document:
         "subject": message.get("Subject", ""),
         "date": message.get("Date", ""),
     }
-    return Document(
-        file_path=path,
-        file_name=path.name,
-        extension=path.suffix.lower(),
-        content=content,
-        metadata=metadata,
-    )
+    return document_from(path, content, metadata)

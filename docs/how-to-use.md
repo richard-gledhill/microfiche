@@ -224,6 +224,10 @@ Anything classified with enough confidence is filed; the rest is listed under **
 and left in the inbox. Each run that files something is recorded as one *job*, and `sort` prints
 its id (`Job: <id>`) — keep it if you might want to undo the run. Nothing is deleted.
 
+A file microfiche can't open (corrupt or truncated, say) doesn't stop the run: it is listed under
+**Needs review** as `Could not read '<file>': <reason>`, left in the inbox, and everything else is sorted
+as normal. Fix or replace the file and sort again.
+
 microfiche's own records live in the hidden `.microfiche/` folder inside your library: a ledger
 of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
 per job. No extra files are written next to your documents.

@@ -116,10 +116,15 @@ class Classifier:
         by the dominant (group, category) pair voted across all the documents inside it (see the
         "folder-as-unit" decision in docs/development/architecture.md).
 
+        A unit with no readable document is left unresolved, with the reason it couldn't be read.
+
         Each document whose group resolved casts one vote. The pair with the most votes wins, and
         the winning pair's most confident document represents the folder. If two or more pairs
         share the top vote the folder is unresolved, with a reason listing the disagreement.
         """
+
+        if not unit.documents:
+            return _nothing_to_classify(unit)
 
         per_document = [self.classify_document(document, taxonomy) for document in unit.documents]
         if len(per_document) == 1:
@@ -181,6 +186,22 @@ def _known_category(match: CategoryMatch, group: str, taxonomy: Taxonomy) -> Cat
         name=None,
         confidence=0.0,
         reason=f"{match.reason}; but '{match.name}' is not an existing category of '{group}'",
+    )
+
+
+def _nothing_to_classify(unit: SortableUnit) -> ClassificationResult:
+    """An unresolved result for a unit none of whose documents could be read."""
+
+    reason = (
+        "; ".join(f"Could not read '{u.file_path.name}': {u.reason}" for u in unit.unreadable)
+        or "No readable documents"
+    )
+    return ClassificationResult(
+        group=GroupMatch(name=None, confidence=0.0, reason=reason),
+        category=CategoryMatch(name=None, confidence=0.0, reason=reason),
+        overall_confidence=0.0,
+        classified_by="unreadable",
+        confident=False,
     )
 
 

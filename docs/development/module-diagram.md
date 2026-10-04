@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-10-07. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-08. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -23,7 +23,6 @@ flowchart TD
     subgraph CORE["core (top level)"]
         core_organizer["organizer.py"]
         core_scanner["scanner.py"]
-        core_extractor["extractor.py"]
         core_classifier["classifier.py"]
         core_filer["filer.py (file_batch + rollback_job)"]
         core_ledger["ledger.py"]
@@ -42,7 +41,8 @@ flowchart TD
     end
 
     subgraph PARSERS["core/parsers"]
-        p_init["__init__.py (dispatcher)"]
+        p_init["__init__.py (public interface)"]
+        p_registry["registry.py (dispatcher)"]
         p_base["base.py"]
         p_txt["txt_parser.py"]
         p_md["markdown_parser.py"]
@@ -116,12 +116,8 @@ flowchart TD
     core_organizer --> r_engine
     core_organizer --> core_scanner
 
-    core_scanner --> core_extractor
     core_scanner --> m_unit
     core_scanner --> p_init
-
-    core_extractor --> m_document
-    core_extractor --> p_init
 
     core_classifier --> m_category
     core_classifier --> m_classification
@@ -147,7 +143,6 @@ flowchart TD
 
     core_reclassify --> core_classifier
     core_reclassify --> core_config
-    core_reclassify --> core_extractor
     core_reclassify --> core_filer
     core_reclassify --> l_library
     core_reclassify --> m_classification
@@ -160,14 +155,22 @@ flowchart TD
     m_unit --> m_document
     m_job --> m_audit
 
-    p_init --> m_document
-    p_init --> p_txt
-    p_init --> p_md
-    p_init --> p_pdf
-    p_init --> p_docx
-    p_init --> p_msg
-    p_init --> p_eml
+    p_init --> p_registry
+    p_registry --> m_document
+    p_registry --> p_base
+    p_registry --> p_txt
+    p_registry --> p_md
+    p_registry --> p_pdf
+    p_registry --> p_docx
+    p_registry --> p_msg
+    p_registry --> p_eml
     p_base --> m_document
+    p_txt --> p_base
+    p_md --> p_base
+    p_pdf --> p_base
+    p_docx --> p_base
+    p_msg --> p_base
+    p_eml --> p_base
     p_txt --> m_document
     p_md --> m_document
     p_pdf --> m_document
@@ -219,7 +222,8 @@ flowchart TD
     LibraryTree -->|"Library.taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
     ConfigFile -->|"load_config()"| Config["MicroficheConfig"]
     SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if --keep-folders)"]
-    Units -->|"extract() via parsers/"| Documents["Document(s)\n(text + metadata)"]
+    Units -->|"read_documents() via parsers/"| Documents["Document(s)\n(text + metadata)"]
+    Units -.->|"a file that can't be read:\nno document, left for review with the reason"| NeedsReview
 
     Documents --> ClassifyUnit["Classifier.classify_unit()"]
     Taxonomy --> ClassifyUnit
