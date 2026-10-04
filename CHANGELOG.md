@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- describe the default taxonomy as library > group > category, with alternatives [`253ce60`](https://github.com/richard-gledhill/microfiche/commit/253ce60)
+- simplify and clarify README project description [`80de590`](https://github.com/richard-gledhill/microfiche/commit/80de590)
+- :robot: changelog file generated [`d06de10`](https://github.com/richard-gledhill/microfiche/commit/d06de10)
 - :robot: changelog file generated [`9ada702`](https://github.com/richard-gledhill/microfiche/commit/9ada702)
 - use the reclassify command name in the README usage section [`b189251`](https://github.com/richard-gledhill/microfiche/commit/b189251)
 - document resort --apply and the reclassify module [`6b129fd`](https://github.com/richard-gledhill/microfiche/commit/6b129fd)
@@ -28,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #26 from richard-gledhill/docs/library-taxonomy [`9c126ee`](https://github.com/richard-gledhill/microfiche/commit/9c126ee)
 - Merge pull request #25 from richard-gledhill/feature/reclassify-apply [`62de9fa`](https://github.com/richard-gledhill/microfiche/commit/62de9fa)
 - Merge pull request #24 from richard-gledhill/refactor/filing-job-ledger [`e8cc882`](https://github.com/richard-gledhill/microfiche/commit/e8cc882)
 - Rename the resort command to reclassify [`9bd4155`](https://github.com/richard-gledhill/microfiche/commit/9bd4155)
