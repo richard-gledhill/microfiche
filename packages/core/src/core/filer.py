@@ -176,6 +176,21 @@ def rollback_job(library_root: Path, job_id: str) -> Job:
     return job
 
 
+def destination_for(
+    library_root: Path,
+    group: str,
+    category: str,
+    source_name: str,
+    naming_rules: dict[str, str] | None = None,
+) -> Path:
+    """Where ``file_batch`` will put a unit called ``source_name`` classified as ``group``/``category``.
+
+    Lets callers (such as ``core.reclassify``) preview a move, or spot a clash, without filing.
+    """
+
+    return resolve_target_path(library_root, group, category) / apply_naming_rules(source_name, naming_rules or {})
+
+
 def load_job(state_dir: Path, job_id: str) -> Job:
     """Load ``<state_dir>/rollback/job_<job_id>.json``.
 
@@ -213,9 +228,8 @@ def _file_unit(
         raise UnresolvedClassificationError(unit.source_path.name)
 
     content_hash = unit_hash(unit.source_path)  # before the move, while the content is still at the source
-    target_dir = resolve_target_path(library_root, group, category)
-    ensure_dir(target_dir)
-    destination = target_dir / apply_naming_rules(unit.source_path.name, naming_rules)
+    destination = destination_for(library_root, group, category, unit.source_path.name, naming_rules)
+    ensure_dir(destination.parent)
     safe_move(unit.source_path, destination)
 
     event = AuditEvent(original_path=unit.source_path, new_path=destination, action="move")
