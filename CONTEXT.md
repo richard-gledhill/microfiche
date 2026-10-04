@@ -45,6 +45,10 @@ _Avoid_: Prediction, label
 Something that proposes a group, or a category within a group, for a document.
 _Avoid_: Classifier (the classifier combines resolvers), matcher
 
+**Unreadable document**:
+A supported file that can't be opened — corrupt, say — so it can't be classified; it is left for review and never stops the rest of a run.
+_Avoid_: Failed file, bad file
+
 **Confidence**:
 How sure a classification is, from 0 to 1; a classification is only as confident as its weaker stage.
 _Avoid_: Score, probability

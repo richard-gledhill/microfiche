@@ -127,6 +127,13 @@ most votes (e.g. an even split across two groups) the folder is **not** guessed:
 routed to review, with the disagreement as its reason — same as an individual unresolved document. A unique
 winner is enough; it does not need a strict majority. Documents whose group didn't resolve don't vote.
 
+**Decision — files that can't be read:** a supported file that can't be parsed (corrupt, truncated) must not
+abort the run. The parsers module wraps any parser failure in `UnreadableDocumentError`; the scanner records
+such files on their unit's `unreadable` list instead of raising. They don't take part in classification, and a
+unit with no readable document at all is left unresolved — routed to review with "Could not read '<file>': …"
+as the reason — while everything else is sorted as normal. A folder with some unreadable files is classified by
+its readable ones and moves whole, as always.
+
 ## 5. Exclusions
 
 `microfiche-config.toml`'s `[exclusions]` table — glob patterns never treated as a category and never descended into by

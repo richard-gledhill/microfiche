@@ -11,8 +11,8 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 
 | Module | Purpose |
 |---|---|
-| `scanner.py`, `extractor.py`, `classifier.py`, `filer.py`, `ledger.py`, `organizer.py`, `reclassify.py` | The sort pipeline: scan the inbox, classify, file (recording a job, ledger entries and audit lines), and undo. |
-| `parsers/` | Document parsing (PDF, DOCX, TXT, Markdown, MSG, EML). |
+| `scanner.py`, `classifier.py`, `filer.py`, `ledger.py`, `organizer.py`, `reclassify.py` | The sort pipeline: scan the inbox, classify, file (recording a job, ledger entries and audit lines), and undo. |
+| `parsers/` | Document parsing (PDF, DOCX, TXT, Markdown, MSG, EML) behind `read_documents`, with unreadable files reported rather than raised. |
 | `rules/` | Deterministic group/category classification rules. |
 | `ai/` | Optional Ollama/OpenAI fallback classification. |
 | `library/` | The `Library` (layout, exclusions, taxonomy), category suggestion, naming, templates. |
