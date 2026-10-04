@@ -7,7 +7,7 @@ levels = ["group", "category"]
 file_target_level = 2
 
 # Folder name/glob patterns never treated as a category and never descended into by
-# taxonomy discovery or `resort`. Extend this with your own non-category folders
+# taxonomy discovery or `reclassify`. Extend this with your own non-category folders
 # (templates, attachments, archives you don't want touched, etc).
 #
 # Note: microfiche's own operational folders (.microfiche/, .obsidian/, .git/) are all

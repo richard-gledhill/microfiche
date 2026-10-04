@@ -18,12 +18,12 @@ from core.filer import (
 )
 from core.library.category_suggester import suggest_categories
 from core.organizer import run_sort
-from core.resort import run_resort
+from core.reclassify import ScopeOutsideLibraryError, apply_reclassification, run_reclassify
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
 from rich.markup import escape
 
-from cli.display import render_config, render_resort_table, render_sort_report
+from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
 
 console = Console()
 
@@ -83,18 +83,34 @@ def config(library: Path = _LIBRARY_OPTION) -> None:
     render_config(console, config)
 
 
-def resort(
+def reclassify(
     library: Path = _LIBRARY_OPTION,
     folder: Path | None = _FOLDER_OPTION,
     apply: bool = _APPLY_OPTION,
 ) -> None:
-    """Re-review already-filed documents and report where the classifier would file them now."""
+    """Re-review already-filed documents and report where the classifier would file them now.
+
+    Without --apply this is a dry run. With --apply, the documents the table marks "move" are
+    re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
+    """
 
     config = load_config(library / MICROFICHE_DIRNAME)
-    proposals = run_resort(library, config, scope=folder)
-    render_resort_table(console, proposals)
-    if apply:
-        console.print("[yellow]--apply is not wired up to the filer yet - this was a dry run only.[/yellow]")
+    try:
+        proposals = run_reclassify(library, config, scope=folder)
+    except ScopeOutsideLibraryError as err:
+        _fail(str(err))
+    render_reclassify_table(console, proposals, dry_run=not apply)
+    if not apply:
+        render_reclassify_result(console, proposals, job=None, dry_run=True)
+        return
+    try:
+        job = apply_reclassification(library, config, proposals)
+    except FileExistsError as err:
+        _fail(
+            f"{err}\nSome files may already have been moved; they are recorded in the job and can be undone "
+            "(see `microfiche audit` for the job id, then `microfiche rollback`)."
+        )
+    render_reclassify_result(console, proposals, job=job, dry_run=False)
 
 
 def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -> None:

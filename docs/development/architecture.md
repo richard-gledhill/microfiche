@@ -106,7 +106,7 @@ groups) is treated as "no group found" and routed to review, same as an individu
 ## 5. Exclusions
 
 `microfiche-config.toml`'s `[exclusions]` table — glob patterns never treated as a category and never descended into by
-`resort`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
+`reclassify`/taxonomy discovery, matched against each path component (`core/utils/filesystem.py::is_excluded`).
 Three pattern families, not one fixed list — see the shipped file for the current exact patterns rather than
 duplicating them here, since that list has already changed once since this ADR was written:
 - The inbox itself (`_sorting*`, the canonical inbox folder name; `sorting*` is also excluded for
@@ -129,15 +129,21 @@ Given a scope (the inbox, one group, or the whole library), extract common terms
 for a smarter naming pass) and print candidate new category names with supporting evidence. Creating the actual
 folder always requires an explicit `--apply` from the user — this function only ever suggests.
 
-### Resort / re-review existing filings
+### Reclassify / re-review existing filings
 ```
-core/resort.py
+core/reclassify.py
 ```
 Re-runs the two-stage classifier against documents **already filed** in the library, scoped to `--folder <path>`
-or `--all`. Always dry-run by default — prints a diff of "currently at X, classifier now suggests Y" — and only
-moves anything with `--apply`, going through the same filer/audit/rollback path as an initial sort. This is how
-classification drift or rule changes get reconciled after the fact, per the PRD's "preview before execution"
-and rollback constraints.
+(inside the library) or the whole library. Always dry-run by default — prints a table of "currently at X, classifier
+now suggests Y" with the action `--apply` would take for each document — and only moves anything with `--apply`,
+going through the same `file_batch` path as an initial sort, so it is one job in the ledger and audit log and can
+be undone with `rollback`. This is how classification drift or rule changes get reconciled after the fact, per the
+PRD's "preview before execution" and rollback constraints.
+
+Each document gets one action: `move` (confident, and not already under the proposed category folder), `keep`
+(already under it, even in a subfolder), `review` (unresolved or below the confidence threshold — never moved
+automatically), or `conflict` (the destination file already exists, or another document in the same run is headed
+there — left alone rather than overwritten).
 
 ### Obsidian integration
 ```
@@ -151,7 +157,7 @@ canonical list. A tag with no close match is still applied to the document, and 
 separated `## Proposed` section in `TagIndex.md` (never silently merged into the reviewed list) plus logged to
 the audit trail, so a human can promote or reject it later.
 
-`../index.md` is regenerated for every folder touched by a sort, resort, or rollback — not just created once —
+`../index.md` is regenerated for every folder touched by a sort, reclassify, or rollback — not just created once —
 so it always reflects current contents. Format:
 ```markdown
 # 01 Requirements
@@ -184,7 +190,7 @@ the dominant category.
 microfiche sort [--keep-folders] [--use-ai]        # process the library-wide _sorting/ inbox
 microfiche review                                    # work the low-confidence queue from the last sort
 microfiche propose-categories [--scope PATH] [--use-ai] [--apply]
-microfiche resort [--folder PATH | --all] [--apply]  # re-review already-filed documents
+microfiche reclassify [--folder PATH | --all] [--apply]  # re-review already-filed documents
 microfiche index [--scope PATH | --all]              # force-regenerate Obsidian index.md files
 microfiche audit                                     # show the audit log
 microfiche rollback --job-id ID                      # undo a job by id

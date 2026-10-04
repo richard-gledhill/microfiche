@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from core.config import MicroficheConfig
+from core.models.job import Job
 from core.organizer import SortReport
-from core.resort import ResortProposal
+from core.reclassify import ReclassifyProposal
 from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
@@ -48,23 +49,59 @@ def render_sort_report(console: Console, report: SortReport) -> None:
     for unit, classification in report.needs_review:
         console.print(f"  [yellow]{unit.source_path.name}[/yellow] — {classification.category.reason}")
     if report.job is not None:
-        console.print(f"Job: {report.job.job_id}", soft_wrap=True)
-        console.print(
-            f"Undo with: microfiche rollback --library <your library> --job-id {report.job.job_id}", soft_wrap=True
-        )
+        _render_job(console, report.job)
 
 
-def render_resort_table(console: Console, proposals: list[ResortProposal]) -> None:
-    table = Table(title="Resort proposals (dry run)")
+def _render_job(console: Console, job: Job) -> None:
+    console.print(f"Job: {job.job_id}", soft_wrap=True)
+    console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
+
+
+_ACTION_STYLES = {"move": "green", "keep": "dim", "review": "yellow", "conflict": "red"}
+
+
+def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal], *, dry_run: bool) -> None:
+    table = Table(title="Reclassify proposals (dry run)" if dry_run else "Reclassify proposals")
     table.add_column("Current path")
     table.add_column("Proposed group")
     table.add_column("Proposed category")
     table.add_column("Confidence")
+    table.add_column("Action")
     for proposal in proposals:
+        style = _ACTION_STYLES[proposal.action]
         table.add_row(
-            str(proposal.current_path),
-            proposal.proposed_group or "—",
-            proposal.proposed_category or "—",
+            escape(str(proposal.current_path)),
+            escape(proposal.proposed_group or "—"),
+            escape(proposal.proposed_category or "—"),
             f"{proposal.classification.overall_confidence:.2f}",
+            f"[{style}]{proposal.action}[/{style}]",
         )
     console.print(table)
+
+
+def render_reclassify_result(
+    console: Console, proposals: list[ReclassifyProposal], *, job: Job | None, dry_run: bool
+) -> None:
+    """Summarise a reclassify run: counts by action, and either the job (applied) or how to apply."""
+
+    counts = {action: sum(1 for proposal in proposals if proposal.action == action) for action in _ACTION_STYLES}
+    moves = counts["move"]
+    if dry_run:
+        console.print(f"Would move: {moves}")
+    else:
+        console.print(f"[green]Moved:[/green] {moves}")
+    console.print(
+        f"Already in place: {counts['keep']}  Needs review (not moved): {counts['review']}  "
+        f"Skipped, destination taken: {counts['conflict']}"
+    )
+    for proposal in proposals:
+        if proposal.action == "conflict":
+            console.print(
+                f"  [red]{escape(str(proposal.current_path))}[/red] — {escape(str(proposal.destination))} is taken",
+                soft_wrap=True,
+            )
+    if dry_run:
+        if moves:
+            console.print("Re-run with --apply to move these files.")
+    elif job is not None:
+        _render_job(console, job)

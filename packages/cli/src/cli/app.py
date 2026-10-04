@@ -10,7 +10,7 @@ app = typer.Typer(name="microfiche", help="Organize project reference materials 
 app.command(name="sort")(commands.sort)
 app.command(name="review")(commands.review)
 app.command(name="propose-categories")(commands.propose_categories)
-app.command(name="resort")(commands.resort)
+app.command(name="reclassify")(commands.reclassify)
 app.command(name="index")(commands.index)
 app.command(name="audit")(commands.audit)
 app.command(name="rollback")(commands.rollback)

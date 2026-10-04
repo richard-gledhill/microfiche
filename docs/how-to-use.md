@@ -165,33 +165,58 @@ folders):
     uv run microfiche propose-categories --library "$HOME\Documents\Projects"
     ```
 
-Re-check already-filed documents against the current rules (dry run):
+Re-check already-filed documents against the current rules. This is a dry run: it prints a table
+with an **Action** for each document and changes nothing:
 
 === "Bash"
 
     ```bash
-    uv run microfiche resort --library ~/Documents/Projects
+    uv run microfiche reclassify --library ~/Documents/Projects
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche resort --library "$HOME\Documents\Projects"
+    uv run microfiche reclassify --library "$HOME\Documents\Projects"
     ```
 
-Limit the re-check to one folder:
+The actions are **move** (confident, and not already under the proposed category), **keep**
+(already in the right place), **review** (not confident enough — never moved automatically) and
+**conflict** (a file with that name is already at the destination, or another document in the
+same run is headed there — left alone, never overwritten).
+
+Limit the re-check to one folder (it must be inside the library):
 
 === "Bash"
 
     ```bash
-    uv run microfiche resort --library ~/Documents/Projects --folder ~/Documents/Projects/"Project Phoenix"
+    uv run microfiche reclassify --library ~/Documents/Projects --folder ~/Documents/Projects/"Project Phoenix"
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche resort --library "$HOME\Documents\Projects" --folder "$HOME\Documents\Projects\Project Phoenix"
+    uv run microfiche reclassify --library "$HOME\Documents\Projects" --folder "$HOME\Documents\Projects\Project Phoenix"
     ```
+
+Happy with the preview? Add `--apply` to move the **move** documents. Like `sort`, this is one
+job: it prints a job id, is recorded in the ledger and audit log, and can be undone with
+`rollback`:
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche reclassify --library ~/Documents/Projects --apply
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche reclassify --library "$HOME\Documents\Projects" --apply
+    ```
+
+`--folder` works with `--apply` too. Preview first: classification is rule-based, so it is worth
+checking the table before moving anything.
 
 View the audit log:
 
@@ -227,7 +252,10 @@ same command again):
 
 microfiche is pre-release. At the moment:
 
-- `resort --apply` only reports proposals; it doesn't move files yet.
+- `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
+- If you re-file a document with `reclassify --apply` after a `sort`, undo the newer job first —
+  rolling back the older one will stop with an error because the file is no longer where it
+  was filed.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 
 Run `uv run microfiche <command> --help` for every option on a command.

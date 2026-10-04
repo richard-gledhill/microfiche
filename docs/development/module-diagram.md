@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-10-04. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-05. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -27,7 +27,7 @@ flowchart TD
         core_classifier["classifier.py"]
         core_filer["filer.py (file_batch + rollback_job)"]
         core_ledger["ledger.py"]
-        core_resort["resort.py"]
+        core_reclassify["reclassify.py"]
         core_config["config.py"]
     end
 
@@ -97,12 +97,13 @@ flowchart TD
     cli_commands --> core_config
     cli_commands --> l_suggester
     cli_commands --> core_organizer
-    cli_commands --> core_resort
+    cli_commands --> core_reclassify
     cli_commands --> core_filer
     cli_commands --> core_scanner
     cli_display --> core_config
     cli_display --> core_organizer
-    cli_display --> core_resort
+    cli_display --> core_reclassify
+    cli_display --> m_job
 
     core_organizer --> a_llm
     core_organizer --> core_classifier
@@ -144,15 +145,17 @@ flowchart TD
 
     core_ledger --> m_ledger
 
-    core_resort --> core_classifier
-    core_resort --> core_config
-    core_resort --> core_extractor
-    core_resort --> l_taxonomy
-    core_resort --> m_classification
-    core_resort --> m_unit
-    core_resort --> p_init
-    core_resort --> r_engine
-    core_resort --> u_filesystem
+    core_reclassify --> core_classifier
+    core_reclassify --> core_config
+    core_reclassify --> core_extractor
+    core_reclassify --> core_filer
+    core_reclassify --> l_taxonomy
+    core_reclassify --> m_classification
+    core_reclassify --> m_job
+    core_reclassify --> m_unit
+    core_reclassify --> p_init
+    core_reclassify --> r_engine
+    core_reclassify --> u_filesystem
 
     m_unit --> m_document
     m_job --> m_audit
@@ -243,9 +246,9 @@ flowchart TD
 
 Solid arrows are wired end to end today; dashed arrows and the highlighted boxes are real code
 paths (`core/obsidian/`, the `review` queue) that nothing in the `sort` pipeline calls yet.
-`resort.py` reuses `Classifier`/`RulesEngine` the same way against already-filed documents
-instead of the `_sorting/` inbox, and is dry-run only until `--apply` is wired to
-`filer.file_batch`.
+`reclassify.py` reuses `Classifier`/`RulesEngine` the same way against already-filed documents
+instead of the `_sorting/` inbox; with `--apply` it files its `move` proposals through the same
+`filer.file_batch`, so a reclassification is a job like any other.
 
 ## See also
 
