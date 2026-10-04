@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- describe the Library module, the configurable inbox and the exclusion fixes [`143e966`](https://github.com/richard-gledhill/microfiche/commit/143e966)
+- :robot: changelog file generated [`03ecfc0`](https://github.com/richard-gledhill/microfiche/commit/03ecfc0)
 - document the classifier seam, the confidence threshold, and add a CONTEXT.md glossary [`93f1d8c`](https://github.com/richard-gledhill/microfiche/commit/93f1d8c)
 - :robot: changelog file generated [`7163566`](https://github.com/richard-gledhill/microfiche/commit/7163566)
 - describe the default taxonomy as library > group > category, with alternatives [`253ce60`](https://github.com/richard-gledhill/microfiche/commit/253ce60)
@@ -26,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
 
 ### Chore
+- ignore the .temp directory for ad hoc local files [`867ceb3`](https://github.com/richard-gledhill/microfiche/commit/867ceb3)
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
 - bump pre-commit from 4.6.1 to 4.6.2 [`62e61a9`](https://github.com/richard-gledhill/microfiche/commit/62e61a9)
 - bump typer from 0.27.0 to 0.27.2 [`6d702bf`](https://github.com/richard-gledhill/microfiche/commit/6d702bf)
@@ -33,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #29 from richard-gledhill/chore/ignore-temp-dir [`6db777b`](https://github.com/richard-gledhill/microfiche/commit/6db777b)
+- Merge pull request #28 from richard-gledhill/refactor/library-module [`3d32d5e`](https://github.com/richard-gledhill/microfiche/commit/3d32d5e)
+- Add a Library module that owns the library's layout; make the inbox configurable [`6d5c850`](https://github.com/richard-gledhill/microfiche/commit/6d5c850)
 - Merge pull request #27 from richard-gledhill/refactor/classifier-resolver-seam [`22252d8`](https://github.com/richard-gledhill/microfiche/commit/22252d8)
 - Put the group-then-category decision behind one Classifier; make the confidence threshold configurable [`e48f938`](https://github.com/richard-gledhill/microfiche/commit/e48f938)
 - Merge pull request #26 from richard-gledhill/docs/library-taxonomy [`9c126ee`](https://github.com/richard-gledhill/microfiche/commit/9c126ee)
