@@ -131,13 +131,19 @@ folder always requires an explicit `--apply` from the user — this function onl
 
 ### Resort / re-review existing filings
 ```
-core/resort.py
+core/reclassify.py
 ```
 Re-runs the two-stage classifier against documents **already filed** in the library, scoped to `--folder <path>`
-or `--all`. Always dry-run by default — prints a diff of "currently at X, classifier now suggests Y" — and only
-moves anything with `--apply`, going through the same filer/audit/rollback path as an initial sort. This is how
-classification drift or rule changes get reconciled after the fact, per the PRD's "preview before execution"
-and rollback constraints.
+(inside the library) or the whole library. Always dry-run by default — prints a table of "currently at X, classifier
+now suggests Y" with the action `--apply` would take for each document — and only moves anything with `--apply`,
+going through the same `file_batch` path as an initial sort, so it is one job in the ledger and audit log and can
+be undone with `rollback`. This is how classification drift or rule changes get reconciled after the fact, per the
+PRD's "preview before execution" and rollback constraints.
+
+Each document gets one action: `move` (confident, and not already under the proposed category folder), `keep`
+(already under it, even in a subfolder), `review` (unresolved or below the confidence threshold — never moved
+automatically), or `conflict` (the destination file already exists, or another document in the same run is headed
+there — left alone rather than overwritten).
 
 ### Obsidian integration
 ```

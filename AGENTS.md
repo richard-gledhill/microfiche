@@ -12,8 +12,7 @@ design rationale: [docs/development/architecture.md](docs/development/architectu
 
 **Before assuming a described feature is fully wired, check
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
-actually implemented vs. still stubbed (e.g. `resort --apply` isn't wired to the filer, and
-`review`/`index` are stub commands). See
+actually implemented vs. still stubbed (e.g. `review`/`index` are stub commands). See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
 [data-model.md](docs/development/data-model.md) (ledger/audit/rollback schemas) and
 [mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
@@ -89,8 +88,11 @@ workspace `.venv`.
 
 ### Everything else keys off that same taxonomy/classification core
 
-- **`resort.py`** re-runs the two-stage classifier against already-filed documents (dry-run by
-  default, `--apply` to move) — how classification drift gets reconciled after rule changes.
+- **`reclassify.py`** (the `resort` command) re-runs the two-stage classifier against
+  already-filed documents and plans each one: `move` / `keep` (already under the right category) /
+  `review` (unresolved or below threshold) / `conflict` (destination taken). Dry-run by default;
+  `--apply` files the `move`s through `filer.py::file_batch` as one rollback-able job — how
+  classification drift gets reconciled after rule changes.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
   scope; never creates folders itself (requires explicit `--apply` at the CLI layer).
 - **`obsidian/`** — `index_writer.py` regenerates a folder's `index.md` (folder note) after every
@@ -100,8 +102,7 @@ workspace `.venv`.
 - **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
   `.microfiche/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
   by that JSON, not by re-deriving anything from the filesystem. `file_batch` writes the job, so
-  `sort` is rollback-able; `resort --apply` isn't wired to it yet (tracked in
-  `docs/development/mvp-roadmap.md`).
+  `sort` and `resort --apply` are both rollback-able.
 - **`ledger.py`** — `.microfiche/ledger.jsonl`, an append-only record of every filing (path,
   content hash, group, category, reasons, confidence, `classified_by`) and rollback. Keyed by
   path + content hash; `Ledger.current()` replays it to get what's filed now. It replaced the old

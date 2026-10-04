@@ -85,6 +85,7 @@ Other commands:
 
 ```bash
 uv run microfiche resort --library ~/Documents/Projects   # re-review already-filed documents (dry run)
+uv run microfiche resort --library ~/Documents/Projects --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Projects
 uv run microfiche audit --library ~/Documents/Projects
 uv run microfiche rollback --library ~/Documents/Projects --job-id <id>
