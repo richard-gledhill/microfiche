@@ -12,7 +12,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -24,6 +24,12 @@ MICROFICHE_DIRNAME = ".microfiche"
 DEFAULT_INBOX_DIRNAME = "_sorting"
 
 
+class _ConfigSection(BaseModel):
+    """A section of the config file."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class InvalidInboxNameError(ValueError):
     """Raised when ``library_inbox`` isn't a usable folder name."""
 
@@ -32,7 +38,7 @@ class InvalidInboxNameError(ValueError):
         super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
 
 
-class LibraryStructureConfig(BaseModel):
+class LibraryStructureConfig(_ConfigSection):
     """The shape of the library: its group/category hierarchy, and the name of its inbox.
 
     Attributes:
@@ -62,13 +68,13 @@ class LibraryStructureConfig(BaseModel):
         return value
 
 
-class ExclusionsConfig(BaseModel):
+class ExclusionsConfig(_ConfigSection):
     """Folder name/glob patterns never treated as a category, never descended into."""
 
     exclude: list[str] = Field(default_factory=list)
 
 
-class ObsidianConfig(BaseModel):
+class ObsidianConfig(_ConfigSection):
     """Handles configuration details for Obsidian-related operations.
 
     This class is used to manage settings required for integration or operations
@@ -90,7 +96,7 @@ class ObsidianConfig(BaseModel):
     tag_mode: Literal["suggest", "strict", "off"] = "suggest"
 
 
-class CategoryHintsConfig(BaseModel):
+class CategoryHintsConfig(_ConfigSection):
     """Represents the configuration for category hints.
 
     Keyword hints per *existing* category name, used by the rules engine - not the category
@@ -108,7 +114,7 @@ class CategoryHintsConfig(BaseModel):
     categories: dict[str, list[str]] = Field(default_factory=dict)
 
 
-class FilingRulesConfig(BaseModel):
+class FilingRulesConfig(_ConfigSection):
     """Represents the configuration for filing rules.
 
     Filename-glob -> category rules, checked before keyword hints.
@@ -125,7 +131,7 @@ class FilingRulesConfig(BaseModel):
     rules: list[dict[str, str]] = Field(default_factory=list)
 
 
-class NamingRulesConfig(BaseModel):
+class NamingRulesConfig(_ConfigSection):
     """Represents configuration for naming rules.
 
     This class is intended to store and manage Regex pattern naming rules defined as key-value pairs.
@@ -140,7 +146,7 @@ class NamingRulesConfig(BaseModel):
     rules: dict[str, str] = Field(default_factory=dict)
 
 
-class ClassificationConfig(BaseModel):
+class ClassificationConfig(_ConfigSection):
     """How confident microfiche must be before it files a document without asking.
 
     Attributes:
@@ -175,6 +181,8 @@ class MicroficheConfig(BaseModel):
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
+        library_templates (dict[str, list[str]]): Named category sets for a future
+            `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
 
     library_structure: LibraryStructureConfig
@@ -184,6 +192,7 @@ class MicroficheConfig(BaseModel):
     filing_rules: FilingRulesConfig
     naming_rules: NamingRulesConfig
     classification: ClassificationConfig = Field(default_factory=ClassificationConfig)
+    library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class TomlConfigParseError(ValueError):
@@ -200,6 +209,24 @@ class TomlConfigParseError(ValueError):
     def __init__(self, path: Path | str, error: Exception | str) -> None:
         super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
+        self.error = error
+
+
+class ConfigSectionError(ValueError):
+    """
+    Exception raised for errors related to unknown configuration sections.
+
+    This exception is specifically designed to handle cases where a configuration
+    file contains a section that is not recognized. It extends the `ValueError`
+    class to provide additional context about the error encountered.
+
+    Attributes:
+        error (Exception | str): The specific error or section name related to the
+            unrecognized configuration.
+    """
+
+    def __init__(self, error: Exception | str) -> None:
+        super().__init__(f"Config file contains unknown section or sections: {error}")
         self.error = error
 
 
@@ -256,6 +283,20 @@ def load_config(config_path: Path) -> MicroficheConfig:
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)
+
+    # Dynamically extract field names from your Pydantic class structure
+    # This evaluates to {"library_structure"}
+    allowed_sections = set(MicroficheConfig.model_fields.keys())
+
+    parsed_sections = set(config.keys())
+    unknown_sections = parsed_sections - allowed_sections
+
+    # If the resulting set is not empty, raise an error
+    if unknown_sections:
+        # Convert to a sorted list or comma-separated string for a clean error message
+        unknown_str = ", ".join(sorted(unknown_sections))
+        raise ConfigSectionError(unknown_str)
+
     return MicroficheConfig(
         library_structure=LibraryStructureConfig(**config.get("library_structure", {})),
         exclusions=ExclusionsConfig(**config.get("exclusions", {})),
@@ -264,4 +305,5 @@ def load_config(config_path: Path) -> MicroficheConfig:
         filing_rules=FilingRulesConfig(**config.get("filing_rules", {})),
         naming_rules=NamingRulesConfig(**config.get("naming_rules", {})),
         classification=ClassificationConfig(**config.get("classification", {})),
+        library_templates=config.get("library_templates", {}),
     )

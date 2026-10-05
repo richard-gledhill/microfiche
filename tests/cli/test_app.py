@@ -305,6 +305,22 @@ def test_config_shows_the_library_inbox(tmp_path: Path) -> None:
     assert "_sorting" in result.stdout
 
 
+def test_config_shows_the_library_templates(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["config", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0
+    assert "library_templates" in result.stdout
+    assert "software_project" in result.stdout
+    assert "personal_project" in result.stdout
+
+
+def test_config_still_lists_library_templates_when_the_library_defines_none(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["config", "--library", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "library_templates" in result.stdout
+
+
 # --- files that can't be read ------------------------------------------------------------------
 
 

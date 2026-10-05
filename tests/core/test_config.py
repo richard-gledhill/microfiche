@@ -139,6 +139,21 @@ def test_thresholds_outside_zero_to_one_are_rejected(value: float) -> None:
         ClassificationConfig(confidence_threshold=value)
 
 
+def test_the_shipped_library_templates_are_loaded() -> None:
+    config = load_config(_REPO_CONFIG_DIR)
+
+    assert "01 Requirements" in config.library_templates["software_project"]
+
+
+def test_a_library_template_that_is_not_a_list_of_names_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[library_templates]\nsoftware_project = "oops"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="software_project"):
+        load_config(tmp_path)
+
+
 # --- the library inbox ------------------------------------------------------------------------
 
 
