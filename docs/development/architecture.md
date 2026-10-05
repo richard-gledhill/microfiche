@@ -226,13 +226,17 @@ the dominant category.
 
 ```bash
 microfiche sort [--keep-folders] [--use-ai]        # process the library-wide _sorting/ inbox
-microfiche review                                    # work the low-confidence queue from the last sort
-microfiche propose-categories [--scope PATH] [--use-ai] [--apply]
-microfiche reclassify [--folder PATH | --all] [--apply]  # re-review already-filed documents
-microfiche index [--scope PATH | --all]              # force-regenerate Obsidian index.md files
+microfiche review                                    # work the low-confidence queue (stub - see mvp-roadmap.md)
+microfiche propose-categories                        # suggest category names from the inbox; print-only
+microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
+microfiche index [--scope PATH]                      # force-regenerate Obsidian index.md files (stub)
 microfiche audit                                     # show the audit log
 microfiche rollback --job-id ID                      # undo a job by id
+microfiche config                                    # show the library's loaded configuration
 ```
+
+Every command also takes `--library PATH`. Scoping `propose-categories` to a library folder, and its `--use-ai`
+variant (§6), are designed but not built; see [mvp-roadmap.md](mvp-roadmap.md) for each command's status.
 
 ## 9. Explicitly deferred (unchanged from concept 1b / the roadmap)
 

@@ -68,11 +68,11 @@ fixture folder. No CLI, no config files, no AI, no rollback.
 **Milestone:** `v0.2 — Configurable Rules Engine, Taxonomy & CLI`
 **Testable version:** A `microfiche sort --library <path>` command that discovers a library's
 existing group/category folder structure, classifies documents in a `_sorting/` inbox against
-that taxonomy using YAML-configured rules, and files them — runnable and demoable by a human.
+that taxonomy using TOML-configured rules, and files them — runnable and demoable by a human.
 
 **Plan**
 - Define the two-stage (group, then category) classification contract that replaces Stage 1's flat hardcoded classifier.
-- Define the config file (`[categories]`, `[filing_rules]`, `[naming_rules]`, `[exclusions]`) and what each one governs.
+- Define the config file (`[category_hints.categories]`, `[filing_rules]`, `[naming_rules]`, `[exclusions]`) and what each one governs.
 
 **Design**
 - Design the `Taxonomy` model representing the library's discovered `{group: [category, ...]}` structure.
@@ -80,10 +80,10 @@ that taxonomy using YAML-configured rules, and files them — runnable and demoa
 - Design the CLI's command surface and argument conventions (`--library`, `--keep-folders`) before writing any Typer code.
 
 **Build**
-- Implement `discover_taxonomy` to walk a library's folders, excluding configured exclusions, into a group → category map.
+- Implement taxonomy discovery (`Library.taxonomy()`) to walk a library's folders, excluding configured exclusions, into a group → category map.
 - Implement group resolution: filename/content keyword match, with fuzzy matching for near-misses.
 - Implement category resolution: filename-glob rules, then keyword hints, scoped to the resolved group.
-- Implement per-library YAML config loading and validation for all four config files.
+- Implement per-library TOML config loading and validation (`microfiche-config.toml`, one table per concern).
 - Implement the `sort` command in a Typer CLI, wiring config loading → taxonomy discovery → classification → filing.
 - Implement Rich-rendered console output summarizing filed vs. needs-review counts.
 
@@ -153,7 +153,7 @@ behavior for anything the rules engine already handles.
 - Implement the Ollama provider against a local Ollama server.
 - Implement the OpenAI provider as a second, equally-supported option.
 - Wire the classifier to fall back to the AI path only when rules-based confidence is below threshold.
-- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `reclassify`.
+- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `reclassify`. *(Not built: `sort --use-ai` is Ollama-only and `OpenAIProvider` is unreachable from the CLI; see [mvp-roadmap.md](mvp-roadmap.md).)*
 
 **Test**
 - Write unit tests for the AI-fallback trigger condition (below-threshold vs. above-threshold rules results).
@@ -187,7 +187,7 @@ queue interactively via `microfiche review` — completing the CLI surface
 - Implement tag governance that fuzzy-matches extracted keywords against `TagIndex.md` and appends unmatched ones to `## Proposed`.
 - Implement the interactive `review` command's accept/modify/create/skip loop over the low-confidence queue.
 - Wire the `index` and `review` commands to this new core logic.
-- Implement `reclassify --apply`, reusing Stage 3's persistence path.
+- Implement `reclassify --apply`, reusing Stage 3's persistence path. *(Already shipped ahead of this stage.)*
 
 **Test**
 - Write unit tests for `index.md` generation against a folder with mixed Markdown and non-Markdown files.
