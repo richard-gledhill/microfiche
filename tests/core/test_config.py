@@ -5,15 +5,85 @@ from pathlib import Path
 import pytest
 from core.config import (
     DEFAULT_INBOX_DIRNAME,
+    CategoryHintsConfig,
     ClassificationConfig,
+    ExclusionsConfig,
+    FilingRulesConfig,
+    LibraryStructureConfig,
     MicroficheConfig,
+    NamingRulesConfig,
+    ObsidianConfig,
+    TomlConfigParseError,
     load_config,
 )
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from core.utils.filesystem import is_excluded
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
+
+
+@pytest.mark.parametrize(
+    "section",
+    [
+        LibraryStructureConfig,
+        ExclusionsConfig,
+        ObsidianConfig,
+        CategoryHintsConfig,
+        FilingRulesConfig,
+        NamingRulesConfig,
+        ClassificationConfig,
+    ],
+)
+def test_each_section_rejects_unknown_key(section: type[BaseModel]) -> None:
+    """A key a section doesn't define is an error, so a typo can't be silently ignored."""
+    with pytest.raises(ValidationError) as exc_info:
+        section(not_a_real_key=1)
+
+    [error] = exc_info.value.errors()
+    assert error["type"] == "extra_forbidden"
+    assert error["loc"] == ("not_a_real_key",)
+
+
+def test_library_structure_rejects_unknown_key() -> None:
+    invalid_data = {
+        "library_structure": {
+            "library_inbox": "_sorting",
+            "depth": 2,
+            "levels": ["group", "category"],
+            "file_target_level": 2,
+            "invalid_key": "invalid-key",  # The offender
+        }
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        LibraryStructureConfig(**invalid_data.get("library_structure", {}))
+
+    [error] = exc_info.value.errors()
+    assert error["type"] == "extra_forbidden"
+    assert error["loc"] == ("invalid_key",)
+
+
+def test_an_unknown_section_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classifcation]\nconfidence_threshold = 0.9\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="classifcation"):
+        load_config(tmp_path)
+
+
+def test_a_wrong_type_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="confidence_threshold"):
+        load_config(tmp_path)
+
+
+def test_a_toml_syntax_error_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classification\n", encoding="utf-8")
+
+    with pytest.raises(TomlConfigParseError):
+        load_config(tmp_path)
 
 
 def test_load_config_reads_the_shipped_default_config() -> None:
