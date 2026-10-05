@@ -13,9 +13,17 @@ _AI_CONFIDENCE = 0.7
 
 
 class LLMClassifier:
-    """Resolver backed by an ``AIProvider``: asks the model to pick a group or category from the
-    taxonomy, or to say none fit. It is a fallback resolver for ``core.classifier.Classifier``,
-    which decides whether the answer is confident enough to use.
+    """Resolver backed by an ``AIProvider``.
+
+    Asks the model to pick a group or category from the taxonomy, or to say none fit. It is a
+    fallback resolver for ``core.classifier.Classifier``, which decides whether the answer is
+    confident enough to use.
+
+    Args:
+        provider: The model to ask.
+
+    Attributes:
+        name: Identifies the resolver in ``ClassificationResult.classified_by``.
     """
 
     name: str = "ai_fallback"
@@ -24,6 +32,17 @@ class LLMClassifier:
         self._provider = provider
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
+        """Ask the model which of the taxonomy's groups ``document`` belongs to.
+
+        Args:
+            document: The document to classify.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The group the model picked, or ``name=None`` if it said none fit or named something
+            that isn't an existing group.
+        """
+
         prompt = GROUP_RESOLUTION_PROMPT.format(
             group_names=", ".join(taxonomy.group_names),
             document_text=document.content[:_MAX_DOCUMENT_CHARS],
@@ -34,6 +53,18 @@ class LLMClassifier:
         return GroupMatch(name=answer, confidence=_AI_CONFIDENCE, reason="Resolved by AI fallback")
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
+        """Ask the model which of ``group``'s categories ``document`` belongs to.
+
+        Args:
+            document: The document to classify.
+            group: The group the document was resolved to.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The category the model picked, or ``name=None`` if it said none fit or named
+            something that isn't an existing category of ``group``.
+        """
+
         categories = taxonomy.categories_for(group)
         prompt = CATEGORY_RESOLUTION_PROMPT.format(
             group_name=group,

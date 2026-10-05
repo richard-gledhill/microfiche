@@ -72,13 +72,26 @@ class DocumentsRead:
 
 
 def is_supported(path: Path) -> bool:
-    """Whether ``path``'s extension (case-insensitively) has a registered parser."""
+    """Whether ``path``'s extension (case-insensitively) has a registered parser.
+
+    Args:
+        path: The file to check.
+
+    Returns:
+        ``True`` if a parser is registered for the extension.
+    """
 
     return path.suffix.lower() in SUPPORTED_EXTENSIONS
 
 
 def parse_document(path: Path) -> Document:
     """Parse ``path`` with the parser registered for its extension.
+
+    Args:
+        path: The file to parse.
+
+    Returns:
+        The extracted ``Document``.
 
     Raises:
         UnsupportedFormatError: if no parser is registered for the file's extension.
@@ -99,6 +112,12 @@ def read_documents(paths: Iterable[Path]) -> DocumentsRead:
 
     Unsupported files are skipped silently (they are not documents). Supported files that can't
     be read are collected in ``unreadable`` instead of stopping the batch.
+
+    Args:
+        paths: The files to read.
+
+    Returns:
+        The documents that were read and the supported files that could not be.
     """
 
     result = DocumentsRead()

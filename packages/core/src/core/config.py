@@ -219,6 +219,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
     Raises:
         TomlConfigParseError: If the TOML file cannot be parsed due to a decoding error.
     """
+
     if not path.is_file():
         return {}
     try:
@@ -229,21 +230,20 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 
 def load_config(config_path: Path) -> MicroficheConfig:
-    """Loads the configuration file from the given path and creates a MicroficheConfig object.
+    """Load the configuration file at the given path into a ``MicroficheConfig``.
 
-    This function evaluates the provided path, determines the existence of a file,
-    reads the TOML configuration, and processes various sub-configurations to assemble
-    a complete MicroficheConfig object.
+    Reads the TOML configuration and assembles each sub-configuration, using defaults for any
+    section that is missing.
 
     Args:
-        config_path (Path): The path to the base configuration directory or a specific
-            configuration file. If a directory is provided, the function tries to locate
-            the configuration file using a predefined filename.
+        config_path: The path to the base configuration directory or a specific configuration
+            file. If a directory is provided, the configuration file is looked up in it by its
+            predefined filename.
 
     Returns:
-        MicroficheConfig: An instance of MicroficheConfig containing the parsed configurations
-            with details for library structure, exclusions, Obsidian, category hints,
-            filing rules, and naming rules.
+        The parsed configuration for library structure, exclusions, Obsidian, category hints,
+        filing rules, and naming rules.
+
     Todo:
         - Implement check for .microfiche folder
         - Implement validation of config file and prompt for exit or using defaults if error.
@@ -252,6 +252,7 @@ def load_config(config_path: Path) -> MicroficheConfig:
         - Consider adding logging for configuration loading and processing.
         - Review target_file as nothing in the codebase calls it with a literal file path, only the directory form is ever used
     """
+
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)

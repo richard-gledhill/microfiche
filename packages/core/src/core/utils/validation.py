@@ -6,7 +6,14 @@ from pathlib import Path
 
 
 def validate_library_root(path: Path) -> None:
-    """Raise if ``path`` isn't an existing directory."""
+    """Raise if ``path`` isn't an existing directory.
+
+    Args:
+        path: The path to check.
+
+    Raises:
+        NotADirectoryError: if ``path`` doesn't exist or isn't a directory.
+    """
 
     if not path.exists():
         raise NotADirectoryError(f"Library root does not exist: {path}")  # noqa: TRY003

@@ -20,6 +20,13 @@ def _format_value(value: object) -> str:
 
 
 def render_config(console: Console, config: MicroficheConfig) -> None:
+    """Print the library's configuration as a table, one row per setting.
+
+    Args:
+        console: Where to print.
+        config: The configuration to show.
+    """
+
     table = Table(title="Library configuration")
     table.add_column("Section", style="bold cyan")
     table.add_column("Setting")
@@ -39,6 +46,13 @@ def render_config(console: Console, config: MicroficheConfig) -> None:
 
 
 def render_sort_report(console: Console, report: SortReport) -> None:
+    """Print what a sort run filed and what it left for review, then the job to undo it.
+
+    Args:
+        console: Where to print.
+        report: The result of the sort run.
+    """
+
     console.print(f"[green]Filed:[/green] {len(report.filed)}")
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
     for unit, classification in report.filed:
@@ -64,6 +78,14 @@ _ACTION_STYLES = {"move": "green", "keep": "dim", "review": "yellow", "conflict"
 
 
 def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal], *, dry_run: bool) -> None:
+    """Print one row per reclassify proposal: where it is, where it would go, and what happens.
+
+    Args:
+        console: Where to print.
+        proposals: The proposals to show.
+        dry_run: Whether the run is a preview, which is noted in the table's title.
+    """
+
     table = Table(title="Reclassify proposals (dry run)" if dry_run else "Reclassify proposals")
     table.add_column("Current path")
     table.add_column("Proposed group")
@@ -85,7 +107,14 @@ def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal
 def render_reclassify_result(
     console: Console, proposals: list[ReclassifyProposal], *, job: Job | None, dry_run: bool
 ) -> None:
-    """Summarise a reclassify run: counts by action, and either the job (applied) or how to apply."""
+    """Summarise a reclassify run: counts by action, and either the job (applied) or how to apply.
+
+    Args:
+        console: Where to print.
+        proposals: The proposals the run made.
+        job: The job that filed the moves, or ``None`` for a dry run or if nothing moved.
+        dry_run: Whether the run was a preview.
+    """
 
     counts = {action: sum(1 for proposal in proposals if proposal.action == action) for action in _ACTION_STYLES}
     moves = counts["move"]

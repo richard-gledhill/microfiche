@@ -68,6 +68,9 @@ class Library:
         Only folder names are read, never file contents, so this is cheap even for a library with
         10,000+ files. The inbox, the state folder and anything matching the config's exclusions
         are skipped at both levels. Nothing is cached: the folders are the taxonomy.
+
+        Returns:
+            The groups and, for each, its category names.
         """
 
         groups: dict[str, list[str]] = {}
@@ -82,7 +85,15 @@ class Library:
         return Taxonomy(groups=groups)
 
     def target_dir(self, group: str, category: str) -> Path:
-        """The folder a unit classified as ``group``/``category`` is filed into."""
+        """The folder a unit classified as ``group``/``category`` is filed into.
+
+        Args:
+            group: The unit's group.
+            category: The unit's category within ``group``.
+
+        Returns:
+            ``<root>/<group>/<category>``.
+        """
 
         return self.root / group / category
 
@@ -94,6 +105,12 @@ class Library:
         exclusion patterns excludes it. Folders above the library are never considered, so a
         library kept under ``~/.vaults`` or ``~/_work`` behaves like any other.
 
+        Args:
+            path: A path inside the library.
+
+        Returns:
+            ``True`` if the path is excluded.
+
         Raises:
             ValueError: if ``path`` isn't inside the library.
         """
@@ -104,7 +121,14 @@ class Library:
         return is_excluded(relative, self.config.exclusions.exclude)
 
     def relative(self, path: Path) -> str:
-        """``path`` relative to the library with forward slashes (or as-is if it lies outside it)."""
+        """Express ``path`` relative to the library, with forward slashes.
+
+        Args:
+            path: The path to express.
+
+        Returns:
+            The path relative to the library root, or as-is if it lies outside it.
+        """
 
         try:
             return path.relative_to(self.root).as_posix()
@@ -112,11 +136,14 @@ class Library:
             return path.as_posix()
 
     def files(self, scope: Path | None = None) -> list[Path]:
-        """Every file under ``scope`` (default: the whole library) that isn't excluded, in sorted path order.
+        """List every file under ``scope`` (default: the whole library) that isn't excluded.
 
         Args:
             scope: A folder inside the library to limit the listing to. May be relative to the
                 working directory or spelled differently from ``root``.
+
+        Returns:
+            The files, in sorted path order.
 
         Raises:
             ScopeOutsideLibraryError: if ``scope`` isn't inside the library.

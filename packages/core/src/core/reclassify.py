@@ -44,23 +44,36 @@ class ReclassifyProposal:
 
     @property
     def current_path(self) -> Path:
+        """Where the document is filed now."""
+
         return self.unit.source_path
 
     @property
     def proposed_group(self) -> str | None:
+        """The group the classifier would file it under, or ``None`` if unresolved."""
+
         return self.classification.group.name
 
     @property
     def proposed_category(self) -> str | None:
+        """The category the classifier would file it under, or ``None`` if unresolved."""
+
         return self.classification.category.name
 
 
 def run_reclassify(library: Library, *, scope: Path | None = None) -> list[ReclassifyProposal]:
-    """Classify already-filed documents under ``scope`` (or the whole library, minus exclusions)
-    and report, for each, where the classifier would file it now.
+    """Classify already-filed documents and report where the classifier would file each now.
 
-    Never moves anything. Pass the result to ``apply_reclassification`` to act on the proposals
-    whose action is ``"move"``.
+    Covers everything under ``scope``, or the whole library minus exclusions. Never moves
+    anything. Pass the result to ``apply_reclassification`` to act on the proposals whose action
+    is ``"move"``.
+
+    Args:
+        library: The library whose filed documents to re-classify.
+        scope: A folder inside the library to limit the run to; the whole library if omitted.
+
+    Returns:
+        One proposal per supported filed document.
 
     Raises:
         ScopeOutsideLibraryError: if ``scope`` is given but isn't inside the library.

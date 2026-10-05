@@ -18,8 +18,17 @@ def _normalize(category_name: str) -> str:
 
 
 def match_category(text: str, category_names: list[str], hints: dict[str, list[str]]) -> CategoryMatch:
-    """Match ``text`` against a group's existing category names, using ``hints`` (category -> keywords)
-    as a fallback when the category name itself doesn't appear."""
+    """Match ``text`` against a group's existing category names, falling back to keyword hints.
+
+    Args:
+        text: The text to be analyzed for matching.
+        category_names: The group's existing category names.
+        hints: Keywords per category name, used when the category name itself doesn't appear.
+
+    Returns:
+        The matching category with its confidence and the reason for it, or a match with
+        ``name=None`` when neither a name nor a hint matched.
+    """
 
     lowered = text.lower()
 

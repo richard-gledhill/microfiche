@@ -9,7 +9,14 @@ _CHUNK_SIZE = 65536
 
 
 def file_hash(path: Path) -> str:
-    """Return the SHA-256 hex digest of a file's contents."""
+    """Return the SHA-256 hex digest of a file's contents.
+
+    Args:
+        path: The file to hash.
+
+    Returns:
+        The hex digest.
+    """
 
     digest = hashlib.sha256()
     with path.open("rb") as fh:
@@ -25,6 +32,12 @@ def unit_hash(path: Path) -> str:
     inside it (every file, supported or not, since the whole folder moves), in sorted path
     order - so it changes if any file is added, removed, renamed, or edited, and is the same on
     every OS.
+
+    Args:
+        path: The file or folder to hash.
+
+    Returns:
+        The hex digest.
     """
 
     if path.is_file():

@@ -12,13 +12,27 @@ def is_excluded(path: Path, patterns: list[str]) -> bool:
 
     ``path`` must be relative to the library root: every component is tested, so an absolute
     path would be excluded by an unrelated folder above the library. Use ``Library.is_excluded``.
+
+    Args:
+        path: A path relative to the library root.
+        patterns: Glob patterns to test each component against.
+
+    Returns:
+        ``True`` if any component matches a pattern.
     """
 
     return any(fnmatch.fnmatch(part, pattern) for part in path.parts for pattern in patterns)
 
 
 def ensure_dir(path: Path) -> Path:
-    """Create ``path`` (and any missing parents) if it doesn't exist yet, and return it."""
+    """Create ``path`` (and any missing parents) if it doesn't exist yet.
+
+    Args:
+        path: The folder to ensure exists.
+
+    Returns:
+        ``path``.
+    """
 
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -29,6 +43,13 @@ def safe_move(source: Path, destination: Path) -> Path:
 
     Per the PRD's "never delete user files" constraint, this only ever raises rather than
     silently clobbering something that's already at the destination.
+
+    Args:
+        source: The file or folder to move.
+        destination: Where to move it.
+
+    Returns:
+        ``destination``.
 
     Raises:
         FileExistsError: if ``destination`` already exists.

@@ -9,7 +9,14 @@ from pathlib import Path
 
 @dataclass
 class IndexEntry:
-    """One filed document, as it should appear in its folder's index.md."""
+    """One filed document, as it should appear in its folder's index.md.
+
+    Attributes:
+        file_name: The document's file name.
+        tags: The tags to list against it.
+        confidence: The confidence it was filed with.
+        filed_on: The date it was filed.
+    """
 
     file_name: str
     tags: list[str]
@@ -23,6 +30,13 @@ def write_index(folder: Path, entries: list[IndexEntry]) -> Path:
     Uses ``[[wikilinks]]`` for Markdown notes and relative ``[title](file)`` links for
     everything else (PDF, DOCX, ...), matching normal Obsidian convention. Regenerated in
     full each time it's called, so it always reflects the folder's current contents.
+
+    Args:
+        folder: The category folder to write the index into.
+        entries: The documents to list.
+
+    Returns:
+        The path of the written ``index.md``.
     """
 
     lines = [f"# {folder.name}", ""]

@@ -9,7 +9,19 @@ from core.models.document import Document
 
 
 class Parser(Protocol):
-    def __call__(self, path: Path) -> Document: ...
+    """A format parser: turns a file path into a ``Document``."""
+
+    def __call__(self, path: Path) -> Document:
+        """Parse the file at ``path``.
+
+        Args:
+            path: The file to parse.
+
+        Returns:
+            The extracted ``Document``.
+        """
+
+        ...
 
 
 def document_from(path: Path, content: str, metadata: dict[str, str] | None = None) -> Document:
@@ -17,6 +29,14 @@ def document_from(path: Path, content: str, metadata: dict[str, str] | None = No
 
     Fills in the fields every parser would otherwise repeat: the path, its file name, and its
     lowercased extension.
+
+    Args:
+        path: The file that was parsed.
+        content: The text the parser extracted.
+        metadata: Any format-specific metadata the parser extracted.
+
+    Returns:
+        The ``Document`` for ``path``.
     """
 
     return Document(

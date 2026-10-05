@@ -17,7 +17,11 @@ class Taxonomy(BaseModel):
 
     @property
     def group_names(self) -> list[str]:
+        """The names of all groups."""
+
         return list(self.groups.keys())
 
     def categories_for(self, group: str) -> list[str]:
+        """The existing category names of ``group``, empty if there is no such group."""
+
         return self.groups.get(group, [])

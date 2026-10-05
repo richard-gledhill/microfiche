@@ -46,7 +46,13 @@ _WORD_RE = re.compile(r"[a-zA-Z][a-zA-Z-]{2,}")
 
 @dataclass
 class CategorySuggestion:
-    """A candidate category name backed by supporting evidence."""
+    """A candidate category name backed by supporting evidence.
+
+    Attributes:
+        name: The suggested category name.
+        score: How many of the documents contain the word.
+        example_documents: File names of up to three documents containing it.
+    """
 
     name: str
     score: int
@@ -54,7 +60,15 @@ class CategorySuggestion:
 
 
 def suggest_categories(documents: list[Document], top_n: int = 5) -> list[CategorySuggestion]:
-    """Suggest up to ``top_n`` new category names from common words across ``documents``."""
+    """Suggest up to ``top_n`` new category names from common words across ``documents``.
+
+    Args:
+        documents: The documents to scan for common words.
+        top_n: The most suggestions to return.
+
+    Returns:
+        The suggestions, most common first.
+    """
 
     counts: Counter[str] = Counter()
     examples: dict[str, list[str]] = {}

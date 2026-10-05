@@ -11,6 +11,15 @@ from core.parsers.base import document_from
 
 
 def parse(path: Path) -> Document:
+    """Extract the body, and sender/recipient/subject/date metadata, of an .eml message.
+
+    Args:
+        path: The file to parse.
+
+    Returns:
+        The extracted ``Document``.
+    """
+
     with path.open("rb") as fh:
         message = BytesParser(policy=policy.default).parse(fh)
 

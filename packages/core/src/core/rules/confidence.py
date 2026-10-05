@@ -12,7 +12,17 @@ DEFAULT_CONFIDENCE_THRESHOLD = 0.75
 
 
 def combine_confidence(group_confidence: float, category_confidence: float) -> float:
-    """Overall confidence is the minimum of the two stages: a confident category guess under
-    an unconfident group guess is still an unconfident result overall."""
+    """Combine the two stages' confidence into the overall confidence.
+
+    The overall confidence is the minimum of the two stages: a confident category guess under
+    an unconfident group guess is still an unconfident result overall.
+
+    Args:
+        group_confidence: Confidence in the resolved group.
+        category_confidence: Confidence in the resolved category.
+
+    Returns:
+        The lower of the two.
+    """
 
     return min(group_confidence, category_confidence)

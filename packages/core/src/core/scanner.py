@@ -11,31 +11,26 @@ from core.parsers import is_supported, read_documents
 
 
 def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[SortableUnit]:
-    """
-    Scans the inbox folder and identifies the sortable units for files and optional folders.
-    Scan ``library.inbox`` (``_sorting`` unless the config's ``[library_structure] library_inbox`` says otherwise) and
-    return the units ready for classification.
+    """Scan the library's inbox and return the units ready for classification.
+
+    The inbox is ``library.inbox`` (``_sorting`` unless the config's
+    ``[library_structure] library_inbox`` says otherwise).
 
     Files that can't be read (corrupt, say) don't stop the scan: they are recorded on their unit's
     ``unreadable`` list, so the unit is left for review rather than the whole run failing.
 
     Loose supported files become single-document units. Sub-folders are only descended into
-    (and kept whole as one unit) when ``keep_folders`` is True; otherwise they're left alone
-    for the user to handle manually.
-    The function examines the designated sorting inbox directory, detects files with specific
-    supported extensions, and organizes them into sortable units. If the `keep_folders` flag
-    is set to True, it also processes folders containing at least one file with a supported
-    extension. The function returns a list of `SortableUnit` objects, representing the
-    detected files or folders prepared for further processing.
+    (and kept whole as one unit) when ``keep_folders`` is True and they contain at least one
+    file with a supported extension; otherwise they're left alone for the user to handle manually.
 
     Args:
-        library (Library): The library whose inbox to scan.
-        keep_folders (bool): Whether to include folders with supported files as sortable units.
-            Default is False.
+        library: The library whose inbox to scan.
+        keep_folders: Whether to include folders with supported files as sortable units.
 
     Returns:
-        list[SortableUnit]: A list of `SortableUnit` objects representing files and, optionally,
-            folders within the sorting inbox directory. Empty if the inbox doesn't exist.
+        The ``SortableUnit`` objects for the files and, optionally, folders in the inbox.
+        Empty if the inbox doesn't exist.
+
     Todo:
         - Raise warning for handle empty sorting inbox directory.
         - Recursive inbox folders.
