@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- render submodules in the API reference and generate a CLI reference [`b14d8ea`](https://github.com/richard-gledhill/microfiche/commit/b14d8ea)
+- fix docstrings to follow the Google style [`da02b2d`](https://github.com/richard-gledhill/microfiche/commit/da02b2d)
+- :robot: changelog file generated [`101cf2c`](https://github.com/richard-gledhill/microfiche/commit/101cf2c)
 - regroup the AGENTS.md conventions and add design, test, docs and git guidance [`f2209f9`](https://github.com/richard-gledhill/microfiche/commit/f2209f9)
 - :robot: changelog file generated [`247bb17`](https://github.com/richard-gledhill/microfiche/commit/247bb17)
 - add the calibration write-up and user guidance for the confidence threshold [`088c64a`](https://github.com/richard-gledhill/microfiche/commit/088c64a)
@@ -42,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
 ### Other
+- Merge pull request #33 from richard-gledhill/docs/google-docstrings-mkdocs-submodules [`70afd92`](https://github.com/richard-gledhill/microfiche/commit/70afd92)
 - Merge pull request #32 from richard-gledhill/docs/agents-conventions [`d7da54e`](https://github.com/richard-gledhill/microfiche/commit/d7da54e)
 - Merge pull request #31 from richard-gledhill/feature/threshold-calibration [`a9f7772`](https://github.com/richard-gledhill/microfiche/commit/a9f7772)
 - Calibrate the confidence threshold against a labelled corpus; lower the default from 0.8 to 0.75 [`126ade7`](https://github.com/richard-gledhill/microfiche/commit/126ade7)
