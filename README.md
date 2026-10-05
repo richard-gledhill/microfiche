@@ -158,6 +158,8 @@ uv run microfiche audit --library ~/Documents/Library
 uv run microfiche rollback --library ~/Documents/Library --job-id <id>
 ```
 
+Every command and option is listed in the [CLI reference](https://richard-gledhill.github.io/microfiche/cli-reference/).
+
 Run `uv run microfiche --help` for the full command reference.
 
 ## Configuration

@@ -9,8 +9,9 @@ copyright: Maintained by <a href="https://richard-gledhill.com">richard-gledhill
 
 nav:
   - Home: index.md
-  - Modules: modules.md
   - How to use: how-to-use.md
+  - CLI reference: cli-reference.md
+  - Modules: modules.md
   - Changelog: changelog.md
   - Contributing: contributing.md
   - License: license.md
@@ -27,6 +28,10 @@ plugins:
       handlers:
         python:
           paths: ["packages/core/src", "packages/cli/src"]
+          options:
+            # `::: core` alone renders only the package's __init__ docstring.
+            show_submodules: true
+            heading_level: 2
 theme:
   name: material
   feature:

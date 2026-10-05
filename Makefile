@@ -31,12 +31,16 @@ clean-build: ## Clean build artifacts
 	@echo "🚀 Removing build artifacts"
 	@uv run python -c "import shutil; import os; shutil.rmtree('dist') if os.path.exists('dist') else None"
 
+.PHONY: docs-cli
+docs-cli: ## Regenerate docs/cli-reference.md from the Typer app
+	@uv run typer cli.app utils docs --name microfiche --title "CLI reference" --output docs/cli-reference.md
+
 .PHONY: docs-test
-docs-test: ## Test if documentation can be built without warnings or errors
+docs-test: docs-cli ## Test if documentation can be built without warnings or errors
 	@uv run mkdocs build -s
 
 .PHONY: docs
-docs: ## Build and serve the documentation
+docs: docs-cli ## Build and serve the documentation
 	@uv run mkdocs serve
 
 .PHONY: help
