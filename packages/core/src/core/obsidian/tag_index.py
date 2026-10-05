@@ -12,9 +12,16 @@ _PROPOSED_HEADING = "## Proposed"
 
 @dataclass
 class TagIndex:
-    """The canonical tag vocabulary defined in a library's TagIndex.md, plus any tags proposed
-    (but not yet promoted) by microfiche itself - see the "suggest-only" tag governance decision
-    in docs/development/architecture.md."""
+    """The canonical tag vocabulary defined in a library's TagIndex.md.
+
+    Also holds any tags proposed (but not yet promoted) by microfiche itself - see the
+    "suggest-only" tag governance decision in docs/development/architecture.md.
+
+    Attributes:
+        path: Where ``TagIndex.md`` lives.
+        canonical_tags: The tags in the vocabulary.
+        proposed_tags: Tags microfiche has proposed, awaiting human review.
+    """
 
     path: Path
     canonical_tags: set[str] = field(default_factory=set)
@@ -22,6 +29,15 @@ class TagIndex:
 
     @classmethod
     def load(cls, path: Path) -> TagIndex:
+        """Read the tag index at ``path``.
+
+        Args:
+            path: The ``TagIndex.md`` file. It need not exist.
+
+        Returns:
+            The parsed index, empty if ``path`` doesn't exist.
+        """
+
         if not path.exists():
             return cls(path=path)
 
@@ -45,6 +61,8 @@ class TagIndex:
             self.proposed_tags.add(tag)
 
     def save(self) -> None:
+        """Write the canonical and proposed tags back to ``path``."""
+
         lines = ["# Tag Index", "", *[f"- #{tag}" for tag in sorted(self.canonical_tags)]]
         if self.proposed_tags:
             lines += ["", _PROPOSED_HEADING, "", *[f"- #{tag}" for tag in sorted(self.proposed_tags)]]

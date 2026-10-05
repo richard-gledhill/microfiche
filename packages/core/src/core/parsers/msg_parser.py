@@ -11,6 +11,15 @@ from core.parsers.base import document_from
 
 
 def parse(path: Path) -> Document:
+    """Extract the subject and body, and sender/recipient/date metadata, of an Outlook .msg message.
+
+    Args:
+        path: The file to parse.
+
+    Returns:
+        The extracted ``Document``.
+    """
+
     message = extract_msg.Message(str(path))
     try:
         content = "\n".join(filter(None, [message.subject, message.body]))

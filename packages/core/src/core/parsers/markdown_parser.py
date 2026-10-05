@@ -13,4 +13,13 @@ from core.parsers.base import document_from
 
 
 def parse(path: Path) -> Document:
+    """Read a Markdown file as text.
+
+    Args:
+        path: The file to parse.
+
+    Returns:
+        The extracted ``Document``.
+    """
+
     return document_from(path, path.read_text(encoding="utf-8", errors="replace"))

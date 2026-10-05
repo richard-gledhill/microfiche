@@ -172,10 +172,18 @@ def rollback_job(library: Library, job_id: str) -> Job:
 
 
 def destination_for(library: Library, group: str, category: str, source_name: str) -> Path:
-    """Where ``file_batch`` will put a unit called ``source_name`` classified as ``group``/``category``,
-    after the library's naming rules.
+    """Work out where ``file_batch`` will put a unit, after the library's naming rules.
 
     Lets callers (such as ``core.reclassify``) preview a move, or spot a clash, without filing.
+
+    Args:
+        library: The library being filed into.
+        group: The unit's group.
+        category: The unit's category within ``group``.
+        source_name: The unit's current file or folder name.
+
+    Returns:
+        The path the unit would be filed at.
     """
 
     return library.target_dir(group, category) / apply_naming_rules(source_name, library.config.naming_rules.rules)
@@ -183,6 +191,13 @@ def destination_for(library: Library, group: str, category: str, source_name: st
 
 def load_job(state_dir: Path, job_id: str) -> Job:
     """Load ``<state_dir>/rollback/job_<job_id>.json``.
+
+    Args:
+        state_dir: The library's ``.microfiche`` folder.
+        job_id: The id of the job to load.
+
+    Returns:
+        The saved job.
 
     Raises:
         JobNotFoundError: if the id is malformed or no such job file exists.
@@ -195,7 +210,15 @@ def load_job(state_dir: Path, job_id: str) -> Job:
 
 
 def save_job(state_dir: Path, job: Job) -> Path:
-    """Write ``job`` to ``<state_dir>/rollback/job_<id>.json`` (creating the folder) and return the path."""
+    """Write ``job`` to ``<state_dir>/rollback/job_<id>.json``, creating the folder if needed.
+
+    Args:
+        state_dir: The library's ``.microfiche`` folder.
+        job: The job to save.
+
+    Returns:
+        The path the job was written to.
+    """
 
     rollback_dir = state_dir / _ROLLBACK_DIRNAME
     rollback_dir.mkdir(parents=True, exist_ok=True)
@@ -210,7 +233,20 @@ def _file_unit(
     library: Library,
     job_id: str,
 ) -> tuple[AuditEvent, LedgerRecord]:
-    """Move one resolved unit into the library; return its audit event and ledger record."""
+    """Move one resolved unit into the library.
+
+    Args:
+        unit: The unit to move.
+        classification: Its classification, which must name a group and a category.
+        library: The library to file into.
+        job_id: The id of the job this move belongs to.
+
+    Returns:
+        The move's audit event and ledger record.
+
+    Raises:
+        UnresolvedClassificationError: if the classification has no group or category.
+    """
 
     group, category = classification.group.name, classification.category.name
     if group is None or category is None:

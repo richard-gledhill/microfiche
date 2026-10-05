@@ -180,6 +180,10 @@ it becomes a unit (or proposal) left for review, with the reason.
   `docs/development/mvp-roadmap.md` must also update
   [docs/how-to-use.md](docs/how-to-use.md) (the command in both its Bash and PowerShell tabs,
   plus its "Current limitations" list) and the Usage section of [README.md](README.md#usage).
+- [docs/cli-reference.md](docs/cli-reference.md) is generated from the Typer app (command docstrings and
+  option `help=` text): run `make docs-cli` after changing either. `make docs`/`make docs-test` do it for you,
+  and a test fails if the file is stale. Write command docstrings for users, not as API docs - Typer
+  prints them as `--help`.
 - `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
   by GitHub URL.
 - After a rename or behaviour change, grep the docs for the old name or number.

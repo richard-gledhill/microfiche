@@ -11,31 +11,26 @@ _FUZZY_MATCH_THRESHOLD = 85
 
 
 def match_group(text: str, group_names: list[str]) -> GroupMatch:
-    """
-    Matches a given text against a list of group names to find the most relevant match
-    based on exact matching or fuzzy matching techniques.
+    """Match ``text`` against known group names by substring, then fuzzy match.
 
-    The function first attempts to identify an exact match of a group name within the
-    lowercased text. If no exact match is found, it performs a fuzzy string matching
-    using a predefined threshold. If the best match satisfies the threshold, it is
-    returned along with its confidence score; otherwise, it indicates no match.
+    A group name found in the lowercased text is an exact match. Otherwise the best fuzzy match
+    is used if its score clears the fuzzy threshold.
 
-    Match ``text`` against known group names by substring, then fuzzy match.
-
-    Returns a GroupMatch with ``name=None`` when nothing clears the confidence threshold -
-    callers should route that to the review queue with a "create new group" option rather
-    than treating it as an error (see docs/development/architecture.md, section 3).
+    Callers should route a result with ``name=None`` to the review queue with a "create new
+    group" option rather than treating it as an error (see docs/development/architecture.md,
+    section 3).
 
     Args:
-        text (str): The text to be analyzed for matching.
-        group_names (list[str]): A list of group names to match against the text.
+        text: The text to be analyzed for matching.
+        group_names: The group names to match against the text.
 
     Returns:
-        GroupMatch: An object containing the best group name matched, its confidence
-        score, and an explanatory reason for the match
+        The best matching group with its confidence and the reason for it, or a match with
+        ``name=None`` when nothing clears the confidence threshold.
+
     Todo:
         - Review hard coded numbers.
-        - Need to review teh group_name match. Consider as config option to sort by extracted title and keywords.
+        - Need to review the group_name match. Consider as config option to sort by extracted title and keywords.
     """
 
     lowered = text.lower()

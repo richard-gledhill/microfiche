@@ -397,4 +397,5 @@ microfiche is pre-release. At the moment:
   was filed.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 
-Run `uv run microfiche <command> --help` for every option on a command.
+Every command and option is listed in the [CLI reference](cli-reference.md), or run
+`uv run microfiche <command> --help`.

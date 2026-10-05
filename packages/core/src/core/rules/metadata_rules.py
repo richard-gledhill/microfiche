@@ -11,8 +11,16 @@ _FILENAME_MATCH_CONFIDENCE = 0.95
 
 
 def match_by_filename(file_name: str, rules: list[dict[str, str]]) -> CategoryMatch:
-    """Match a filename against glob-style filing rules,
-    e.g. ``{"pattern": "requirements*.docx", "category": "01 Requirements"}``."""
+    """Match a filename against glob-style filing rules.
+
+    Args:
+        file_name: The file name to match, case-insensitively.
+        rules: Filing rules, each like ``{"pattern": "requirements*.docx", "category": "01 Requirements"}``.
+
+    Returns:
+        The category of the first rule whose pattern matches, or a match with ``name=None``
+        if no rule matched.
+    """
 
     for rule in rules:
         pattern = rule.get("pattern", "")

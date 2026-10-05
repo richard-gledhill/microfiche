@@ -14,7 +14,16 @@ from core.utils.filesystem import ensure_dir
 
 
 def create_library_group(library_root: Path, project_name: str, template_categories: list[str]) -> Path:
-    """Create ``library_root/project_name`` with one subfolder per category in ``template_categories``."""
+    """Create ``library_root/project_name`` with one subfolder per category in ``template_categories``.
+
+    Args:
+        library_root: The library's root folder.
+        project_name: The name of the new group folder.
+        template_categories: The category subfolders to create inside it.
+
+    Returns:
+        The path of the new group folder.
+    """
 
     group_path = ensure_dir(library_root / project_name)
     for category in template_categories:

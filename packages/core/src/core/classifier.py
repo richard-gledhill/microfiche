@@ -34,10 +34,12 @@ class Resolver(Protocol):
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Propose which group ``document`` belongs to (``name=None`` if it can't tell)."""
+
         ...
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Propose which category of ``group`` ``document`` belongs to (``name=None`` if it can't tell)."""
+
         ...
 
 
@@ -73,8 +75,17 @@ class Classifier:
 
     @classmethod
     def from_config(cls, config: MicroficheConfig, fallback: Resolver | None = None) -> Classifier:
-        """The default wiring for a library: the rules engine built from its hints and filing
-        rules, an optional fallback resolver, and the library's confidence threshold.
+        """Build the default classifier for a library.
+
+        Wires the rules engine from the library's category hints and filing rules, an optional
+        fallback resolver, and the library's confidence threshold.
+
+        Args:
+            config: The library's configuration.
+            fallback: An optional second resolver, such as the AI classifier.
+
+        Returns:
+            A ``Classifier`` configured for the library.
         """
 
         return cls(
@@ -90,7 +101,16 @@ class Classifier:
         return self._threshold
 
     def classify_document(self, document: Document, taxonomy: Taxonomy) -> ClassificationResult:
-        """Classify one document: resolve its group, then its category within that group."""
+        """Classify one document: resolve its group, then its category within that group.
+
+        Args:
+            document: The document to classify.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The classification, which is ``confident`` only if both stages resolved to existing
+            folders and the overall confidence reaches the threshold.
+        """
 
         group, group_source = self._resolve(lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy))
         if group.name is None:
@@ -112,15 +132,24 @@ class Classifier:
         )
 
     def classify_unit(self, unit: SortableUnit, taxonomy: Taxonomy) -> ClassificationResult:
-        """Classify a unit. A single-file unit is classified directly; a folder unit is classified
-        by the dominant (group, category) pair voted across all the documents inside it (see the
-        "folder-as-unit" decision in docs/development/architecture.md).
+        """Classify a unit: a file directly, a folder by the dominant pair across its documents.
 
-        A unit with no readable document is left unresolved, with the reason it couldn't be read.
+        A single-file unit is classified directly. A folder unit is classified by the dominant
+        (group, category) pair voted across all the documents inside it (see the "folder-as-unit"
+        decision in docs/development/architecture.md).
 
         Each document whose group resolved casts one vote. The pair with the most votes wins, and
         the winning pair's most confident document represents the folder. If two or more pairs
         share the top vote the folder is unresolved, with a reason listing the disagreement.
+
+        A unit with no readable document is left unresolved, with the reason it couldn't be read.
+
+        Args:
+            unit: The file or folder to classify.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The unit's classification.
         """
 
         if not unit.documents:
@@ -148,8 +177,14 @@ class Classifier:
         )
 
     def _resolve(self, ask: Callable[[Resolver], Match]) -> tuple[Match, Resolver]:
-        """Ask the primary resolver; if it isn't confident, ask the fallback. Return the answer used
-        and the resolver it came from."""
+        """Ask the primary resolver; if it isn't confident, ask the fallback.
+
+        Args:
+            ask: Puts the stage's question to a resolver.
+
+        Returns:
+            The answer used and the resolver it came from.
+        """
 
         answer = ask(self._rules)
         if self._is_confident(answer) or self._fallback is None:

@@ -21,6 +21,14 @@ def map_tags(candidate_tags: list[str], tag_index: TagIndex, mode: TagMode) -> l
     - "suggest" (the default - see the ADR): a candidate with a close canonical match is
       normalized to it; anything else is still applied to the document, and appended to
       TagIndex.md's Proposed section for later review.
+
+    Args:
+        candidate_tags: The tags extracted from a document.
+        tag_index: The library's tag vocabulary; proposed tags are added to it in "suggest" mode.
+        mode: How to treat candidates with no close canonical match.
+
+    Returns:
+        The tags to apply to the document.
     """
 
     if mode == "off":

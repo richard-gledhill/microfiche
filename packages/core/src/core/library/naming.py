@@ -11,6 +11,13 @@ def apply_naming_rules(filename: str, rules: dict[str, str]) -> str:
     ``rules`` maps a regex pattern to its replacement, applied in iteration order. An empty
     ``rules`` mapping (the MVP default, see microfiche-config/naming_rules.yaml) leaves the filename
     untouched.
+
+    Args:
+        filename: The file or folder name to rewrite.
+        rules: Regex patterns mapped to their replacements.
+
+    Returns:
+        The rewritten name.
     """
 
     for pattern, replacement in rules.items():

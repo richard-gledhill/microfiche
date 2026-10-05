@@ -6,4 +6,6 @@ from cli.app import app
 
 
 def main() -> None:
+    """Run the microfiche command line app."""
+
     app()

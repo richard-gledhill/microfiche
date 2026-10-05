@@ -17,7 +17,14 @@ from core.scanner import scan_sorting_inbox
 
 @dataclass
 class SortReport:
-    """Summary of one `sort` run."""
+    """Summary of one `sort` run.
+
+    Attributes:
+        filed: Each unit that was filed, with its classification.
+        needs_review: Each unit left in the inbox for review, with its classification.
+        audit_events: The move events recorded for the filed units.
+        job: The rollback job for the run, or ``None`` if nothing was filed.
+    """
 
     filed: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
     needs_review: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
@@ -31,10 +38,21 @@ def run_sort(
     keep_folders: bool = False,
     ai_classifier: LLMClassifier | None = None,
 ) -> SortReport:
-    """Scan the library's inbox, classify each unit, and file everything confident enough to
-    file (see ``config.classification.confidence_threshold``) as one job (see ``core.filer``).
-    Anything below it is returned in ``needs_review`` instead of being moved. ``SortReport.job``
-    is ``None`` if nothing was filed."""
+    """Scan the library's inbox, classify each unit, and file the confident ones as one job.
+
+    A unit is filed if it is confident enough (see ``config.classification.confidence_threshold``);
+    the job is recorded by ``core.filer``. Anything below the threshold is returned in
+    ``needs_review`` instead of being moved.
+
+    Args:
+        library: The library whose inbox to sort.
+        keep_folders: Whether to treat each inbox folder as one unit rather than sorting its files.
+        ai_classifier: An optional AI fallback for stages the rules can't answer confidently.
+
+    Returns:
+        The report of what was filed and what needs review. ``SortReport.job`` is ``None`` if
+        nothing was filed.
+    """
 
     taxonomy = library.taxonomy()
     classifier = Classifier.from_config(library.config, ai_classifier)

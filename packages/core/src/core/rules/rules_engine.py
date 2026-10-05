@@ -11,11 +11,20 @@ from core.rules.metadata_rules import match_by_filename
 
 
 class RulesEngine:
-    """Resolver backed by rules only. Proposes a group by name match, and a category by filename
-    rule first, then category name or keyword hint - all scoped to the group's existing categories.
+    """Resolver backed by rules only.
+
+    Proposes a group by name match, and a category by filename rule first, then category name
+    or keyword hint - all scoped to the group's existing categories.
 
     It only proposes: ``core.classifier.Classifier`` runs the two stages, decides what is
     confident, and enforces the taxonomy.
+
+    Args:
+        category_hints: Keywords per category name.
+        filing_rules: Filename-pattern rules, each naming a pattern and a category.
+
+    Attributes:
+        name: Identifies the resolver in ``ClassificationResult.classified_by``.
     """
 
     name: str = "rules_engine"
@@ -25,9 +34,30 @@ class RulesEngine:
         self._filing_rules = filing_rules
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
+        """Propose a group by matching the document's text against the taxonomy's group names.
+
+        Args:
+            document: The document to classify.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The proposed group, with ``name=None`` if none matched.
+        """
+
         return match_group(document.content, taxonomy.group_names)
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
+        """Propose a category of ``group``: by filename rule first, then by name or keyword hint.
+
+        Args:
+            document: The document to classify.
+            group: The group the document was resolved to.
+            taxonomy: The library's groups and categories.
+
+        Returns:
+            The proposed category, with ``name=None`` if none matched.
+        """
+
         categories = taxonomy.categories_for(group)
         # A filing rule is global but categories belong to a group: a rule naming a category this
         # group doesn't have simply doesn't apply here, and the keyword rules get their turn.

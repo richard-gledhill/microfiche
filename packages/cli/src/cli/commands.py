@@ -50,7 +50,7 @@ def sort(
 
 
 def review() -> None:
-    """Work through the low-confidence review queue from the most recent sort run."""
+    """Not implemented yet: work through the low-confidence review queue from the most recent sort run."""
 
     console.print("[yellow]The interactive review queue is not implemented yet - see cli/review.py.[/yellow]")
     raise typer.Exit(code=1)
@@ -112,7 +112,7 @@ def reclassify(
 
 
 def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -> None:
-    """Force-regenerate Obsidian index.md files for a folder (or the whole library)."""
+    """Not implemented yet: force-regenerate Obsidian index.md files for a folder (or the whole library)."""
 
     console.print("[yellow]index regeneration is not wired up to a folder walk yet - see cli/commands.py.[/yellow]")
     raise typer.Exit(code=1)
