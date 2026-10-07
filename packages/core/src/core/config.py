@@ -195,16 +195,16 @@ class MicroficheConfig(BaseModel):
     library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
 
-class TomlConfigParseError(ValueError):
-    """Exception raised when a TOML configuration file fails to parse.
+class ConfigError(ValueError):
+    """Exception raised for errors related to configuration."""
 
-    This exception is used to provide detailed information about the file path and the
-    specific error encountered during the parsing attempt.
+    def __init__(self, error: Exception | str) -> None:
+        super().__init__(f"Config file error: {error}")
+        self.error = error
 
-    Attributes:
-        path (Path | str): Path to the TOML configuration file that failed to parse.
-        error (Exception | str): The error message or exception that caused the failure.
-    """
+
+class TomlConfigParseError(ConfigError):
+    """Exception raised when a TOML configuration file fails to parse."""
 
     def __init__(self, path: Path | str, error: Exception | str) -> None:
         super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
@@ -212,18 +212,8 @@ class TomlConfigParseError(ValueError):
         self.error = error
 
 
-class ConfigSectionError(ValueError):
-    """
-    Exception raised for errors related to unknown configuration sections.
-
-    This exception is specifically designed to handle cases where a configuration
-    file contains a section that is not recognized. It extends the `ValueError`
-    class to provide additional context about the error encountered.
-
-    Attributes:
-        error (Exception | str): The specific error or section name related to the
-            unrecognized configuration.
-    """
+class ConfigSectionError(ConfigError):
+    """Exception raised for errors related to unknown configuration sections."""
 
     def __init__(self, error: Exception | str) -> None:
         super().__init__(f"Config file contains unknown section or sections: {error}")
