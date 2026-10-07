@@ -70,6 +70,15 @@ def test_an_unknown_section_in_config_is_rejected(tmp_path: Path) -> None:
         load_config(tmp_path)
 
 
+def test_an_unknown_key_in_a_section_of_the_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nconfidence_threshhold = 0.9\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="confidence_threshhold"):
+        load_config(tmp_path)
+
+
 def test_a_wrong_type_in_config_is_rejected(tmp_path: Path) -> None:
     (tmp_path / "microfiche-config.toml").write_text(
         '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
