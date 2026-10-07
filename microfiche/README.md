@@ -13,7 +13,7 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 |---|---|
 | `library_structure` | Depth of the group/category hierarchy (default: 2 levels), and `library_inbox`, the inbox folder name (default `"_sorting"`). |
 | `exclusions` | Folders never treated as a category and never scanned into. |
-| `categories` | Keyword hints per *existing* category name — not the category list itself. |
+| `category_hints` | Keyword hints per *existing* category name, under `[category_hints.categories]` — not the category list itself. |
 | `filing_rules` | Filename-glob rules, checked before keyword hints. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
