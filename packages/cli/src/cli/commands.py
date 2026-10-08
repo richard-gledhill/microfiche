@@ -8,6 +8,7 @@ from typing import NoReturn
 import typer
 from core.ai.llm_classifier import LLMClassifier
 from core.ai.ollama_provider import OllamaProvider
+from core.config import ConfigError
 from core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -45,7 +46,7 @@ def sort(
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
     ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None
-    report = run_sort(Library(library), keep_folders=keep_folders, ai_classifier=ai_classifier)
+    report = run_sort(_open_library(library), keep_folders=keep_folders, ai_classifier=ai_classifier)
     render_sort_report(console, report)
 
 
@@ -62,8 +63,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
     Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-
-    units = scan_sorting_inbox(Library(library), keep_folders=True)
+    units = scan_sorting_inbox(_open_library(library), keep_folders=True)
     documents = [document for unit in units for document in unit.documents]
     suggestions = suggest_categories(documents)
     if not suggestions:
@@ -78,7 +78,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
 def config(library: Path = _LIBRARY_OPTION) -> None:
     """Library configuration."""
 
-    render_config(console, Library(library).config)
+    render_config(console, _open_library(library).config)
 
 
 def reclassify(
@@ -92,7 +92,7 @@ def reclassify(
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
-    lib = Library(library)
+    lib = _open_library(library)
     try:
         proposals = run_reclassify(lib, scope=folder)
     except ScopeOutsideLibraryError as err:
@@ -142,6 +142,17 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
             "Fix the problem above and re-run the same command to finish."
         )
     console.print(f"Reverted {len(job.moves)} move(s) from job {job_id}.", soft_wrap=True)
+
+
+def _open_library(path: Path) -> Library:
+    """Open the library at ``path``, loading its config now so an invalid one stops the command up front."""
+
+    library = Library(path)
+    try:
+        _ = library.config
+    except ConfigError as err:
+        _fail(str(err))
+    return library
 
 
 def _fail(message: str) -> NoReturn:

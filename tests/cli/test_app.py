@@ -4,6 +4,7 @@ import re
 import shutil
 from pathlib import Path
 
+import pytest
 from cli.app import app
 from typer.testing import CliRunner
 
@@ -349,3 +350,39 @@ def test_reclassify_names_a_file_it_could_not_read(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.stdout
     assert "Could not read 'broken.docx'" in result.stdout
+
+
+# --- a config that can't be used ---------------------------------------------------------------
+
+
+def _break_config(library: Path) -> None:
+    (library / ".microfiche" / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize("command", ["sort", "reclassify", "propose-categories", "config"])
+def test_a_command_that_needs_the_config_stops_with_a_clear_message_when_it_is_invalid(
+    tmp_path: Path, command: str
+) -> None:
+    library = _library(tmp_path)
+    _break_config(library)
+
+    result = runner.invoke(app, [command, "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert "classification.confidence_threshold" in result.stdout
+    assert "Traceback" not in result.stdout
+
+
+def test_a_job_can_still_be_rolled_back_and_the_audit_log_read_when_the_config_is_invalid(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    job_id = _sort(library)
+    _break_config(library)
+
+    audit = runner.invoke(app, ["audit", "--library", str(library)])
+    rollback = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert audit.exit_code == 0
+    assert rollback.exit_code == 0
+    assert "Reverted 1 move(s)" in rollback.stdout
