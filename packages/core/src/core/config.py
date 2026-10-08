@@ -270,30 +270,26 @@ def _describe_errors(target_file: Path, err: ValidationError) -> str:
 
 
 def load_config(config_path: Path) -> MicroficheConfig:
-    """Load the configuration file at the given path into a ``MicroficheConfig``.
+    """Load the library's configuration from ``config_path`` into a ``MicroficheConfig``.
 
-    Reads the TOML configuration and assembles each sub-configuration, using defaults for any
-    section that is missing.
+    A missing file, or a missing section, falls back to the defaults. Anything that is present is
+    validated, so a mistyped section or setting, or a value of the wrong type, is an error rather
+    than being silently ignored.
 
     Args:
-        config_path: The path to the base configuration directory or a specific configuration
-            file. If a directory is provided, the configuration file is looked up in it by its
-            predefined filename.
+        config_path: The folder holding ``microfiche-config.toml``, which is a library's
+            ``.microfiche/`` folder.
 
     Returns:
-        The parsed configuration for library structure, exclusions, Obsidian, category hints,
-        filing rules, and naming rules.
+        The validated configuration.
 
-    Todo:
-        - Implement check for .microfiche folder
-        - Implement validation of config file and prompt for exit or using defaults if error.
-        - Consider adding flag in microfiche-config.toml to indicate whether it's default or custom.
-        - Implement validation checks for configuration values.
-        - Consider adding logging for configuration loading and processing.
-        - Review target_file as nothing in the codebase calls it with a literal file path, only the directory form is ever used
+    Raises:
+        TomlConfigParseError: If the file is not valid TOML.
+        ConfigError: If the file is valid TOML but not a valid configuration. The message names
+            the file and every setting that is wrong.
     """
 
-    target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
+    target_file = config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)
 
