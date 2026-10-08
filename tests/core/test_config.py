@@ -68,12 +68,18 @@ def test_a_library_can_set_its_own_confidence_threshold(tmp_path: Path) -> None:
     assert load_config(tmp_path).classification.confidence_threshold == 0.7
 
 
-@pytest.mark.parametrize("value", [0.0, 0.5, 1.0])
+@pytest.mark.parametrize(
+    "value",
+    [0.0, 0.5, 1.0],
+)
 def test_thresholds_from_zero_to_one_are_accepted(value: float) -> None:
     assert ClassificationConfig(confidence_threshold=value).confidence_threshold == value
 
 
-@pytest.mark.parametrize("value", [-0.1, 1.01, 8])
+@pytest.mark.parametrize(
+    "value",
+    [-0.1, 1.01, 8],
+)
 def test_thresholds_outside_zero_to_one_are_rejected(value: float) -> None:
     with pytest.raises(ValidationError):
         ClassificationConfig(confidence_threshold=value)
