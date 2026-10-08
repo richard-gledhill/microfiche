@@ -184,9 +184,38 @@ def test_a_bad_value_is_reported_with_its_file_section_and_setting(tmp_path: Pat
     with pytest.raises(ConfigError) as exc_info:
         load_config(tmp_path)
 
-    assert "microfiche-config.toml" in str(exc_info.value)
-    assert "classification" in str(exc_info.value)
-    assert "confidence_threshold" in str(exc_info.value)
+    message = str(exc_info.value)
+    assert "microfiche-config.toml" in message
+    assert "classification" in message
+    assert "confidence_threshold" in message
+    assert "valid number" in message
+    assert "pydantic.dev" not in message
+    assert "MicroficheConfig" not in message
+
+
+def test_a_mistyped_name_is_reported_as_an_unknown_section_or_setting(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nconfidence_threshhold = 0.9\n\n[classifcation]\nx = 1\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    message = str(exc_info.value)
+    assert "classification.confidence_threshhold: unknown setting" in message
+    assert "classifcation: unknown section" in message
+    assert "Extra inputs are not permitted" not in message
+
+
+def test_a_section_written_as_a_plain_value_is_not_called_unknown(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("classification = 5\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    message = str(exc_info.value)
+    assert "classification:" in message
+    assert "unknown" not in message
 
 
 # --- the library inbox ------------------------------------------------------------------------

@@ -12,7 +12,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -25,7 +25,9 @@ DEFAULT_INBOX_DIRNAME = "_sorting"
 
 
 class _ConfigSection(BaseModel):
-    """A section of the config file."""
+    """
+    BaseModel class abstraction for a configuration section.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -161,7 +163,7 @@ class ClassificationConfig(_ConfigSection):
     confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0.0, le=1.0)
 
 
-class MicroficheConfig(BaseModel):
+class MicroficheConfig(_ConfigSection):
     """Configuration container for Microfiche.
 
     Represents the configuration settings for the Microfiche system, which
@@ -185,12 +187,12 @@ class MicroficheConfig(BaseModel):
             `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
 
-    library_structure: LibraryStructureConfig
-    exclusions: ExclusionsConfig
-    obsidian: ObsidianConfig
-    category_hints: CategoryHintsConfig
-    filing_rules: FilingRulesConfig
-    naming_rules: NamingRulesConfig
+    library_structure: LibraryStructureConfig = Field(default_factory=LibraryStructureConfig)
+    exclusions: ExclusionsConfig = Field(default_factory=ExclusionsConfig)
+    obsidian: ObsidianConfig = Field(default_factory=ObsidianConfig)
+    category_hints: CategoryHintsConfig = Field(default_factory=CategoryHintsConfig)
+    filing_rules: FilingRulesConfig = Field(default_factory=FilingRulesConfig)
+    naming_rules: NamingRulesConfig = Field(default_factory=NamingRulesConfig)
     classification: ClassificationConfig = Field(default_factory=ClassificationConfig)
     library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
@@ -209,14 +211,6 @@ class TomlConfigParseError(ConfigError):
     def __init__(self, path: Path | str, error: Exception | str) -> None:
         super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
-        self.error = error
-
-
-class ConfigSectionError(ConfigError):
-    """Exception raised for errors related to unknown configuration sections."""
-
-    def __init__(self, error: Exception | str) -> None:
-        super().__init__(f"Config file contains unknown section or sections: {error}")
         self.error = error
 
 
@@ -244,6 +238,35 @@ def _load_toml(path: Path) -> dict[str, Any]:
             return tomllib.load(fh)
     except tomllib.TOMLDecodeError as err:
         raise TomlConfigParseError(path, err) from err
+
+
+def _loc_to_dot_sep(loc: tuple[str | int, ...]) -> str:
+    """Join an error location into a dotted path, such as ``filing_rules.rules[0].pattern``."""
+    path = ""
+    for i, x in enumerate(loc):
+        if isinstance(x, str):
+            if i > 0:
+                path += "."
+            path += x
+        elif isinstance(x, int):
+            path += f"[{x}]"
+    return path
+
+
+def _describe_errors(target_file: Path, err: ValidationError) -> str:
+    """Format pydantic validation errors as one line per problem, under the file path."""
+    lines = [f"{target_file}:"]
+    for error in err.errors():
+        setting = _loc_to_dot_sep(error["loc"])
+        match error["type"], len(error["loc"]):
+            case "extra_forbidden", 1:
+                reason = "unknown section"
+            case "extra_forbidden", _:
+                reason = "unknown setting"
+            case _:
+                reason = error["msg"]
+        lines.append(f"  {setting}: {reason}")
+    return "\n".join(lines)
 
 
 def load_config(config_path: Path) -> MicroficheConfig:
@@ -274,26 +297,7 @@ def load_config(config_path: Path) -> MicroficheConfig:
 
     config = _load_toml(target_file)
 
-    # Dynamically extract field names from your Pydantic class structure
-    # This evaluates to {"library_structure"}
-    allowed_sections = set(MicroficheConfig.model_fields.keys())
-
-    parsed_sections = set(config.keys())
-    unknown_sections = parsed_sections - allowed_sections
-
-    # If the resulting set is not empty, raise an error
-    if unknown_sections:
-        # Convert to a sorted list or comma-separated string for a clean error message
-        unknown_str = ", ".join(sorted(unknown_sections))
-        raise ConfigSectionError(unknown_str)
-
-    return MicroficheConfig(
-        library_structure=LibraryStructureConfig(**config.get("library_structure", {})),
-        exclusions=ExclusionsConfig(**config.get("exclusions", {})),
-        obsidian=ObsidianConfig(**config.get("obsidian", {})),
-        category_hints=CategoryHintsConfig(**config.get("category_hints", {})),
-        filing_rules=FilingRulesConfig(**config.get("filing_rules", {})),
-        naming_rules=NamingRulesConfig(**config.get("naming_rules", {})),
-        classification=ClassificationConfig(**config.get("classification", {})),
-        library_templates=config.get("library_templates", {}),
-    )
+    try:
+        return MicroficheConfig.model_validate(config)
+    except ValidationError as err:
+        raise ConfigError(_describe_errors(target_file, err)) from err
