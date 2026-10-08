@@ -108,6 +108,17 @@ Confirm the config loads:
     uv run microfiche config --library "$HOME\Documents\Library"
     ```
 
+If the config has a mistake, such as a mistyped section or setting, or a value of the wrong type, the
+command stops and tells you what to fix instead of carrying on with the defaults:
+
+```text
+Config file error: Library\.microfiche\microfiche-config.toml:
+  classification.confidence_threshhold: unknown setting
+```
+
+`sort`, `reclassify` and `propose-categories` check the config the same way before they touch any file.
+`audit` and `rollback` don't read it, so you can still undo a job while you fix the config.
+
 ### Other ways to organise a library
 
 The tree above uses a project as the **group** and a document type as the **category**, but those are

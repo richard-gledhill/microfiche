@@ -18,3 +18,6 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
+
+A section or setting that isn't listed here is an error rather than being ignored, so a typo such as
+`[classifcation]` is caught instead of silently leaving the defaults in place.
