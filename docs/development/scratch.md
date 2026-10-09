@@ -20,6 +20,109 @@ What it is for, in a sentence. Related step or file: `path/to/file.py`.
 
 ---
 
+## Writing the test before the code (2026-10-09)
+
+Notes on test-first development (red, green, refactor), with examples from the config validation work
+(PR #35: `packages/core/src/core/config.py` and `tests/core/test_config.py`).
+
+**The loop**
+
+1. **Red:** write a test for behaviour that doesn't exist yet, run it, and read why it fails.
+2. **Green:** write the smallest code that makes it pass.
+3. **Refactor:** improve the design while the tests stay green.
+
+```bash
+uv run pytest tests/core/test_config.py -q --no-cov   # red: DID NOT RAISE, extra keys were accepted
+```
+
+```python
+class _ConfigSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")          # green: unknown keys are now errors
+```
+
+Then the refactor (seven `Section(**config.get(...))` calls became one `MicroficheConfig.model_validate(config)`)
+ran with every test still green.
+
+**Why test first**
+
+- **It makes you define "done" first.** Which exception type, which words in the message, before there is
+  code that merely happens to do something.
+- **It proves the test can fail.** A test written after the code and passing straight away might be vacuous.
+  Four examples from this work, each of which would have passed forever:
+
+  1. Assertions inside the `with pytest.raises(...)` block never run, because the raise ends the block.
+
+     ```python
+     # wrong: load_config raises, so the assert is never reached
+     with pytest.raises(ConfigError) as exc_info:
+         load_config(tmp_path)
+         assert "classification" in str(exc_info.value)
+
+     # right: assert after the block
+     with pytest.raises(ConfigError) as exc_info:
+         load_config(tmp_path)
+
+     assert "classification" in str(exc_info.value)
+     ```
+
+  2. Normalising the text hides the difference the assertion was meant to see.
+
+     ```python
+     # wrong: a capitalised phrase can never appear in lowercased text, so this always passes
+     assert "Extra inputs are not permitted" not in str(exc_info.value).lower()
+
+     # right
+     assert "Extra inputs are not permitted" not in str(exc_info.value)
+     ```
+
+  3. `CliRunner` doesn't put a raised exception's traceback in `stdout`.
+
+     ```python
+     # wrong: exit_code is 1 and stdout has no traceback whether or not the error was caught
+     assert "Traceback" not in result.stdout
+
+     # right: a clean exit is a SystemExit; an uncaught ConfigError is not
+     assert isinstance(result.exception, SystemExit)
+     ```
+
+  4. The input never triggered the failure. Pydantic coerces `true` to `1`, so a "wrong type" test with
+     `depth = true` raised nothing. `confidence_threshold = "high"` is a real type error.
+
+- **The test is the first caller of the interface.** Testing through `load_config(...)` and expecting a
+  `ConfigError` pushed the design toward one entry point and one error type.
+- **It makes refactoring safe.** The behaviour is pinned, so a slip shows up in seconds.
+
+**Red for the right reason.** Read the failure before writing code. `DID NOT RAISE` or an assertion
+message about the behaviour is useful; `NameError` or an import error is red but says nothing about it.
+
+**A mutation check, to prove a green test can see the bug.** Break the code on purpose, expect red, restore:
+
+```bash
+# in packages/cli/src/cli/commands.py, change `_ = library.config` to `pass`, then:
+uv run pytest tests/cli/test_app.py -q --no-cov -k needs_the_config   # expect: 4 failed
+git restore packages/cli/src/cli/commands.py
+```
+
+**Where it works less well**
+
+- Exploratory code, where you don't know the behaviour yet. Prototype first, then test.
+- Tests tied to incidental details. Assert on pydantic's stable `loc` and `type`, not its message wording.
+- Red commits break CI and `git bisect` if pushed. Keep a red checkpoint local and end the branch green.
+- It is a discipline, not a law. Glue code that only calls tested code gains little.
+
+**Routine**
+
+1. Write one failing test for the next small behaviour.
+2. Run it and read the failure.
+3. Write the minimum code to pass.
+4. Run the whole suite, then refactor while green.
+5. Commit at a green point.
+
+See AGENTS.md, "Tests" and "Verifying your work", for the repo's rules: add or update tests for any behaviour
+you change, and fix the code, not the check.
+
+---
+
 ## Load a deliberately bad config (2026-10-08)
 
 Shows the message a user sees for an invalid `.microfiche/microfiche-config.toml`. Used while writing
