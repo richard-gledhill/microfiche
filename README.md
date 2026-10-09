@@ -174,10 +174,13 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `classification` | `confidence_threshold` (0–1, default 0.75, [measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md)): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so the default files hints but not AI answers; raise it to hold hints for review, lower it to 0.7 to file AI answers. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
-| `categories` | Keyword hints per *existing* category name — not the category list itself. |
+| `category_hints` | Keyword hints per *existing* category name, under `[category_hints.categories]` — not the category list itself. |
 | `filing_rules` | Filename-glob rules, checked before keyword hints. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
+
+A section or setting that isn't listed here is an error rather than being ignored, so a typo such as
+`[classifcation]` is caught instead of silently leaving the defaults in place.
 
 See [docs/development/architecture.md](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/architecture.md)
 for the full design behind these.

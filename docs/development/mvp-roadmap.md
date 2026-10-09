@@ -43,6 +43,12 @@ changes here, update the "Current limitations" list and usage steps in the user-
   `[library_structure] library_inbox`), state folder, target folders, relative paths, exclusions and taxonomy. Exclusions
   are matched relative to the library root and always cover the inbox and `.microfiche/`. Not done: nested
   sub-libraries (the shipped exclusion patterns leave room for them).
+- **Config validation** (`core/config.py`) — wired. `load_config` validates the whole file in one pass: an
+  unknown section or setting, a value of the wrong type, or a section that isn't a table raises `ConfigError`,
+  whose message names the file and every problem. `sort`, `reclassify`, `propose-categories` and `config` check
+  it up front and exit 1 (`cli/commands.py::_open_library`); `audit` and `rollback` never read it, so a job can
+  still be undone while the config is broken. A missing file or section still means defaults, silently;
+  asking first is under Future work ("Ask before running on defaults").
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
   the confidence threshold (`[classification] confidence_threshold`, default 0.75, calibrated), the per-stage AI
   fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.
@@ -90,6 +96,15 @@ Ranked by how central they are to the product's core promise, not by ease of imp
   not be installed.
 - **Review the other signal strengths** (hint 0.75, AI 0.70, and the other "move to config" constants in
   `rules/`), now that there is a harness to check them against.
+- **Ask before running on defaults.** A missing `.microfiche/microfiche-config.toml`, or one that leaves out
+  sections, silently falls back to the defaults (pinned by `test_load_config_falls_back_to_defaults_when_files_are_missing`
+  and the CLI test for a library with no config folder). A misnamed config file or the wrong `--library` path
+  therefore looks like a normal run on settings the user never chose. Instead, `sort`, `reclassify` and
+  `propose-categories` should say which config was not found or which sections are being defaulted, and ask
+  whether to proceed. Open questions: a non-interactive switch for scripts (for example `--use-defaults` or
+  `--yes`), a non-zero exit when there is no terminal to ask on, whether a partial file warrants a prompt or
+  only a notice, and how this fits a future `init` command that writes the default config. Today's
+  invalid-config behaviour (an error, not a prompt) is unchanged.
 
 ## Deferred beyond MVP
 

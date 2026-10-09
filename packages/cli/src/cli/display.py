@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+from typing import Any
+
 from core.config import MicroficheConfig
 from core.models.job import Job
 from core.organizer import SortReport
@@ -19,6 +22,14 @@ def _format_value(value: object) -> str:
     return str(value)
 
 
+def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tuple[str, Any]]:
+    """The ``(name, value)`` pairs of a config model, or of a plain dict setting."""
+
+    if isinstance(value, Mapping):
+        return list(value.items())
+    return list(value)
+
+
 def render_config(console: Console, config: MicroficheConfig) -> None:
     """Print the library's configuration as a table, one row per setting.
 
@@ -32,15 +43,23 @@ def render_config(console: Console, config: MicroficheConfig) -> None:
     table.add_column("Setting")
     table.add_column("Value")
 
-    sections = list(config)
+    sections = _to_items(config)
     for section_index, (section_name, section) in enumerate(sections):
-        fields = list(section)
-        for field_index, (field_name, value) in enumerate(fields):
+        fields = _to_items(section)
+        if fields:
+            for field_index, (field_name, value) in enumerate(fields):
+                table.add_row(
+                    section_name if field_index == 0 else "",
+                    field_name,
+                    escape(_format_value(value)),
+                    end_section=field_index == len(fields) - 1 and section_index != len(sections) - 1,
+                )
+        else:
             table.add_row(
-                section_name if field_index == 0 else "",
-                field_name,
-                escape(_format_value(value)),
-                end_section=field_index == len(fields) - 1 and section_index != len(sections) - 1,
+                section_name,
+                "",
+                escape(_format_value(section)),
+                end_section=section_index != len(sections) - 1,
             )
     console.print(table)
 

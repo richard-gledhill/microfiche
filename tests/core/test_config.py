@@ -1,19 +1,30 @@
 """Tests for loading microfiche's configuration file."""
 
+import copy
 from pathlib import Path
 
 import pytest
 from core.config import (
     DEFAULT_INBOX_DIRNAME,
+    CategoryHintsConfig,
     ClassificationConfig,
+    ConfigError,
+    ExclusionsConfig,
+    FilingRulesConfig,
+    LibraryStructureConfig,
     MicroficheConfig,
+    NamingRulesConfig,
+    ObsidianConfig,
+    TomlConfigParseError,
     load_config,
 )
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from core.utils.filesystem import is_excluded
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
+
+# --- config defaults ------------------------------------------------------------------------
 
 
 def test_load_config_reads_the_shipped_default_config() -> None:
@@ -58,15 +69,169 @@ def test_a_library_can_set_its_own_confidence_threshold(tmp_path: Path) -> None:
     assert load_config(tmp_path).classification.confidence_threshold == 0.7
 
 
-@pytest.mark.parametrize("value", [0.0, 0.5, 1.0])
+@pytest.mark.parametrize(
+    "value",
+    [0.0, 0.5, 1.0],
+)
 def test_thresholds_from_zero_to_one_are_accepted(value: float) -> None:
     assert ClassificationConfig(confidence_threshold=value).confidence_threshold == value
 
 
-@pytest.mark.parametrize("value", [-0.1, 1.01, 8])
+@pytest.mark.parametrize(
+    "value",
+    [-0.1, 1.01, 8],
+)
 def test_thresholds_outside_zero_to_one_are_rejected(value: float) -> None:
     with pytest.raises(ValidationError):
         ClassificationConfig(confidence_threshold=value)
+
+
+def test_the_shipped_library_templates_are_loaded() -> None:
+    config = load_config(_REPO_CONFIG_DIR)
+
+    assert "01 Requirements" in config.library_templates["software_project"]
+
+
+# --- config error checks ------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "section",
+    [
+        LibraryStructureConfig,
+        ExclusionsConfig,
+        ObsidianConfig,
+        CategoryHintsConfig,
+        FilingRulesConfig,
+        NamingRulesConfig,
+        ClassificationConfig,
+    ],
+)
+def test_each_section_rejects_unknown_key(section: type[BaseModel]) -> None:
+    """A key a section doesn't define is an error, so a typo can't be silently ignored."""
+    with pytest.raises(ValidationError) as exc_info:
+        section(not_a_real_key=1)
+
+    [error] = exc_info.value.errors()
+    assert error["type"] == "extra_forbidden"
+    assert error["loc"] == ("not_a_real_key",)
+
+
+def test_a_library_template_that_is_not_a_list_of_names_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[library_templates]\nsoftware_project = "oops"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="software_project"):
+        load_config(tmp_path)
+
+
+def test_library_structure_rejects_unknown_key() -> None:
+    invalid_data = {
+        "library_structure": {
+            "library_inbox": "_sorting",
+            "depth": 2,
+            "levels": ["group", "category"],
+            "file_target_level": 2,
+            "invalid_key": "invalid-key",  # The offender
+        }
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        LibraryStructureConfig(**invalid_data.get("library_structure", {}))
+
+    [error] = exc_info.value.errors()
+    assert error["type"] == "extra_forbidden"
+    assert error["loc"] == ("invalid_key",)
+
+
+def test_an_unknown_section_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classifcation]\nconfidence_threshold = 0.9\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="classifcation"):
+        load_config(tmp_path)
+
+
+def test_an_unknown_key_in_a_section_of_the_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nconfidence_threshhold = 0.9\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="confidence_threshhold"):
+        load_config(tmp_path)
+
+
+def test_a_wrong_type_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError, match="confidence_threshold"):
+        load_config(tmp_path)
+
+
+def test_a_toml_syntax_error_in_config_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classification\n", encoding="utf-8")
+
+    with pytest.raises(TomlConfigParseError):
+        load_config(tmp_path)
+
+
+def test_a_section_that_is_not_a_table_is_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("classification = 5", encoding="utf-8")
+
+    with pytest.raises(ConfigError):
+        load_config(tmp_path)
+
+
+def test_a_bad_value_is_reported_with_its_file_section_and_setting(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    message = str(exc_info.value)
+    assert "microfiche-config.toml" in message
+    assert "classification" in message
+    assert "confidence_threshold" in message
+    assert "valid number" in message
+    assert "pydantic.dev" not in message
+    assert "MicroficheConfig" not in message
+
+
+def test_a_mistyped_name_is_reported_as_an_unknown_section_or_setting(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nconfidence_threshhold = 0.9\n\n[classifcation]\nx = 1\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    message = str(exc_info.value)
+    assert "classification.confidence_threshhold: unknown setting" in message
+    assert "classifcation: unknown section" in message
+    assert "Extra inputs are not permitted" not in message
+
+
+def test_a_section_written_as_a_plain_value_is_not_called_unknown(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("classification = 5\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    message = str(exc_info.value)
+    assert "classification:" in message
+    assert "unknown" not in message
+
+
+def test_a_bad_value_inside_a_list_is_located_by_its_index(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[filing_rules]\nrules = [{ pattern = 1 }]\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert "filing_rules.rules[0].pattern" in str(exc_info.value)
 
 
 # --- the library inbox ------------------------------------------------------------------------
@@ -95,3 +260,31 @@ def test_an_inbox_that_is_not_a_plain_folder_name_is_rejected(name: str) -> None
 
     with pytest.raises(ValidationError, match="not a valid folder name"):
         MicroficheConfig.model_validate(config)
+
+
+def test_a_path_to_the_config_file_itself_is_loaded(tmp_path: Path) -> None:
+    config_file = tmp_path / "custom.toml"
+    config_file.write_text("[classification]\nconfidence_threshold = 0.7\n", encoding="utf-8")
+
+    assert load_config(config_file).classification.confidence_threshold == 0.7
+
+
+def test_a_config_error_is_unchanged_by_copying_it(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert str(copy.copy(exc_info.value)) == str(exc_info.value)
+
+
+def test_a_rejected_inbox_name_is_reported_without_pydantics_value_error_prefix(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[library_structure]\nlibrary_inbox = "a/b"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert "library_structure.library_inbox" in str(exc_info.value)
+    assert "Value error" not in str(exc_info.value)

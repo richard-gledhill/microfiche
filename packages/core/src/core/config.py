@@ -12,7 +12,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -24,6 +24,14 @@ MICROFICHE_DIRNAME = ".microfiche"
 DEFAULT_INBOX_DIRNAME = "_sorting"
 
 
+class _ConfigSection(BaseModel):
+    """
+    BaseModel class abstraction for a configuration section.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class InvalidInboxNameError(ValueError):
     """Raised when ``library_inbox`` isn't a usable folder name."""
 
@@ -32,7 +40,7 @@ class InvalidInboxNameError(ValueError):
         super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
 
 
-class LibraryStructureConfig(BaseModel):
+class LibraryStructureConfig(_ConfigSection):
     """The shape of the library: its group/category hierarchy, and the name of its inbox.
 
     Attributes:
@@ -62,13 +70,13 @@ class LibraryStructureConfig(BaseModel):
         return value
 
 
-class ExclusionsConfig(BaseModel):
+class ExclusionsConfig(_ConfigSection):
     """Folder name/glob patterns never treated as a category, never descended into."""
 
     exclude: list[str] = Field(default_factory=list)
 
 
-class ObsidianConfig(BaseModel):
+class ObsidianConfig(_ConfigSection):
     """Handles configuration details for Obsidian-related operations.
 
     This class is used to manage settings required for integration or operations
@@ -90,7 +98,7 @@ class ObsidianConfig(BaseModel):
     tag_mode: Literal["suggest", "strict", "off"] = "suggest"
 
 
-class CategoryHintsConfig(BaseModel):
+class CategoryHintsConfig(_ConfigSection):
     """Represents the configuration for category hints.
 
     Keyword hints per *existing* category name, used by the rules engine - not the category
@@ -108,7 +116,7 @@ class CategoryHintsConfig(BaseModel):
     categories: dict[str, list[str]] = Field(default_factory=dict)
 
 
-class FilingRulesConfig(BaseModel):
+class FilingRulesConfig(_ConfigSection):
     """Represents the configuration for filing rules.
 
     Filename-glob -> category rules, checked before keyword hints.
@@ -125,7 +133,7 @@ class FilingRulesConfig(BaseModel):
     rules: list[dict[str, str]] = Field(default_factory=list)
 
 
-class NamingRulesConfig(BaseModel):
+class NamingRulesConfig(_ConfigSection):
     """Represents configuration for naming rules.
 
     This class is intended to store and manage Regex pattern naming rules defined as key-value pairs.
@@ -140,7 +148,7 @@ class NamingRulesConfig(BaseModel):
     rules: dict[str, str] = Field(default_factory=dict)
 
 
-class ClassificationConfig(BaseModel):
+class ClassificationConfig(_ConfigSection):
     """How confident microfiche must be before it files a document without asking.
 
     Attributes:
@@ -155,7 +163,7 @@ class ClassificationConfig(BaseModel):
     confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0.0, le=1.0)
 
 
-class MicroficheConfig(BaseModel):
+class MicroficheConfig(_ConfigSection):
     """Configuration container for Microfiche.
 
     Represents the configuration settings for the Microfiche system, which
@@ -175,32 +183,30 @@ class MicroficheConfig(BaseModel):
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
+        library_templates (dict[str, list[str]]): Named category sets for a future
+            `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
 
-    library_structure: LibraryStructureConfig
-    exclusions: ExclusionsConfig
-    obsidian: ObsidianConfig
-    category_hints: CategoryHintsConfig
-    filing_rules: FilingRulesConfig
-    naming_rules: NamingRulesConfig
+    library_structure: LibraryStructureConfig = Field(default_factory=LibraryStructureConfig)
+    exclusions: ExclusionsConfig = Field(default_factory=ExclusionsConfig)
+    obsidian: ObsidianConfig = Field(default_factory=ObsidianConfig)
+    category_hints: CategoryHintsConfig = Field(default_factory=CategoryHintsConfig)
+    filing_rules: FilingRulesConfig = Field(default_factory=FilingRulesConfig)
+    naming_rules: NamingRulesConfig = Field(default_factory=NamingRulesConfig)
     classification: ClassificationConfig = Field(default_factory=ClassificationConfig)
+    library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
 
-class TomlConfigParseError(ValueError):
-    """Exception raised when a TOML configuration file fails to parse.
+class ConfigError(ValueError):
+    """The library's configuration can't be used; the message says why and where."""
 
-    This exception is used to provide detailed information about the file path and the
-    specific error encountered during the parsing attempt.
 
-    Attributes:
-        path (Path | str): Path to the TOML configuration file that failed to parse.
-        error (Exception | str): The error message or exception that caused the failure.
-    """
+class TomlConfigParseError(ConfigError):
+    """Exception raised when a TOML configuration file fails to parse."""
 
     def __init__(self, path: Path | str, error: Exception | str) -> None:
-        super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
+        super().__init__(f"Config file error: Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
-        self.error = error
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -229,39 +235,58 @@ def _load_toml(path: Path) -> dict[str, Any]:
         raise TomlConfigParseError(path, err) from err
 
 
-def load_config(config_path: Path) -> MicroficheConfig:
-    """Load the configuration file at the given path into a ``MicroficheConfig``.
+def _loc_to_dot_sep(loc: tuple[str | int, ...]) -> str:
+    """Join an error location into a dotted path, such as ``filing_rules.rules[0].pattern``."""
+    path = ""
+    for i, part in enumerate(loc):
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += f".{part}" if i else part
+    return path
 
-    Reads the TOML configuration and assembles each sub-configuration, using defaults for any
-    section that is missing.
+
+def _describe_errors(target_file: Path, err: ValidationError) -> str:
+    """Format pydantic validation errors as one line per problem, under the file path."""
+    lines = [f"Config file error: {target_file}:"]
+    for error in err.errors():
+        setting = _loc_to_dot_sep(error["loc"])
+        match error["type"], len(error["loc"]):
+            case "extra_forbidden", 1:
+                reason = "unknown section"
+            case "extra_forbidden", _:
+                reason = "unknown setting"
+            case _:
+                reason = error["msg"].removeprefix("Value error, ")
+        lines.append(f"  {setting}: {reason}")
+    return "\n".join(lines)
+
+
+def load_config(config_path: Path) -> MicroficheConfig:
+    """Load the library's configuration from ``config_path`` into a ``MicroficheConfig``.
+
+    A missing file, or a missing section, falls back to the defaults. Anything that is present is
+    validated, so a mistyped section or setting, or a value of the wrong type, is an error rather
+    than being silently ignored.
 
     Args:
-        config_path: The path to the base configuration directory or a specific configuration
-            file. If a directory is provided, the configuration file is looked up in it by its
-            predefined filename.
+        config_path: The folder holding ``microfiche-config.toml`` (a library's ``.microfiche/``
+            folder), or the path of a config file itself.
 
     Returns:
-        The parsed configuration for library structure, exclusions, Obsidian, category hints,
-        filing rules, and naming rules.
+        The validated configuration.
 
-    Todo:
-        - Implement check for .microfiche folder
-        - Implement validation of config file and prompt for exit or using defaults if error.
-        - Consider adding flag in microfiche-config.toml to indicate whether it's default or custom.
-        - Implement validation checks for configuration values.
-        - Consider adding logging for configuration loading and processing.
-        - Review target_file as nothing in the codebase calls it with a literal file path, only the directory form is ever used
+    Raises:
+        TomlConfigParseError: If the file is not valid TOML.
+        ConfigError: If the file is valid TOML but not a valid configuration. The message names
+            the file and every setting that is wrong.
     """
 
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)
-    return MicroficheConfig(
-        library_structure=LibraryStructureConfig(**config.get("library_structure", {})),
-        exclusions=ExclusionsConfig(**config.get("exclusions", {})),
-        obsidian=ObsidianConfig(**config.get("obsidian", {})),
-        category_hints=CategoryHintsConfig(**config.get("category_hints", {})),
-        filing_rules=FilingRulesConfig(**config.get("filing_rules", {})),
-        naming_rules=NamingRulesConfig(**config.get("naming_rules", {})),
-        classification=ClassificationConfig(**config.get("classification", {})),
-    )
+
+    try:
+        return MicroficheConfig.model_validate(config)
+    except ValidationError as err:
+        raise ConfigError(_describe_errors(target_file, err)) from err
