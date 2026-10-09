@@ -87,7 +87,7 @@ below that mention making scores configurable still apply.
 
 Three further steps follow it, from [operations-review.md](operations-review.md); none is built:
 [Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) (a name collision sends the unit to
-review instead of crashing `sort`; `--no-keep-folders` files a folder's documents one by one and handles the
+review instead of crashing `sort`; `keep_folders = false` files a folder's documents one by one and handles the
 emptied folder), [Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) (`sort --dry-run`, a run
 lock, per-unit failure isolation, symlink and size limits) and
 [Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) (logging, `--verbose`/`--quiet`, progress) and
