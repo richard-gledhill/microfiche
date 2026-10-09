@@ -270,8 +270,8 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   `library_templates` is dropped until an `init` command exists; a template catalog would reuse the library
   file's node schema.
 * **Scores and thresholds are config.** `[classification]` gains the signal strengths (name, filename rule,
-  keyword hint, AI) and the fuzzy-match thresholds, passed into `RulesEngine` and `LLMClassifier` by
-  constructor. `confidence_threshold` keeps its meaning; the shipped values reproduce today's behaviour.
+  keyword hint) and the group fuzzy-match threshold, and `[ai]` gains the AI score; each is passed into `RulesEngine`
+  or `LLMClassifier` by constructor. `confidence_threshold` keeps its meaning; the shipped values reproduce today's behaviour.
 * **`[sorting] keep_folders`** defaults to `true` (§4 then reads "on by default"); `--keep-folders` stays a
   boolean switch and `--keep-folders-off` is its counterpart (passing both is an error); whichever is passed
   overrides the config. With it off (Stage 4.2), an inbox folder is no
