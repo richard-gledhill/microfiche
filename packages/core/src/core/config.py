@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
+# region Constants and types
 
 CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
@@ -190,6 +191,12 @@ class MicroficheConfig(_ConfigSection):
     library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
 
+# endregion
+
+
+# region Errors
+
+
 class InvalidInboxNameError(ValueError):
     """Raised when ``library_inbox`` isn't a usable folder name."""
 
@@ -208,6 +215,12 @@ class TomlConfigParseError(ConfigError):
     def __init__(self, path: Path | str, error: Exception | str) -> None:
         super().__init__(f"Config file error: Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
+
+
+# endregion
+
+
+# region Public API
 
 
 def load_config(config_path: Path) -> MicroficheConfig:
@@ -238,6 +251,12 @@ def load_config(config_path: Path) -> MicroficheConfig:
         return MicroficheConfig.model_validate(config)
     except ValidationError as err:
         raise ConfigError(_describe_errors(target_file, err)) from err
+
+
+# endregion
+
+
+# region Helpers
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -291,3 +310,6 @@ def _describe_errors(target_file: Path, err: ValidationError) -> str:
                 reason = error["msg"].removeprefix("Value error, ")
         lines.append(f"  {setting}: {reason}")
     return "\n".join(lines)
+
+
+# endregion

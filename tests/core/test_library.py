@@ -6,6 +6,9 @@ import pytest
 from core.config import MicroficheConfig, TomlConfigParseError, load_config
 from core.library.library import Library, ScopeOutsideLibraryError
 
+# region Test helpers
+
+
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
 
@@ -27,7 +30,10 @@ def _build(root: Path) -> Path:
     return root
 
 
-# --- taxonomy ---------------------------------------------------------------------------------
+# endregion
+
+
+# region Taxonomy
 
 
 def test_the_taxonomy_is_the_groups_and_categories_that_exist(tmp_path: Path) -> None:
@@ -88,7 +94,10 @@ def test_the_taxonomy_is_rebuilt_on_every_call(tmp_path: Path) -> None:
     assert library.taxonomy().group_names == ["Project Atlas", "Project Phoenix"]
 
 
-# --- layout -----------------------------------------------------------------------------------
+# endregion
+
+
+# region Layout
 
 
 def test_the_default_layout_paths(tmp_path: Path) -> None:
@@ -134,7 +143,10 @@ def test_relative_leaves_a_path_outside_the_library_as_it_is(tmp_path: Path) -> 
     assert library.relative(outside) == outside.as_posix()
 
 
-# --- exclusion --------------------------------------------------------------------------------
+# endregion
+
+
+# region Exclusion
 
 
 def test_is_excluded_checks_only_the_part_of_the_path_inside_the_library(tmp_path: Path) -> None:
@@ -160,7 +172,10 @@ def test_is_excluded_refuses_a_path_outside_the_library(tmp_path: Path) -> None:
         library.is_excluded(tmp_path / "elsewhere" / "a.md")
 
 
-# --- files ------------------------------------------------------------------------------------
+# endregion
+
+
+# region Files
 
 
 def _touch(root: Path, *relative_paths: str) -> None:
@@ -226,7 +241,10 @@ def test_files_refuses_a_scope_outside_the_library(tmp_path: Path) -> None:
         Library(root, config=_shipped()).files(outside)
 
 
-# --- config -----------------------------------------------------------------------------------
+# endregion
+
+
+# region Config
 
 
 def test_the_config_is_loaded_from_the_state_folder(tmp_path: Path) -> None:
@@ -271,3 +289,6 @@ def test_paths_do_not_need_a_readable_config(tmp_path: Path) -> None:
     assert library.relative(tmp_path / "G" / "a.md") == "G/a.md"
     with pytest.raises(TomlConfigParseError):
         _ = library.config
+
+
+# endregion

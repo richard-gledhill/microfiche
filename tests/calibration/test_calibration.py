@@ -24,6 +24,9 @@ from harness import (
     sweep,
 )
 
+# region Test helpers
+
+
 KNOWN_KINDS = ADVERSARIAL_KINDS | {"clear", "hint", "rule", "fuzzy", "shortform", "nogroup"}
 
 
@@ -39,7 +42,10 @@ def _case(
     return Case("lib", "G/C/doc.md", kind, truth, predicted, confidence, group_signal, category_signal)
 
 
-# --- the maths of one threshold ----------------------------------------------------------------
+# endregion
+
+
+# region The maths of one threshold
 
 
 def test_a_confident_correct_answer_is_filed_correctly() -> None:
@@ -145,7 +151,10 @@ def test_by_kind_groups_cases() -> None:
     assert {kind: len(cases) for kind, cases in grouped.items()} == {"clear": 2, "hint": 1}
 
 
-# --- blending ordinary and adversarial documents ------------------------------------------------
+# endregion
+
+
+# region Blending ordinary and adversarial documents
 
 
 def test_a_blend_weights_the_ordinary_and_adversarial_outcomes_by_share() -> None:
@@ -175,7 +184,10 @@ def test_break_even_is_none_when_the_higher_threshold_avoids_no_misfiles() -> No
     assert break_even(Blend(right=80.0, wrong=5.0), Blend(right=30.0, wrong=5.0)) is None
 
 
-# --- the harness on any labelled library ---------------------------------------------------------
+# endregion
+
+
+# region The harness on any labelled library
 
 
 def test_the_harness_classifies_any_labelled_library(tmp_path: Path) -> None:
@@ -220,7 +232,11 @@ def test_the_harness_skips_the_inbox_excluded_folders_and_loose_files_and_reads_
     assert [(case.path, case.truth) for case in cases] == [("Project X/Notes/sub/deep.md", ("Project X", "Notes"))]
 
 
-# --- the bundled corpus --------------------------------------------------------------------------
+# endregion
+
+
+# region The bundled corpus
+
 
 LIBRARIES = sorted(p for p in CORPUS_ROOT.iterdir() if p.is_dir())
 
@@ -274,7 +290,10 @@ def test_the_kinds_that_make_a_name_or_hint_match_the_wrong_answer_are_represent
     assert kinds >= ADVERSARIAL_KINDS
 
 
-# --- known documents classify the way the signal table says ---------------------------------------
+# endregion
+
+
+# region Known documents classify the way the signal table says
 
 
 def _corpus_case(path_fragment: str) -> Case:
@@ -317,7 +336,10 @@ def test_a_cross_reference_files_under_the_wrong_group_with_full_confidence() ->
     assert case.group_signal == "exact"
 
 
-# --- the report ---------------------------------------------------------------------------------
+# endregion
+
+
+# region The report
 
 
 def test_the_report_has_every_section_and_marks_the_default() -> None:
@@ -335,7 +357,12 @@ def test_the_report_has_every_section_and_marks_the_default() -> None:
     assert "<- default" in report
 
 
-# --- what the calibration found, pinned ----------------------------------------------------------
+# endregion
+
+
+# region What the calibration found, pinned
+
+
 #
 # These tests state the findings in docs/development/calibration.md. If one fails, the classifier
 # or the corpus changed enough that the evidence behind DEFAULT_CONFIDENCE_THRESHOLD may no longer
@@ -413,7 +440,11 @@ def test_no_threshold_makes_a_confident_category_name_match_reliable_on_tricky_d
     assert not any(case.correct for case in tricky_name_matches)
 
 
-# --- the AI arm, replayed from saved answers --------------------------------------------------------
+# endregion
+
+
+# region The AI arm, replayed from saved answers
+
 
 AI_RESULTS = sorted(RESULTS_DIR.glob("ai-*.json"))
 
@@ -452,3 +483,6 @@ def test_lowering_the_threshold_to_the_ai_score_lets_ai_answers_file() -> None:
 
     assert with_ai.filed > alone.filed
     assert with_ai.filed_correct > alone.filed_correct
+
+
+# endregion

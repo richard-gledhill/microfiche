@@ -13,8 +13,14 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+# region Constants and types
 
 _ACTION_STYLES = {"move": "green", "keep": "dim", "review": "yellow", "conflict": "red"}
+
+# endregion
+
+
+# region Public API
 
 
 def render_config(console: Console, config: MicroficheConfig) -> None:
@@ -142,6 +148,12 @@ def render_reclassify_result(
         _render_job(console, job)
 
 
+# endregion
+
+
+# region Helpers
+
+
 def _format_value(value: object) -> str:
     if isinstance(value, dict):
         return ", ".join(f"{key}={_format_value(item)}" for key, item in value.items()) if value else "—"
@@ -161,3 +173,6 @@ def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tupl
 def _render_job(console: Console, job: Job) -> None:
     console.print(f"Job: {job.job_id}", soft_wrap=True)
     console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
+
+
+# endregion

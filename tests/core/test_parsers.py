@@ -15,6 +15,9 @@ from core.parsers import (
 )
 from core.parsers.base import document_from
 
+# region Test helpers
+
+
 _EML = (
     b"From: Ada <ada@example.com>\r\n"
     b"To: Grace <grace@example.com>\r\n"
@@ -51,7 +54,10 @@ def _make_pdf(path: Path, text: str) -> Path:
     return path
 
 
-# --- which formats are supported ---------------------------------------------------------------
+# endregion
+
+
+# region Which formats are supported
 
 
 def test_the_supported_formats() -> None:
@@ -78,7 +84,10 @@ def test_parsing_an_unsupported_file_raises_unsupported_format(tmp_path: Path) -
     assert ".png" in str(excinfo.value)
 
 
-# --- each format -------------------------------------------------------------------------------
+# endregion
+
+
+# region Each format
 
 
 def test_a_text_file_is_read_with_its_header_fields(tmp_path: Path) -> None:
@@ -168,7 +177,10 @@ def test_a_password_protected_pdf_is_unreadable(tmp_path: Path) -> None:
     assert excinfo.value.path == path
 
 
-# --- files that can't be read ------------------------------------------------------------------
+# endregion
+
+
+# region Files that can't be read
 
 
 @pytest.mark.parametrize(
@@ -209,7 +221,10 @@ def test_a_missing_file_is_unreadable_not_a_raw_os_error(tmp_path: Path) -> None
         parse_document(tmp_path / "gone.txt")
 
 
-# --- reading a batch ---------------------------------------------------------------------------
+# endregion
+
+
+# region Reading a batch
 
 
 def test_read_documents_reads_supported_files_in_the_order_given(tmp_path: Path) -> None:
@@ -255,7 +270,10 @@ def test_read_documents_accepts_a_generator(tmp_path: Path) -> None:
     assert [d.content for d in read_documents(paths).documents] == ["one", "two"]
 
 
-# --- the shared header -------------------------------------------------------------------------
+# endregion
+
+
+# region The shared header
 
 
 def test_document_from_fills_in_the_header_every_parser_shares() -> None:
@@ -270,3 +288,6 @@ def test_document_from_fills_in_the_header_every_parser_shares() -> None:
 
 def test_document_from_without_metadata_gives_an_empty_dict() -> None:
     assert document_from(Path("a.txt"), "x").metadata == {}
+
+
+# endregion

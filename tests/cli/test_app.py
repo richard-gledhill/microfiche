@@ -8,6 +8,9 @@ import pytest
 from cli.app import app
 from typer.testing import CliRunner
 
+# region Test helpers
+
+
 runner = CliRunner()
 
 
@@ -42,6 +45,12 @@ def _sort(library: Path) -> str:
     return match.group(1)
 
 
+# endregion
+
+
+# region Help and config
+
+
 def test_app_help_lists_all_commands() -> None:
     result = runner.invoke(app, ["--help"])
 
@@ -56,6 +65,12 @@ def test_config_command_shows_defaults_for_an_unconfigured_library(tmp_path: Pat
     assert result.exit_code == 0
     assert "2" in result.stdout  # library_structure.depth default
     assert "suggest" in result.stdout  # obsidian.tag_mode default
+
+
+# endregion
+
+
+# region Sort, audit and rollback
 
 
 def test_sort_prints_the_job_id_and_how_to_undo_it(tmp_path: Path) -> None:
@@ -158,6 +173,12 @@ def test_rollback_blocked_by_a_file_in_the_way_explains_how_to_finish_and_can_be
     assert _tree(library) == before
 
 
+# endregion
+
+
+# region Reclassify
+
+
 _ARCHITECTURE_TEXT = "Project Phoenix architecture decisions."
 _MISFILED = "Project Phoenix/03 Research/misfiled.md"
 _REFILED = "Project Phoenix/02 Architecture/misfiled.md"
@@ -244,7 +265,10 @@ def test_reclassify_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> 
     assert "is not inside the library" in result.stdout
 
 
-# --- library layout: where it lives, what it is called -----------------------------------------
+# endregion
+
+
+# region Library layout: where it lives, what it is called
 
 
 def test_sort_works_for_a_library_kept_under_a_dot_folder(tmp_path: Path) -> None:
@@ -322,7 +346,10 @@ def test_config_still_lists_library_templates_when_the_library_defines_none(tmp_
     assert "library_templates" in result.stdout
 
 
-# --- files that can't be read ------------------------------------------------------------------
+# endregion
+
+
+# region Files that can't be read
 
 
 def test_sort_files_what_it_can_and_names_the_file_it_could_not_read(tmp_path: Path) -> None:
@@ -352,7 +379,10 @@ def test_reclassify_names_a_file_it_could_not_read(tmp_path: Path) -> None:
     assert "Could not read 'broken.docx'" in result.stdout
 
 
-# --- a config that can't be used ---------------------------------------------------------------
+# endregion
+
+
+# region A config that can't be used
 
 
 def _break_config(library: Path) -> None:
@@ -386,3 +416,6 @@ def test_a_job_can_still_be_rolled_back_and_the_audit_log_read_when_the_config_i
     assert audit.exit_code == 0
     assert rollback.exit_code == 0
     assert "Reverted 1 move(s)" in rollback.stdout
+
+
+# endregion

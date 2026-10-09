@@ -22,9 +22,19 @@ from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from core.utils.filesystem import is_excluded
 from pydantic import BaseModel, ValidationError
 
+# region Test helpers
+
+
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 
-# --- config defaults ------------------------------------------------------------------------
+
+# endregion
+
+
+# region Public API
+
+
+# region Defaults
 
 
 def test_load_config_reads_the_shipped_default_config() -> None:
@@ -92,7 +102,10 @@ def test_the_shipped_library_templates_are_loaded() -> None:
     assert "01 Requirements" in config.library_templates["software_project"]
 
 
-# --- config error checks ------------------------------------------------------------------------
+# endregion
+
+
+# region Error reporting
 
 
 @pytest.mark.parametrize(
@@ -234,7 +247,10 @@ def test_a_bad_value_inside_a_list_is_located_by_its_index(tmp_path: Path) -> No
     assert "filing_rules.rules[0].pattern" in str(exc_info.value)
 
 
-# --- the library inbox ------------------------------------------------------------------------
+# endregion
+
+
+# region Library inbox
 
 
 def test_the_inbox_defaults_to_the_sorting_folder() -> None:
@@ -288,3 +304,9 @@ def test_a_rejected_inbox_name_is_reported_without_pydantics_value_error_prefix(
 
     assert "library_structure.library_inbox" in str(exc_info.value)
     assert "Value error" not in str(exc_info.value)
+
+
+# endregion
+
+
+# endregion
