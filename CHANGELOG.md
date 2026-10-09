@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- add test naming convention [`c62187e`](https://github.com/richard-gledhill/microfiche/commit/c62187e)
+- add module layout and region conventions [`5f72f23`](https://github.com/richard-gledhill/microfiche/commit/5f72f23)
+- :robot: changelog file generated [`e825209`](https://github.com/richard-gledhill/microfiche/commit/e825209)
 - :robot: changelog file generated [`9ddd068`](https://github.com/richard-gledhill/microfiche/commit/9ddd068)
 - :robot: changelog file generated [`ad8b5f5`](https://github.com/richard-gledhill/microfiche/commit/ad8b5f5)
 - add "ask before running on defaults" to the MVP roadmap [`466d1f7`](https://github.com/richard-gledhill/microfiche/commit/466d1f7)
@@ -53,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
 
 ### Test
+- rename tests to test_<subject>_<scenario>_<result> [`5a543cf`](https://github.com/richard-gledhill/microfiche/commit/5a543cf)
 - add validation for list item errors in `test_config.py` [`be72dee`](https://github.com/richard-gledhill/microfiche/commit/be72dee)
 - reformat parameterized test cases for readability in `test_config.py` [`092c1d7`](https://github.com/richard-gledhill/microfiche/commit/092c1d7)
 - reject an unknown key in a config section through load_config [`6acd6cd`](https://github.com/richard-gledhill/microfiche/commit/6acd6cd)
@@ -67,12 +71,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump ollama from 0.6.2 to 0.6.3 [`ee94927`](https://github.com/richard-gledhill/microfiche/commit/ee94927)
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
+### Style
+- wrap module sections in region markers [`90a5aba`](https://github.com/richard-gledhill/microfiche/commit/90a5aba)
+
 ### Refactor
+- reorder config, display and two test files to the module layout [`6e9214f`](https://github.com/richard-gledhill/microfiche/commit/6e9214f)
 - document load_config's contract and remove its unused file-path branch (config.py) [`386099a`](https://github.com/richard-gledhill/microfiche/commit/386099a)
 - consolidate config validation, simplify error handling, and add tests [`f14ddf5`](https://github.com/richard-gledhill/microfiche/commit/f14ddf5)
 - unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
 
 ### Other
+- Merge pull request #39 from richard-gledhill/chore/test-naming [`689029b`](https://github.com/richard-gledhill/microfiche/commit/689029b)
+- Merge pull request #38 from richard-gledhill/chore/module-layout-regions [`bb08fa6`](https://github.com/richard-gledhill/microfiche/commit/bb08fa6)
 - Merge pull request #37 from richard-gledhill/chore/ignore-idea-json-schemas [`b8bab81`](https://github.com/richard-gledhill/microfiche/commit/b8bab81)
 - Merge pull request #36 from richard-gledhill/docs/add-development-scratch.md [`80f3b9e`](https://github.com/richard-gledhill/microfiche/commit/80f3b9e)
 - Merge pull request #35 from richard-gledhill/fix/config-validation [`d7fde9a`](https://github.com/richard-gledhill/microfiche/commit/d7fde9a)
