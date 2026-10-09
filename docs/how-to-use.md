@@ -214,6 +214,27 @@ confidence_threshold = 0.75
 | `0.8` – `0.9` | the same, but keyword-hint matches are held for review |
 | `0.95` | filename rules only |
 
+The scores in the first table are settings too, and these are their defaults. You rarely need to
+change them: moving the threshold gives the same effect, and the defaults were
+[measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
+Change one if a kind of evidence is more or less trustworthy in your library, for example if you
+want keyword hints to count for less:
+
+```toml
+[classification]
+name_match_confidence = 0.9       # a category's name found in the text
+filename_match_confidence = 0.95  # a filename rule
+hint_match_confidence = 0.75      # a keyword hint
+fuzzy_group_threshold = 85        # how close (0-100) a near-miss must be to a group's name
+
+[ai]
+ai_confidence = 0.70              # any answer from the AI fallback
+max_document_chars = 4000         # how much of a document's text is sent to the AI
+```
+
+Each score is from 0 to 1 and `fuzzy_group_threshold` from 0 to 100; `max_document_chars` must be at
+least 1. Setting a score at or above the threshold lets that kind of evidence file on its own.
+
 **Raising the threshold files less; it doesn't file more accurately.** The score says what *kind* of
 evidence was found, not how reliable it is, so a stray word in the text can score higher than a
 correct hint. In testing, the share of automatically filed documents that were wrong was about the

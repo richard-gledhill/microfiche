@@ -18,6 +18,19 @@ file_target_level = 2
 # docs/development/calibration.md.
 [classification]
 confidence_threshold = 0.75
+# How sure each kind of match is (0 to 1). The threshold above decides which of them file on their own.
+name_match_confidence = 0.9       # a category's name found in the document text
+filename_match_confidence = 0.95  # a filename rule
+hint_match_confidence = 0.75      # a keyword hint
+# How close (0 to 100) a near-miss must be to a group's name to count as that group.
+fuzzy_group_threshold = 85
+
+# The AI fallback, used with `sort --use-ai` only for stages the rules can't answer confidently.
+# ai_confidence: how sure any AI answer is (0 to 1). Below the confidence_threshold above, an AI-only
+# answer goes to review. max_document_chars: how much of a document's text is sent to the AI.
+[ai]
+ai_confidence = 0.70
+max_document_chars = 4000
 
 # Whether a folder dropped in the inbox is filed whole, under the category most of its documents
 # belong to (true), or left alone (false). `sort --keep-folders` and `sort --keep-folders-off`
