@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Documentation
+- :robot: changelog file generated [`61fa6b5`](https://github.com/richard-gledhill/microfiche/commit/61fa6b5)
+- plan library depth, non-library folders and filing target mode (4.6-4.9) [`ed7557d`](https://github.com/richard-gledhill/microfiche/commit/ed7557d)
+
+### Other
+- Merge pull request #42 from richard-gledhill/docs/mvp-plan-depth-folders [`11bc7a7`](https://github.com/richard-gledhill/microfiche/commit/11bc7a7)
+
+## v0.1.4 (2026-10-09)
+
 ### Feature
 - stop CLI commands cleanly when the library config is invalid [`2d32909`](https://github.com/richard-gledhill/microfiche/commit/2d32909)
 - reject unknown config keys and sections [`1c54c64`](https://github.com/richard-gledhill/microfiche/commit/1c54c64)
