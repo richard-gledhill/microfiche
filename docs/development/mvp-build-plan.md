@@ -202,7 +202,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 **Build**
 - Add `core/defaults/microfiche-config.toml`, load it with `importlib.resources`, and remove the default values from the pydantic models.
 - Move the signal strengths, fuzzy thresholds and `max_document_chars` into `[classification]` and thread them through the constructors.
-- Add `[sorting] keep_folders = true` and change `--keep-folders` to `--keep-folders/--no-keep-folders`; make `propose-categories` use the setting too.
+- Add `[sorting] keep_folders = true` and keep `--keep-folders` as a boolean switch (no `--no-keep-folders`): passing it forces folders on for that run, leaving it off defers to the setting, and turning folders off is done in config; make `propose-categories` use the setting too.
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it.
 - Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
@@ -212,7 +212,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Write a test that the shipped template and the packaged defaults agree (the `[obsidian] enabled` mismatch is the known case).
 - Write config tests for the layered load: a missing file, a partial file, a list that replaces, and a range violation on each new score.
 - Write a test that each new setting changes the behaviour it names, using fake resolvers rather than the real rules.
-- Write a CLI test for `keep_folders` precedence: flag over config over default.
+- Write a CLI test for `keep_folders` precedence: the flag, when passed, over config over default.
 - Write tests that `build_provider` returns the provider the config names, and fails with a clear message when the OpenAI key variable is unset.
 - Re-run `tests/calibration/report.py` and confirm the default threshold's findings still hold; update [calibration.md](calibration.md) if not.
 
@@ -268,7 +268,7 @@ descending into folders, which makes same-name collisions between sub-folders li
 - Update the existing tests that copy `tests/mock_library` (`tests/cli/test_app.py`, `tests/core/test_organizer.py`, `tests/core/test_reclassify.py`) for the new folder, and check any that assert counts of filed or review items.
 
 **Deploy**
-- Update `docs/how-to-use.md` and the README (collisions, and what `--no-keep-folders` does), `architecture.md` §4 and the "nothing is ever deleted" wording.
+- Update `docs/how-to-use.md` and the README (collisions, and what `keep_folders = false` does), `architecture.md` §4 and the "nothing is ever deleted" wording.
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
 **Deferred:** renaming on collision (a suffix setting); detecting that the colliding file is an exact duplicate.

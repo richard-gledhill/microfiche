@@ -61,8 +61,8 @@ TODO asking whether it should default to true, and `propose-categories` already 
 
 - Config key: a new `[sorting]` section (`[library_structure]` describes shape, not behaviour), with
   `keep_folders = true`.
-- CLI: `--keep-folders/--no-keep-folders`, defaulting to unset. Precedence: flag, then library config, then
-  packaged default.
+- CLI: `--keep-folders` stays a boolean switch, with no `--no-keep-folders`. Precedence: the flag when passed,
+  then library config, then packaged default. Turning folders off is done in config.
 - Behaviour change: `sort` moves whole folders as one unit by default, and tied folders go to review.
   The `no` option also changes: today it ignores inbox folders, and it should instead file their documents
   one by one and then handle the emptied folder (remove it and record the removal, so rollback recreates
