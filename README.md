@@ -172,6 +172,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 |---|---|
 | `library_structure` | The group/category hierarchy (only the default two levels are implemented today) and `library_inbox`, the name of the inbox folder (default `"_sorting"`). |
 | `classification` | `confidence_threshold` (0–1, default 0.75, [measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md)): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so the default files hints but not AI answers; raise it to hold hints for review, lower it to 0.7 to file AI answers. |
+| `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` leaves folders alone for one run; `--keep-folders` does the opposite. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `category_hints` | Keyword hints per *existing* category name, under `[category_hints.categories]` — not the category list itself. |

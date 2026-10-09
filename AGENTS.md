@@ -71,7 +71,7 @@ workspace `.venv`.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
    files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
-   or (with `--keep-folders`) a whole folder treated as one unit.
+   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit.
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
    the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
    (`ai/llm_classifier.py::LLMClassifier`). It owns the flow, the confidence threshold and the

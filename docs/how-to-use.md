@@ -264,19 +264,26 @@ microfiche's own records live in the hidden `.microfiche/` folder inside your li
 of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
 per job. No extra files are written next to your documents.
 
-Keep dropped folders together (filed by their dominant category):
+A folder dropped in the inbox is kept together and filed whole, under the category most of its
+documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To leave
+folders in the inbox alone for one run, add `--keep-folders-off`:
 
 === "Bash"
 
     ```bash
-    uv run microfiche sort --library ~/Documents/Library --keep-folders
+    uv run microfiche sort --library ~/Documents/Library --keep-folders-off
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche sort --library "$HOME\Documents\Library" --keep-folders
+    uv run microfiche sort --library "$HOME\Documents\Library" --keep-folders-off
     ```
+
+`--keep-folders` does the opposite for one run, for a library whose config turns folders off. Passing
+both is an error. To change it for good, set `keep_folders = false` under `[sorting]` in the library's
+`.microfiche/microfiche-config.toml`. A flag beats that file, and the file beats microfiche's built-in
+default (`true`), which is what a library with no `[sorting]` section gets.
 
 Use the Ollama fallback for low-confidence documents (requires the `ai` extra and a running
 Ollama server):

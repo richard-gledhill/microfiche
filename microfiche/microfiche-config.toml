@@ -19,6 +19,12 @@ file_target_level = 2
 [classification]
 confidence_threshold = 0.75
 
+# Whether a folder dropped in the inbox is filed whole, under the category most of its documents
+# belong to (true), or left alone (false). `sort --keep-folders` and `sort --keep-folders-off`
+# override this for a single run: a flag beats this file, which beats the built-in default (true).
+[sorting]
+keep_folders = true
+
 # Folder name/glob patterns never treated as a category and never descended into by
 # taxonomy discovery or `reclassify`. Extend this with your own non-category folders
 # (templates, attachments, archives you don't want touched, etc).

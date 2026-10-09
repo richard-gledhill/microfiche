@@ -110,9 +110,10 @@ If no existing group matches at all, that's not automatically "low confidence" �
 
 ## 4. Sortable units: files and whole folders
 
-`_sorting/` can contain loose files and folders-full-of-documents. Folder handling is **opt-in**
-(`--keep-folders`, off by default) — when off, folders in `_sorting/` are left alone and reported, not
-descended into.
+`_sorting/` can contain loose files and folders-full-of-documents. Folder handling is **on by default**
+(`[sorting] keep_folders = true`; `sort --keep-folders` and `--keep-folders-off` override it for one run) — when
+off, folders in `_sorting/` are left alone and reported, not descended into (Stage 4.2 changes this to filing their
+documents one by one).
 
 ```
 core/models/unit.py
@@ -227,7 +228,7 @@ the dominant category.
 ## 8. CLI surface (supersedes concept 1a's command list)
 
 ```bash
-microfiche sort [--keep-folders] [--use-ai]        # process the library-wide _sorting/ inbox
+microfiche sort [--keep-folders | --keep-folders-off] [--use-ai]        # process the library-wide _sorting/ inbox
 microfiche review                                    # work the low-confidence queue (stub - see mvp-roadmap.md)
 microfiche propose-categories                        # suggest category names from the inbox; print-only
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents

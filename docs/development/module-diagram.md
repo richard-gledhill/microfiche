@@ -221,7 +221,7 @@ flowchart TD
 
     LibraryTree -->|"Library.taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
     ConfigFile -->|"load_config()"| Config["MicroficheConfig"]
-    SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if --keep-folders)"]
+    SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if keep_folders)"]
     Units -->|"read_documents() via parsers/"| Documents["Document(s)\n(text + metadata)"]
     Units -.->|"a file that can't be read:\nno document, left for review with the reason"| NeedsReview
 
