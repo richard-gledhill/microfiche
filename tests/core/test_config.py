@@ -2,10 +2,10 @@
 
 import copy
 from pathlib import Path
+from typing import Any
 
 import pytest
 from core.config import (
-    DEFAULT_INBOX_DIRNAME,
     CategoryHintsConfig,
     ClassificationConfig,
     ConfigError,
@@ -26,6 +26,21 @@ from pydantic import BaseModel, ValidationError
 
 
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
+
+_SECTIONS: list[tuple[str, type[BaseModel]]] = [
+    ("library_structure", LibraryStructureConfig),
+    ("exclusions", ExclusionsConfig),
+    ("obsidian", ObsidianConfig),
+    ("category_hints", CategoryHintsConfig),
+    ("filing_rules", FilingRulesConfig),
+    ("naming_rules", NamingRulesConfig),
+    ("classification", ClassificationConfig),
+]
+
+
+def _packaged_defaults() -> dict[str, Any]:
+    """The packaged defaults as plain data, for building a valid section to then break."""
+    return load_config(Path("does-not-exist")).model_dump()
 
 
 # endregion
@@ -138,6 +153,15 @@ def test_classification_config_threshold_out_of_range_rejected(value: float) -> 
         ClassificationConfig(confidence_threshold=value)
 
 
+@pytest.mark.parametrize("section", [model for _, model in _SECTIONS] + [MicroficheConfig])
+def test_config_section_no_defaults_of_its_own(section: type[BaseModel]) -> None:
+    """Defaults live only in the packaged file, so a section built without them is missing everything."""
+    with pytest.raises(ValidationError) as exc_info:
+        section()
+
+    assert {error["type"] for error in exc_info.value.errors()} == {"missing"}
+
+
 def test_load_config_shipped_library_templates_loaded() -> None:
     config = load_config(_REPO_CONFIG_DIR)
 
@@ -150,22 +174,11 @@ def test_load_config_shipped_library_templates_loaded() -> None:
 # region Error reporting
 
 
-@pytest.mark.parametrize(
-    "section",
-    [
-        LibraryStructureConfig,
-        ExclusionsConfig,
-        ObsidianConfig,
-        CategoryHintsConfig,
-        FilingRulesConfig,
-        NamingRulesConfig,
-        ClassificationConfig,
-    ],
-)
-def test_config_section_unknown_key_rejected(section: type[BaseModel]) -> None:
+@pytest.mark.parametrize(("name", "section"), _SECTIONS)
+def test_config_section_unknown_key_rejected(name: str, section: type[BaseModel]) -> None:
     """A key a section doesn't define is an error, so a typo can't be silently ignored."""
     with pytest.raises(ValidationError) as exc_info:
-        section(not_a_real_key=1)
+        section(**_packaged_defaults()[name], not_a_real_key=1)
 
     [error] = exc_info.value.errors()
     assert error["type"] == "extra_forbidden"
@@ -296,11 +309,11 @@ def test_load_config_bad_list_value_located_by_index(tmp_path: Path) -> None:
 
 
 def test_library_inbox_defaults_to_sorting_folder() -> None:
-    assert load_config(Path("does-not-exist")).library_structure.library_inbox == DEFAULT_INBOX_DIRNAME == "_sorting"
+    assert load_config(Path("does-not-exist")).library_structure.library_inbox == "_sorting"
 
 
 def test_shipped_config_names_default_inbox() -> None:
-    assert load_config(_REPO_CONFIG_DIR).library_structure.library_inbox == DEFAULT_INBOX_DIRNAME
+    assert load_config(_REPO_CONFIG_DIR).library_structure.library_inbox == "_sorting"
 
 
 def test_load_config_custom_inbox_name(tmp_path: Path) -> None:

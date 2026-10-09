@@ -15,16 +15,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
-from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
-
 # region Constants and types
 
 CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
 MICROFICHE_DIRNAME = ".microfiche"
-# Default name of the library's inbox: the one folder new documents are dropped into.
-DEFAULT_INBOX_DIRNAME = "_sorting"
 
 
 class _ConfigSection(BaseModel):
@@ -46,10 +42,10 @@ class LibraryStructureConfig(_ConfigSection):
         file_target_level (int): The level files are filed at. Not read by the code yet.
     """
 
-    library_inbox: str = DEFAULT_INBOX_DIRNAME
-    depth: int = 2
-    levels: list[str] = Field(default_factory=lambda: ["group", "category"])
-    file_target_level: int = 2
+    library_inbox: str
+    depth: int
+    levels: list[str]
+    file_target_level: int
 
     @field_validator("library_inbox")
     @classmethod
@@ -68,7 +64,7 @@ class LibraryStructureConfig(_ConfigSection):
 class ExclusionsConfig(_ConfigSection):
     """Folder name/glob patterns never treated as a category, never descended into."""
 
-    exclude: list[str] = Field(default_factory=list)
+    exclude: list[str]
 
 
 class ObsidianConfig(_ConfigSection):
@@ -88,9 +84,9 @@ class ObsidianConfig(_ConfigSection):
             for handling tags. The allowed values are "suggest", "strict", or "off".
     """
 
-    enabled: bool = True
-    tag_index_path: str = "TagIndex.md"
-    tag_mode: Literal["suggest", "strict", "off"] = "suggest"
+    enabled: bool
+    tag_index_path: str
+    tag_mode: Literal["suggest", "strict", "off"]
 
 
 class CategoryHintsConfig(_ConfigSection):
@@ -108,7 +104,7 @@ class CategoryHintsConfig(_ConfigSection):
         categories (dict[str, list[str]]): A dictionary mapping category names to a list of associated hints.
     """
 
-    categories: dict[str, list[str]] = Field(default_factory=dict)
+    categories: dict[str, list[str]]
 
 
 class FilingRulesConfig(_ConfigSection):
@@ -125,7 +121,7 @@ class FilingRulesConfig(_ConfigSection):
             as a dictionary mapping strings to strings.
     """
 
-    rules: list[dict[str, str]] = Field(default_factory=list)
+    rules: list[dict[str, str]]
 
 
 class NamingRulesConfig(_ConfigSection):
@@ -140,7 +136,7 @@ class NamingRulesConfig(_ConfigSection):
             rule and the value is its corresponding pattern or configuration.
     """
 
-    rules: dict[str, str] = Field(default_factory=dict)
+    rules: dict[str, str]
 
 
 class ClassificationConfig(_ConfigSection):
@@ -155,7 +151,7 @@ class ClassificationConfig(_ConfigSection):
             matches for review too, or lower it to 0.7 to file AI answers.
     """
 
-    confidence_threshold: float = Field(default=DEFAULT_CONFIDENCE_THRESHOLD, ge=0.0, le=1.0)
+    confidence_threshold: float = Field(ge=0.0, le=1.0)
 
 
 class MicroficheConfig(_ConfigSection):
@@ -182,14 +178,14 @@ class MicroficheConfig(_ConfigSection):
             `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
 
-    library_structure: LibraryStructureConfig = Field(default_factory=LibraryStructureConfig)
-    exclusions: ExclusionsConfig = Field(default_factory=ExclusionsConfig)
-    obsidian: ObsidianConfig = Field(default_factory=ObsidianConfig)
-    category_hints: CategoryHintsConfig = Field(default_factory=CategoryHintsConfig)
-    filing_rules: FilingRulesConfig = Field(default_factory=FilingRulesConfig)
-    naming_rules: NamingRulesConfig = Field(default_factory=NamingRulesConfig)
-    classification: ClassificationConfig = Field(default_factory=ClassificationConfig)
-    library_templates: dict[str, list[str]] = Field(default_factory=dict)
+    library_structure: LibraryStructureConfig
+    exclusions: ExclusionsConfig
+    obsidian: ObsidianConfig
+    category_hints: CategoryHintsConfig
+    filing_rules: FilingRulesConfig
+    naming_rules: NamingRulesConfig
+    classification: ClassificationConfig
+    library_templates: dict[str, list[str]]
 
 
 # endregion
