@@ -17,8 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`ad8b5f5`](https://github.com/richard-gledhill/microfiche/commit/ad8b5f5)
 - add "ask before running on defaults" to the MVP roadmap [`466d1f7`](https://github.com/richard-gledhill/microfiche/commit/466d1f7)
 - say that an invalid config stops the run with a message naming each problem (how-to-use.md, mvp-roadmap.md, microfiche/README.md) [`886e789`](https://github.com/richard-gledhill/microfiche/commit/886e789)
+- add scratch.md for personal development notes and snippets [`e697ddd`](https://github.com/richard-gledhill/microfiche/commit/e697ddd)
 - fix the stale config section row and note that unknown keys are errors [`919ad4e`](https://github.com/richard-gledhill/microfiche/commit/919ad4e)
 - :robot: changelog file generated [`681c565`](https://github.com/richard-gledhill/microfiche/commit/681c565)
 - sync the development docs with the current CLI and code [`c253587`](https://github.com/richard-gledhill/microfiche/commit/c253587)
@@ -69,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
 
 ### Other
+- Merge pull request #36 from richard-gledhill/docs/add-development-scratch.md [`80f3b9e`](https://github.com/richard-gledhill/microfiche/commit/80f3b9e)
 - Merge pull request #35 from richard-gledhill/fix/config-validation [`d7fde9a`](https://github.com/richard-gledhill/microfiche/commit/d7fde9a)
 - Merge pull request #34 [`d6a03e8`](https://github.com/richard-gledhill/microfiche/commit/d6a03e8)
 - Merge pull request #33 from richard-gledhill/docs/google-docstrings-mkdocs-submodules [`70afd92`](https://github.com/richard-gledhill/microfiche/commit/70afd92)
