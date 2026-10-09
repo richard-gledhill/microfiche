@@ -6,10 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Feature
+- stop CLI commands cleanly when the library config is invalid [`2d32909`](https://github.com/richard-gledhill/microfiche/commit/2d32909)
+- reject unknown config keys and sections [`1c54c64`](https://github.com/richard-gledhill/microfiche/commit/1c54c64)
+
+### Bug Fixes
+- address review feedback on config validation [`ebf205a`](https://github.com/richard-gledhill/microfiche/commit/ebf205a)
+
 ### Continuous Integration
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- add "ask before running on defaults" to the MVP roadmap [`466d1f7`](https://github.com/richard-gledhill/microfiche/commit/466d1f7)
+- say that an invalid config stops the run with a message naming each problem (how-to-use.md, mvp-roadmap.md, microfiche/README.md) [`886e789`](https://github.com/richard-gledhill/microfiche/commit/886e789)
+- fix the stale config section row and note that unknown keys are errors [`919ad4e`](https://github.com/richard-gledhill/microfiche/commit/919ad4e)
+- :robot: changelog file generated [`681c565`](https://github.com/richard-gledhill/microfiche/commit/681c565)
 - sync the development docs with the current CLI and code [`c253587`](https://github.com/richard-gledhill/microfiche/commit/c253587)
 - :robot: changelog file generated [`55b5e65`](https://github.com/richard-gledhill/microfiche/commit/55b5e65)
 - render submodules in the API reference and generate a CLI reference [`b14d8ea`](https://github.com/richard-gledhill/microfiche/commit/b14d8ea)
@@ -38,6 +49,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - :robot: changelog file generated [`7f825f1`](https://github.com/richard-gledhill/microfiche/commit/7f825f1)
 - :robot: changelog file generated [`24b8890`](https://github.com/richard-gledhill/microfiche/commit/24b8890)
 
+### Test
+- add validation for list item errors in `test_config.py` [`be72dee`](https://github.com/richard-gledhill/microfiche/commit/be72dee)
+- reformat parameterized test cases for readability in `test_config.py` [`092c1d7`](https://github.com/richard-gledhill/microfiche/commit/092c1d7)
+- reject an unknown key in a config section through load_config [`6acd6cd`](https://github.com/richard-gledhill/microfiche/commit/6acd6cd)
+- validate config sections against unknown keys and invalid data [`3b72640`](https://github.com/richard-gledhill/microfiche/commit/3b72640)
+
 ### Chore
 - ignore the .temp directory for ad hoc local files [`867ceb3`](https://github.com/richard-gledhill/microfiche/commit/867ceb3)
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
@@ -46,7 +63,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - bump ollama from 0.6.2 to 0.6.3 [`ee94927`](https://github.com/richard-gledhill/microfiche/commit/ee94927)
 - bump the github-actions-dependencies group with 4 updates [`813d5e7`](https://github.com/richard-gledhill/microfiche/commit/813d5e7)
 
+### Refactor
+- document load_config's contract and remove its unused file-path branch (config.py) [`386099a`](https://github.com/richard-gledhill/microfiche/commit/386099a)
+- consolidate config validation, simplify error handling, and add tests [`f14ddf5`](https://github.com/richard-gledhill/microfiche/commit/f14ddf5)
+- unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
+
 ### Other
+- Merge pull request #35 from richard-gledhill/fix/config-validation [`d7fde9a`](https://github.com/richard-gledhill/microfiche/commit/d7fde9a)
 - Merge pull request #34 [`d6a03e8`](https://github.com/richard-gledhill/microfiche/commit/d6a03e8)
 - Merge pull request #33 from richard-gledhill/docs/google-docstrings-mkdocs-submodules [`70afd92`](https://github.com/richard-gledhill/microfiche/commit/70afd92)
 - Merge pull request #32 from richard-gledhill/docs/agents-conventions [`d7da54e`](https://github.com/richard-gledhill/microfiche/commit/d7da54e)
