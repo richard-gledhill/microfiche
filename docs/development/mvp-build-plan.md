@@ -1,7 +1,7 @@
 # MVP build plan
 
 A from-scratch, staged process for building microfiche to MVP, organized as six stages (plus four
-interim stages, 4.1 to 4.5, added after review) that
+interim stages, 4.1 to 4.9, added after review) that
 each ship a **testable version** — something you can actually run and demo, not just a set of
 merged PRs. Every stage is internally sequenced Plan → Design → Build → Test → Deploy.
 
@@ -27,7 +27,7 @@ and a structure meant to be dropped directly into a GitHub Project. Read
 - **Versioning.** The whole MVP is the `0.1.x` line, and the repo already has a `v0.1.0` tag as its
   baseline. Each stage's Deploy step tags the next patch version: Stage 1 is `v0.1.1`, Stage 2 `v0.1.2`,
   Stage 3 `v0.1.3`, Stage 4 `v0.1.4`, Stage 5 `v0.1.5` and Stage 6 `v0.1.6`, the MVP release. An interim stage
-  numbered with a decimal (Stages 4.1 to 4.5) is an update to the stage before it and gets no tag of its own;
+  numbered with a decimal (Stages 4.1 to 4.9) is an update to the stage before it and gets no tag of its own;
   its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does.
 - **Definition of done per stage:** every issue in the milestone is closed *and* the stage's
   "Testable version" statement is true when you check it out and run it.
@@ -188,7 +188,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 
 **Plan**
 - Decide which constants become settings and which stay fixed (file names, chunk sizes, display styles), per [config-review.md](config-review.md) point 1.
-- Define the split between settings (`microfiche-config.toml`) and library data (`microfiche-library.json`), and what is dropped: `library_templates`, `levels`, `file_target_level`.
+- Define the split between settings (`microfiche-config.toml`) and library data (`microfiche-library.json`), and what is dropped: `library_templates`, `levels`, `file_target_level`. `depth` stays, as the one structural setting.
 - Decide whether `--use-ai` stays a per-run switch or becomes `[ai] enabled`, and whether the `init` command and a template catalog are in the MVP (the default is no).
 - Write the stage's exit criteria as a single sentence: with the shipped defaults the calibration report is unchanged, and each new setting changes the behaviour it names.
 
@@ -205,7 +205,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Add `[sorting] keep_folders = true` and change `--keep-folders` to `--keep-folders/--no-keep-folders`; make `propose-categories` use the setting too.
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it.
-- Delete `library_templates`, `levels` and `file_target_level` from the config; reject any `depth` other than 2 with a clear message.
+- Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
 
 **Test**
@@ -402,6 +402,183 @@ The options, candidate models and adoption rules are in [ai-classifier-options.m
 
 ---
 
+## Stage 4.6 — Flat Libraries (Depth 1)
+
+**Milestone:** `Stage 4.6 — Flat Libraries (Depth 1)` (an untagged update to `v0.1.4`)
+**Testable version:** With `[library_structure] depth = 1`, `microfiche sort` classifies each document against
+the library's group folders only and files it straight into one. The ledger, `rollback` and `reclassify` work on
+a flat library as they do on a two-level one. The default stays 2.
+
+Why before Stage 5: `review` and `index` would otherwise be built on the group-then-category shape and have to
+be reworked. The vocabulary, the depth model and the dependencies between 4.6 to 4.9 are in
+[library-depth.md](library-depth.md).
+
+**Plan**
+- Confirm the vocabulary: the word *group* is used at every depth, so a flat library has groups only; *category* appears at depth 2 and *subcategory* at depth 3. This keeps the names consistent from depth 1 upward.
+- Decide the accepted range: `depth` is 1 or 2 after this stage (any other value is still rejected with a clear message).
+- Decide that group-level hints and filing rules are needed. A flat library has only its folder names to match on, so a level-1 node in `microfiche-library.json` takes `hints` and `rules` like any other node.
+
+**Design**
+- Design how `Taxonomy` and `Library.taxonomy()` represent a library with no categories (empty category lists, or a depth-aware shape), reading only as deep as `depth`.
+- Design a single-stage `Classifier` path: the overall confidence is the group's confidence, and the AI fallback is asked the group prompt only.
+- Design filing-rule targets: a rule names the folder at the deepest level, so the `category` key becomes a `target` that means a group at depth 1.
+- Design the ledger and audit change: `category` becomes optional, and [data-model.md](data-model.md) records it.
+- Design the folder-unit vote and `reclassify`'s `keep` check for depth 1: the vote is on the group alone, and a document is already in place when it is under its group folder.
+
+**Build**
+- Make `depth` validate as 1 or 2, and make `Library.taxonomy()` and `target_dir` depth-aware.
+- Add the single-stage path to `Classifier`, `RulesEngine` and `LLMClassifier`.
+- Read hints and rules for level-1 nodes in the library file.
+- Make `file_batch`, the ledger and `reclassify` accept a missing category.
+- Update the `sort` and `reclassify` displays for a missing category.
+
+**Test**
+- Add a flat fixture library (`tests/mock_flat_library`) with a few group folders and an inbox.
+- Write end-to-end tests on it: sort files into a group folder, `rollback` restores it, and `reclassify` reports `keep`, `move` and `review` correctly.
+- Write unit tests for group-level hints and a filing rule whose target is a group, and for a folder unit voting on the group alone.
+- Add a flat library to the calibration corpus and re-run `tests/calibration/report.py`; update [calibration.md](calibration.md) if the default threshold's findings change.
+
+**Deploy**
+- Update `README.md`, `docs/how-to-use.md` (a section on flat libraries, in both the Bash and PowerShell tabs) and `docs/cli-reference.md`.
+- Update `architecture.md` §2 and §10, `data-model.md`, and `CONTEXT.md` (the library is one or two levels; a group is the top level at any depth).
+- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
+
+---
+
+## Stage 4.7 — Subcategories (Depth 3+) (provisional)
+
+**Milestone:** `Stage 4.7 — Subcategories (Depth 3+)` (an untagged update to `v0.1.4`)
+**Testable version:** With `depth = 3`, `microfiche sort` classifies group, then category, then subcategory, and
+files into the subcategory folder; the ledger, `rollback` and `reclassify` handle three levels; and the library
+creation functions can create up to three levels. **This stage may be deferred.** If trying to implement it hits
+a practical limitation (see the go/no-go gate below), the stage ends with the finding recorded in
+[library-depth.md](library-depth.md), depth stays 1 or 2, and the roadmap lists depth 3 as deferred.
+
+**Depends on:** Stage 4.6 (the single-level path and the optional category), and the rule in Stage 4.8 for telling
+a subcategory folder from a folder that was filed as content. Build 4.8 before 4.7.
+
+**Plan**
+- Write the go/no-go gate with numbers, measured on the calibration corpus extended with a three-level library: how far auto-filing may fall, and how far misfiling may rise, against the same documents at depth 2. Likely limits to watch: the minimum-across-levels confidence sends more documents to review; the AI fallback costs one call per level; `review` needs a choice at each level; and the ledger schema changes again.
+- Decide the cap: library creation functions (`create_library_group` and any future template catalog or `init`) support at most depth 3. Depth 4 and above is not planned. Write the classifier to be level-generic so it isn't a rewrite, but specify and test depth 3 only.
+- Decide the vocabulary: *subcategory* is the third level.
+
+**Design**
+- Design `Taxonomy` as a tree read to `depth`, and `Library.target_dir` taking the path of levels.
+- Design the resolver step per level, replacing `resolve_group` and `resolve_category` with one call that takes the path so far and the level; the adapters (`RulesEngine`, `LLMClassifier`) follow.
+- Design the confidence rule: the path's confidence is the minimum across levels, as now.
+- Design the AI cost control: ask for a level only when the rules are unsure at that level, so the common case is no more calls than at depth 2.
+- Design the ledger and audit fields (`subcategory` optional, or a list of levels) and the folder-unit vote on the full path.
+- Design the `review` prompt so it can ask one choice per level (an input to Stage 5).
+- Design library creation to take a template of up to three levels, rejecting more.
+
+**Build**
+- Make `depth` accept 3, and make the taxonomy walk, `target_dir`, the classifier loop and the filer work level by level.
+- Read hints and rules for level-3 nodes in the library file.
+- Make the ledger, `reclassify` and the displays handle a subcategory.
+- Update the library creation functions for up to three levels, and reject more.
+
+**Test**
+- Add a three-level fixture library (`tests/mock_deep_library`) and write end-to-end tests: sort files into a subcategory, `rollback` restores it, `reclassify` reports correctly.
+- Write unit tests for the per-level resolver step, the minimum-across-levels confidence, and the AI being asked only for levels the rules couldn't answer.
+- Write tests that library creation makes three levels and refuses four.
+- Run the gate: re-run the calibration report on the three-level library and record the result.
+
+**Deploy**
+- If the gate passes: update `README.md`, `docs/how-to-use.md`, `docs/cli-reference.md`, `architecture.md`, `data-model.md` and `CONTEXT.md` (add *subcategory*), and merge without a new tag.
+- If the gate fails: merge the recorded finding and the roadmap entry only.
+
+**Deferred:** depth 4 and above.
+
+---
+
+## Stage 4.8 — Non-Library Folders
+
+**Milestone:** `Stage 4.8 — Non-Library Folders` (an untagged update to `v0.1.4`)
+**Testable version:** A folder that isn't part of the taxonomy (a bundle filed whole by `keep_folders`, or a
+folder the user made, such as `attachments/`) is never read as a group, category or subcategory, and
+`reclassify` keeps a filed bundle together instead of splitting it.
+
+Why: with `keep_folders` on, a folder such as `phoenix-weekly-pack/` is filed whole inside a category. The plan
+has no task for what that folder is afterwards. Today the taxonomy walk stops at level 2, so it doesn't see
+the bundle, but `reclassify` walks every file under the library and would classify the bundle's documents one
+by one, splitting it. At depth 3 the bundle would also be read as a subcategory, and the same applies to any
+folder a user keeps inside a category. The reasoning is in [library-depth.md](library-depth.md).
+
+**Plan**
+- Define a non-library folder: any folder inside the library that is not a group, category or subcategory.
+- Decide the signals that identify one, and their order: the exclusion patterns that exist already, then a folder the ledger recorded as a filed folder unit, then a name that fails the level's name pattern (below).
+- Decide what happens to the documents inside a non-library folder that isn't in the ledger (the user's own folder): by default `reclassify` leaves them where they are and says so.
+
+**Design**
+- Design an optional `name_pattern` per level in `microfiche-library.json`, a regular expression the whole folder name must match (for example `^\d{2} .+` for a library whose categories are numbered). With no pattern, any name is accepted, as today. A template copied at creation carries the pattern for its convention, which is how the template is referred to without making the template the taxonomy.
+- Design pattern errors: an invalid regular expression is a `ConfigError` naming the file and the level.
+- Design `Library.is_taxonomy_folder(path, level)` as the one place the three signals combine, used by the taxonomy walk, `reclassify`, `Library.files` and `propose-categories`.
+- Design `reclassify` for a ledger-recorded folder unit: it is proposed as one unit (`move` whole, `keep`, `review` or `conflict`), never document by document.
+- Design the report line for a skipped non-library folder, so the user sees what was left alone.
+
+**Build**
+- Add `name_pattern` to the library file's model and validate it.
+- Add `Ledger.is_folder_unit(path)` and `Library.is_taxonomy_folder`, and use them in the callers above.
+- Make `reclassify` unit-aware for filed folders and skip other non-library folders with a report line.
+- Show the patterns in `microfiche config`.
+
+**Test**
+- Write a fixture with a category holding a filed bundle and a user's `attachments/` folder.
+- Write tests: the taxonomy ignores both; a pattern accepts and rejects the right names; an invalid pattern is reported with its file and level; `reclassify` keeps the bundle whole and leaves `attachments/` alone with a report line; `rollback` of the folder unit still restores it.
+- Once Stage 4.7 exists, add a depth-3 test that the bundle is not read as a subcategory.
+
+**Deploy**
+- Update `docs/how-to-use.md` (what microfiche leaves alone, and how to add a name pattern), the README, `architecture.md` §1 and §4, and `CONTEXT.md` (*non-library folder*).
+- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
+
+**Deferred:** detecting folders moved by hand that the ledger doesn't know about, beyond the name pattern.
+
+---
+
+## Stage 4.9 — Filing Target Mode (optional)
+
+**Milestone:** `Stage 4.9 — Filing Target Mode` (an untagged update to `v0.1.4`; optional)
+**Testable version:** A setting, `[sorting] file_at`, chooses where a document (or a folder, with `keep_folders`
+on) lands. `leaf_only`, the default and today's behaviour, files only into the deepest level and only when
+every level is confident. `best_level` walks the levels from the top and files into the deepest level that is
+confident, so a document whose group is clear but whose category is not stays in the group folder instead of
+going to review. It is meaningful from depth 2, so it does not wait for Stage 4.7.
+
+**Names.** "Flat" and "recursive" were the first suggestions, but "flat" also reads as a depth-1 library and
+"recursive" as scanning folders. The setting names where the file lands instead: `leaf_only` and `best_level`.
+Alternatives considered (`strict`/`progressive`, `exact`/`partial`, `deepest_only`/`descending`) are in
+[library-depth.md](library-depth.md).
+
+**Plan**
+- Decide whether to build this at all: it is optional, and independent of 4.7, so it can be built before it or left out.
+- Decide the rule: the path's confidence at a level is the minimum up to that level; descend while the level resolves and that confidence reaches the threshold; file at the deepest level reached; if the first level fails, the unit goes to review.
+- Decide how a tie in a folder's vote behaves: in `leaf_only` it goes to review, as now; in `best_level` the folder stops at the level above the tie.
+
+**Design**
+- Design the walk in `Classifier`, and the `ClassificationResult` field that records the level reached.
+- Design how the ledger and audit record a unit filed above the leaf (the deeper fields are empty).
+- Design `reclassify` for a unit parked above the leaf: `keep` if the level is still the best match, and `move` deeper when a deeper level has since become confident (new hints, a new folder).
+- Design the folder-unit vote per level: the dominant group first, then the dominant category among the documents that voted for it.
+- Design how `review` and `index` show a unit that is not at the leaf (an input to Stage 5).
+
+**Build**
+- Add `[sorting] file_at` to the packaged defaults, with range validation.
+- Implement the level walk and the per-level folder vote.
+- Allow files directly inside a group (or category) folder through the filer, the ledger and `reclassify`.
+- Show the level reached in the `sort` summary.
+
+**Test**
+- Write tests with fake resolvers: all levels confident files at the leaf in both modes; a confident group with an unresolved category files in the group folder under `best_level` and goes to review under `leaf_only`; an unresolved group goes to review in both.
+- Write folder-vote tests for the tie behaviour in each mode.
+- Write `reclassify` tests: a parked unit is `keep` while nothing deeper is confident and `move` when something is.
+- Re-run the calibration report in both modes and record the auto-filed and misfiled rates for each in [calibration.md](calibration.md).
+
+**Deploy**
+- Update `docs/how-to-use.md` (when to choose each mode), the README, `docs/cli-reference.md`, `architecture.md` §3 and §10, and `CONTEXT.md`.
+- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
+
+---
+
 ## Stage 5 — Obsidian Integration & Review Workflow
 
 **Milestone:** `v0.1.5 — Obsidian Integration & Review`
@@ -494,9 +671,20 @@ rather than in isolation:
    per-unit failure isolation come before the interactive `review` loop adds another way to file.
 4.4. **Logging next** — it records decisions made by everything above, and Stages 5 and 6
    are easier to build and debug with it in place. It is small enough to move earlier if debugging needs it.
-4.5. **Decision-model classifier last of the 4.x steps** — it needs the `[ai]` config (4.1), the safe
+4.5. **Decision-model classifier** — it needs the `[ai]` config (4.1), the safe
    AI-unavailable path (4.3) and logs (4.4), and it is gated on a measurement: if no candidate beats the chat
    model on the calibration corpus, the stage ends with that finding and Stage 5 proceeds unchanged.
+4.6. **Flat libraries before Stage 5** — `review` and `index` are built on the library's shape, so a one-level
+   library has to exist first or they are reworked.
+4.7. **Subcategories, provisional** — the largest change to the model, gated on a measurement; if it hits a
+   practical limit it is deferred and nothing later depends on it.
+4.8. **Non-library folders** — numbered after 4.7, but 4.7 needs its rule for telling a subcategory from a filed
+   bundle, so build 4.8 first. It is useful on its own at depth 2, where `reclassify` would otherwise split a
+   filed bundle.
+4.9. **Filing target mode, optional** — meaningful from depth 2, so it does not wait for 4.7; it can be built
+   after 4.6 or left out.
+
+   Suggested build order for the 4.6 to 4.9 group: 4.6, 4.8, 4.9, then 4.7.
 5. **Obsidian/review fifth** — polish and completeness features that don't block earlier
    stages from being independently useful.
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs

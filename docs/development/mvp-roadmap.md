@@ -95,6 +95,14 @@ lock, per-unit failure isolation, symlink and size limits) and
 Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
 calibration corpus; see [ai-classifier-options.md](ai-classifier-options.md)).
 
+Four more concern the library's shape, from [library-depth.md](library-depth.md); none is built:
+[Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) (depth 1, group only),
+[Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) (depth 3 with subcategories,
+provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders)
+(folders that aren't part of the taxonomy, such as bundles filed by `keep_folders`; today `reclassify` would split
+them) and [Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
+setting: `leaf_only` or `best_level`).
+
 ## Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
@@ -145,6 +153,7 @@ Also postponed, after the review in [operations-review.md](operations-review.md)
 - **Structured (JSON) log output** and log shipping.
 - **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
 - **Telemetry:** none, and none is planned.
+- **Depth 4 and above.** Library creation functions are capped at depth 3, and Stage 4.7 may itself be deferred.
 - **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](ai-classifier-options.md)).
 
 ## See also
