@@ -9,6 +9,7 @@ library should start from, copied in as ``.microfiche/`` (see microfiche/README.
 from __future__ import annotations
 
 import tomllib
+from importlib import resources
 from pathlib import Path
 from typing import Any, Literal
 
@@ -226,9 +227,11 @@ class TomlConfigParseError(ConfigError):
 def load_config(config_path: Path) -> MicroficheConfig:
     """Load the library's configuration from ``config_path`` into a ``MicroficheConfig``.
 
-    A missing file, or a missing section, falls back to the defaults. Anything that is present is
-    validated, so a mistyped section or setting, or a value of the wrong type, is an error rather
-    than being silently ignored.
+    The packaged defaults (``core/defaults/microfiche-config.toml``) are read first and the library's
+    file is merged over them: tables merge key by key, and a list replaces the default list. A
+    missing file, section or setting therefore keeps its default. The merged result is validated, so
+    a mistyped section or setting, or a value of the wrong type, is an error rather than being
+    silently ignored.
 
     Args:
         config_path: The folder holding ``microfiche-config.toml`` (a library's ``.microfiche/``
@@ -245,7 +248,7 @@ def load_config(config_path: Path) -> MicroficheConfig:
 
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
-    config = _load_toml(target_file)
+    config = _deep_merge(_load_packaged_defaults(), _load_toml(target_file))
 
     try:
         return MicroficheConfig.model_validate(config)
@@ -257,6 +260,33 @@ def load_config(config_path: Path) -> MicroficheConfig:
 
 
 # region Helpers
+
+
+def _load_packaged_defaults() -> dict[str, Any]:
+    """Read the defaults file shipped inside the ``core`` package (``core/defaults/``)."""
+    text = resources.files("core").joinpath("defaults", CONFIG_FILENAME).read_text(encoding="utf-8")
+    return tomllib.loads(text)
+
+
+def _deep_merge(defaults: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
+    """Merge ``overrides`` over ``defaults`` without changing either.
+
+    Tables merge key by key; anything else, including a list, is replaced by the override. A key
+    the library sets to a non-table where the defaults hold a table (or the reverse) is replaced
+    too, so validation reports it instead of the merge hiding it.
+
+    Args:
+        defaults: The packaged defaults.
+        overrides: What the library's file sets.
+
+    Returns:
+        A new dict holding the merged settings.
+    """
+    merged = dict(defaults)
+    for key, value in overrides.items():
+        base = merged.get(key)
+        merged[key] = _deep_merge(base, value) if isinstance(base, dict) and isinstance(value, dict) else value
+    return merged
 
 
 def _load_toml(path: Path) -> dict[str, Any]:

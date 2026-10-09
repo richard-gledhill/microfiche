@@ -56,6 +56,48 @@ def test_load_config_missing_files_fall_back_to_defaults(tmp_path: Path) -> None
     assert config.exclusions.exclude == []
 
 
+def test_load_config_missing_file_uses_packaged_defaults(tmp_path: Path) -> None:
+    # The packaged file turns Obsidian off; the model's own default used to say on.
+    assert load_config(tmp_path / "does-not-exist").obsidian.enabled is False
+
+
+def test_load_config_partial_table_keeps_other_defaults(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[obsidian]\ntag_mode = "strict"\n', encoding="utf-8")
+
+    config = load_config(tmp_path)
+
+    assert config.obsidian.tag_mode == "strict"
+    # Not mentioned in the library's table, so it comes from the packaged defaults.
+    assert config.obsidian.enabled is False
+    assert config.obsidian.tag_index_path == "TagIndex.md"
+
+
+def test_load_config_library_value_overrides_default(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[obsidian]\nenabled = true\n", encoding="utf-8")
+
+    assert load_config(tmp_path).obsidian.enabled is True
+
+
+def test_load_config_list_replaces_default_list(tmp_path: Path) -> None:
+    # `levels` defaults to two entries; replacing gives exactly the library's list, appending would give five.
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[library_structure]\nlevels = ["a", "b", "c"]\n', encoding="utf-8"
+    )
+
+    assert load_config(tmp_path).library_structure.levels == ["a", "b", "c"]
+
+
+def test_load_config_nested_table_merges_with_default(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[category_hints.categories]\n"01 Requirements" = ["requirement"]\n', encoding="utf-8"
+    )
+
+    config = load_config(tmp_path)
+
+    assert config.category_hints.categories == {"01 Requirements": ["requirement"]}
+    assert config.obsidian.enabled is False
+
+
 def test_default_confidence_threshold_equals_keyword_hint_score() -> None:
     """Set by calibration (docs/development/calibration.md): hint matches file, AI answers do not."""
 
