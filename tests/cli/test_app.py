@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from cli.app import app
+from core.config import AIConfig
 from typer.testing import CliRunner
 
 # region Test helpers
@@ -259,6 +260,118 @@ def test_propose_categories_uses_keep_folders_setting(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.stdout
     assert "PhoenixArchitectureNotes" not in result.stdout  # the folder's document is not read
+
+
+# endregion
+
+
+# region AI fallback
+
+
+class _NoAnswerProvider:
+    """An AI provider that always says no group fits."""
+
+    def complete(self, prompt: str) -> str:
+        return "NONE"
+
+
+@pytest.fixture
+def built_with(monkeypatch: pytest.MonkeyPatch) -> list[AIConfig]:
+    """Replace the provider factory with a fake, and record the settings it was asked to build from."""
+
+    seen: list[AIConfig] = []
+
+    def fake_build_provider(config: AIConfig) -> _NoAnswerProvider:
+        seen.append(config)
+        return _NoAnswerProvider()
+
+    monkeypatch.setattr("cli.commands.build_provider", fake_build_provider)
+    return seen
+
+
+def _set_ai(library: Path, settings: str) -> None:
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8") + "\n[ai]\n" + settings, encoding="utf-8")
+
+
+def test_sort_use_ai_builds_the_configured_provider(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'model = "mistral"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    (config,) = built_with
+    assert (config.provider, config.model) == ("ollama", "mistral")
+
+
+def test_sort_without_use_ai_builds_no_provider(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert built_with == []
+
+
+def test_sort_use_ai_default_settings_print_no_warning(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "--use-ai"])
+
+    assert "OpenAI" not in result.stdout
+    assert "no limit" not in result.stdout
+
+
+def test_sort_use_ai_openai_says_text_is_sent_to_openai(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "sent to OpenAI" in result.stdout
+
+
+def test_sort_openai_configured_but_no_use_ai_says_nothing(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert "OpenAI" not in result.stdout  # nothing is sent without --use-ai
+
+
+def test_sort_use_ai_unlimited_warns_once_not_per_document(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, "max_document_chars = 0\n")
+    (library / "_sorting" / "Another.md").write_text("Nothing recognisable here.", encoding="utf-8")
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    assert result.stdout.count("no limit") == 1
+    assert "context window" in result.stdout
+
+
+def test_sort_use_ai_unlimited_with_openai_mentions_billing(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\nmax_document_chars = 0\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert "bills" in result.stdout
+
+
+def test_sort_use_ai_openai_without_key_fails_cleanly_and_sorts_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 1
+    assert "OPENAI_API_KEY" in result.stdout
+    assert _tree(library) == before
 
 
 # endregion

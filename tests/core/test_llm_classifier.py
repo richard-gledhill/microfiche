@@ -120,3 +120,16 @@ def test_llm_classifier_sends_only_max_document_chars_setting() -> None:
     for prompt in provider.prompts:
         assert "0123456789" in prompt
         assert "ABCDEF" not in prompt
+
+
+def test_llm_classifier_zero_max_document_chars_sends_whole_document() -> None:
+    # Slicing with [:0] would send nothing at all, so 0 has to be handled as "no limit".
+    provider = ScriptedProvider("Acme Ltd")
+    resolver = LLMClassifier(provider, _settings(max_document_chars=0))
+    text = "x" * 10_000 + "END"
+
+    resolver.resolve_group(_document(text), TAXONOMY)
+    resolver.resolve_category(_document(text), "Acme Ltd", TAXONOMY)
+
+    for prompt in provider.prompts:
+        assert text in prompt

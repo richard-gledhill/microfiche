@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import NoReturn
 
 import typer
+from core.ai.factory import build_provider
 from core.ai.llm_classifier import LLMClassifier
-from core.ai.ollama_provider import OllamaProvider
-from core.config import ConfigError
+from core.config import AIConfig, ConfigError
 from core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -54,7 +54,10 @@ def sort(
         help="Leave folders in the inbox alone for this run, whatever the library's keep_folders setting says.",
     ),
     use_ai: bool = typer.Option(
-        False, "--use-ai", help="Fall back to a local Ollama model for classifications the rules engine can't resolve."
+        False,
+        "--use-ai",
+        help="Fall back to the AI named in the library's config (Ollama unless it says otherwise) for "
+        "classifications the rules engine can't resolve.",
     ),
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
@@ -62,7 +65,7 @@ def sort(
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library)
-    ai_classifier = LLMClassifier(OllamaProvider(), opened.config.ai) if use_ai else None
+    ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
     report = run_sort(
         opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
     )
@@ -178,6 +181,33 @@ def _open_library(path: Path) -> Library:
     except ConfigError as err:
         _fail(str(err))
     return library
+
+
+def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
+    """Build the AI fallback from the library's ``[ai]`` settings, telling the user what it will do.
+
+    Prints, once and before any document is classified, what the user would not otherwise know: that a
+    hosted provider is sent the text of documents, and that an unlimited length costs tokens and time.
+    """
+
+    try:
+        provider = build_provider(settings)
+    except ConfigError as err:
+        _fail(str(err))
+    if settings.provider == "openai":
+        console.print(
+            "[yellow]AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI.[/yellow]",
+            soft_wrap=True,
+        )
+    if settings.max_document_chars == 0:
+        billing = " OpenAI bills for the tokens used." if settings.provider == "openai" else ""
+        console.print(
+            "[yellow]max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
+            "This uses more tokens and takes longer, and a document longer than the model's context window "
+            f"may fail or be cut off.{billing}[/yellow]",
+            soft_wrap=True,
+        )
+    return LLMClassifier(provider, settings)
 
 
 def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool | None:

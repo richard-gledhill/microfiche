@@ -46,7 +46,7 @@ class LLMClassifier:
 
         prompt = GROUP_RESOLUTION_PROMPT.format(
             group_names=", ".join(taxonomy.group_names),
-            document_text=document.content[: self._settings.max_document_chars],
+            document_text=self._clip(document.content),
         )
         answer = self._provider.complete(prompt).strip()
         if answer.upper() == "NONE" or answer not in taxonomy.group_names:
@@ -70,9 +70,15 @@ class LLMClassifier:
         prompt = CATEGORY_RESOLUTION_PROMPT.format(
             group_name=group,
             category_names=", ".join(categories),
-            document_text=document.content[: self._settings.max_document_chars],
+            document_text=self._clip(document.content),
         )
         answer = self._provider.complete(prompt).strip()
         if answer.upper() == "NONE" or answer not in categories:
             return CategoryMatch(name=None, confidence=0.0, reason="AI found no matching category")
         return CategoryMatch(name=answer, confidence=self._settings.ai_confidence, reason="Resolved by AI fallback")
+
+    def _clip(self, text: str) -> str:
+        """The part of ``text`` the AI is sent: all of it when ``max_document_chars`` is 0."""
+
+        limit = self._settings.max_document_chars
+        return text[:limit] if limit else text

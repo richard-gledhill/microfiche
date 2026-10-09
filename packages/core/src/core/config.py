@@ -8,12 +8,13 @@ library should start from, copied in as ``.microfiche/`` (see microfiche/README.
 
 from __future__ import annotations
 
+import re
 import tomllib
 from importlib import resources
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 # region Constants and types
 
@@ -21,6 +22,8 @@ CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
 MICROFICHE_DIRNAME = ".microfiche"
+# What an environment variable name looks like. Real API keys contain characters this rejects.
+_ENV_VAR_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 class _ConfigSection(BaseModel):
@@ -170,14 +173,40 @@ class AIConfig(_ConfigSection):
     """How the AI fallback is trusted and what it is sent.
 
     Attributes:
+        provider (Literal["ollama", "openai"]): Who answers. ``"ollama"`` runs on your machine;
+            ``"openai"`` sends the text of every document the AI is asked about to OpenAI.
+        model (str): The model to ask. Empty means the provider's own default.
+        host (str): Where the Ollama server is. Empty means Ollama's default address. Ollama only.
+        timeout (float): Seconds to wait for one answer. Greater than 0.
+        api_key_env (str): The *name* of the environment variable holding the OpenAI key. The key
+            itself never goes in the file.
         ai_confidence (float): From 0 to 1. How sure any answer from the AI fallback is, whatever
             model gave it. Compared with ``[classification] confidence_threshold`` to decide whether
             an AI-only answer files or goes to review.
-        max_document_chars (int): At least 1. How much of a document's text is sent to the AI.
+        max_document_chars (int): At least 0. How much of a document's text is sent to the AI;
+            0 means all of it.
     """
 
+    provider: Literal["ollama", "openai"]
+    model: str
+    host: str
+    timeout: float = Field(gt=0)
+    api_key_env: str
     ai_confidence: float = Field(ge=0.0, le=1.0)
-    max_document_chars: int = Field(ge=1)
+    max_document_chars: int = Field(ge=0)
+
+    @field_validator("api_key_env")
+    @classmethod
+    def _names_an_environment_variable(cls, value: str) -> str:
+        if not _ENV_VAR_NAME.fullmatch(value):
+            raise InvalidApiKeyEnvError(value)
+        return value
+
+    @model_validator(mode="after")
+    def _host_is_for_ollama(self) -> AIConfig:
+        if self.host and self.provider != "ollama":
+            raise HostWithoutOllamaError(self.provider)
+        return self
 
 
 class SortingConfig(_ConfigSection):
@@ -246,6 +275,36 @@ class InvalidInboxNameError(ValueError):
 
 class ConfigError(ValueError):
     """The library's configuration can't be used; the message says why and where."""
+
+
+class InvalidApiKeyEnvError(ValueError):
+    """Raised when ``api_key_env`` isn't an environment variable name (it may be a pasted key)."""
+
+    def __init__(self, value: str) -> None:
+        self.value = value
+        super().__init__(
+            f"{value!r} is not an environment variable name; give the name of the variable that holds "
+            "the key (such as OPENAI_API_KEY), never the key itself"
+        )
+
+
+class HostWithoutOllamaError(ValueError):
+    """Raised when ``host`` is set for a provider other than Ollama."""
+
+    def __init__(self, provider: str) -> None:
+        self.provider = provider
+        super().__init__(f"host is only used by the ollama provider, not {provider!r}")
+
+
+class MissingApiKeyError(ConfigError):
+    """Raised when the environment variable named by ``api_key_env`` holds no key."""
+
+    def __init__(self, variable: str) -> None:
+        self.variable = variable
+        super().__init__(
+            f"[ai] provider is 'openai' but the environment variable {variable} is not set. "
+            "Set it to your OpenAI API key, or use provider = 'ollama'."
+        )
 
 
 class TomlConfigParseError(ConfigError):

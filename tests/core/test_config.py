@@ -232,9 +232,58 @@ def test_ai_config_confidence_out_of_range_rejected(value: float) -> None:
         _ai(ai_confidence=value)
 
 
-def test_ai_config_max_document_chars_below_one_rejected() -> None:
+def test_ai_config_max_document_chars_zero_means_unlimited_accepted() -> None:
+    assert _ai(max_document_chars=0).max_document_chars == 0
+
+
+def test_ai_config_max_document_chars_negative_rejected() -> None:
     with pytest.raises(ValidationError, match="max_document_chars"):
-        _ai(max_document_chars=0)
+        _ai(max_document_chars=-1)
+
+
+def test_load_config_ai_provider_settings_default_to_local_ollama() -> None:
+    settings = load_config(Path("does-not-exist")).ai
+
+    assert settings.provider == "ollama"
+    assert settings.model == ""  # empty means the provider's own default model
+    assert settings.host == ""  # empty means Ollama's default address
+    assert settings.timeout == 120
+    assert settings.api_key_env == "OPENAI_API_KEY"
+
+
+def test_load_config_ai_provider_openai_chosen_in_library_config(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[ai]\nprovider = "openai"\n', encoding="utf-8")
+
+    assert load_config(tmp_path).ai.provider == "openai"
+
+
+def test_load_config_ai_unknown_provider_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[ai]\nprovider = "bedrock"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"ai\.provider"):
+        load_config(tmp_path)
+
+
+@pytest.mark.parametrize("value", [0, -5])
+def test_ai_config_timeout_not_positive_rejected(value: float) -> None:
+    with pytest.raises(ValidationError, match="timeout"):
+        _ai(timeout=value)
+
+
+def test_ai_config_host_with_openai_rejected() -> None:
+    with pytest.raises(ValidationError, match="host"):
+        _ai(provider="openai", host="http://localhost:11434")
+
+
+def test_ai_config_host_with_ollama_accepted() -> None:
+    assert _ai(host="http://gpu-box:11434").host == "http://gpu-box:11434"
+
+
+@pytest.mark.parametrize("value", ["sk-abc123", "has space", "", "1ABC", "KEY="])
+def test_ai_config_api_key_env_not_a_variable_name_rejected(value: str) -> None:
+    # A real key pasted here would end up in the library's config file, so it is refused.
+    with pytest.raises(ValidationError, match="environment variable"):
+        _ai(api_key_env=value)
 
 
 def test_load_config_keep_folders_defaults_on() -> None:
