@@ -59,7 +59,7 @@ def test_app_help_lists_all_commands() -> None:
         assert command_name in result.stdout
 
 
-def test_config_command_shows_defaults_for_an_unconfigured_library(tmp_path: Path) -> None:
+def test_config_shows_defaults_for_unconfigured_library(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "--library", str(tmp_path)])
 
     assert result.exit_code == 0
@@ -73,7 +73,7 @@ def test_config_command_shows_defaults_for_an_unconfigured_library(tmp_path: Pat
 # region Sort, audit and rollback
 
 
-def test_sort_prints_the_job_id_and_how_to_undo_it(tmp_path: Path) -> None:
+def test_sort_prints_job_id_and_undo_hint(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     result = runner.invoke(app, ["sort", "--library", str(library)])
@@ -86,7 +86,7 @@ def test_sort_prints_the_job_id_and_how_to_undo_it(tmp_path: Path) -> None:
     assert f"microfiche rollback --library <your library> --job-id {job_id.group(1)}" in result.stdout
 
 
-def test_sort_with_nothing_to_file_prints_no_job(tmp_path: Path) -> None:
+def test_sort_nothing_to_file_prints_no_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / _PHOENIX_NOTE).unlink()
 
@@ -97,14 +97,14 @@ def test_sort_with_nothing_to_file_prints_no_job(tmp_path: Path) -> None:
     assert "Job:" not in result.stdout
 
 
-def test_audit_before_any_sort_says_there_is_no_log(tmp_path: Path) -> None:
+def test_audit_before_sort_says_no_log(tmp_path: Path) -> None:
     result = runner.invoke(app, ["audit", "--library", str(_library(tmp_path))])
 
     assert result.exit_code == 0
     assert "No audit log found yet." in result.stdout
 
 
-def test_audit_shows_the_move_a_sort_made(tmp_path: Path) -> None:
+def test_audit_shows_sort_move(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job_id = _sort(library)
 
@@ -116,7 +116,7 @@ def test_audit_shows_the_move_a_sort_made(tmp_path: Path) -> None:
     )
 
 
-def test_rollback_restores_the_library_and_shows_up_in_the_audit_log(tmp_path: Path) -> None:
+def test_rollback_restores_library_and_appears_in_audit(tmp_path: Path) -> None:
     library = _library(tmp_path)
     before = _tree(library)
     job_id = _sort(library)
@@ -133,7 +133,7 @@ def test_rollback_restores_the_library_and_shows_up_in_the_audit_log(tmp_path: P
     )
 
 
-def test_rolling_back_the_same_job_twice_fails_cleanly(tmp_path: Path) -> None:
+def test_rollback_same_job_twice_fails_cleanly(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job_id = _sort(library)
     runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
@@ -146,14 +146,14 @@ def test_rolling_back_the_same_job_twice_fails_cleanly(tmp_path: Path) -> None:
     assert result.exception is None or isinstance(result.exception, SystemExit)
 
 
-def test_rolling_back_an_unknown_job_fails_cleanly(tmp_path: Path) -> None:
+def test_rollback_unknown_job_fails_cleanly(tmp_path: Path) -> None:
     result = runner.invoke(app, ["rollback", "--library", str(_library(tmp_path)), "--job-id", "nope"])
 
     assert result.exit_code == 1
     assert "No rollback job found for id 'nope'" in result.stdout
 
 
-def test_rollback_blocked_by_a_file_in_the_way_explains_how_to_finish_and_can_be_retried(tmp_path: Path) -> None:
+def test_rollback_blocked_by_file_explains_and_retries(tmp_path: Path) -> None:
     library = _library(tmp_path)
     before = _tree(library)
     job_id = _sort(library)
@@ -190,7 +190,7 @@ def _library_with_a_misfiled_note(tmp_path: Path) -> Path:
     return library
 
 
-def test_reclassify_without_apply_previews_the_move_and_changes_nothing(tmp_path: Path) -> None:
+def test_reclassify_without_apply_previews_only(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     before = _tree(library)
 
@@ -204,7 +204,7 @@ def test_reclassify_without_apply_previews_the_move_and_changes_nothing(tmp_path
     assert _tree(library) == before
 
 
-def test_reclassify_apply_moves_the_file_and_prints_the_job_id(tmp_path: Path) -> None:
+def test_reclassify_apply_moves_file_and_prints_job_id(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
 
     result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
@@ -216,7 +216,7 @@ def test_reclassify_apply_moves_the_file_and_prints_the_job_id(tmp_path: Path) -
     assert not (library / _MISFILED).exists()
 
 
-def test_reclassify_apply_is_recorded_in_the_audit_log_and_can_be_rolled_back(tmp_path: Path) -> None:
+def test_reclassify_apply_audited_and_rollbackable(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     before = _tree(library)
     applied = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
@@ -232,7 +232,7 @@ def test_reclassify_apply_is_recorded_in_the_audit_log_and_can_be_rolled_back(tm
     assert _tree(library) == before
 
 
-def test_reclassify_apply_with_nothing_to_move_prints_no_job(tmp_path: Path) -> None:
+def test_reclassify_apply_nothing_to_move_prints_no_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
@@ -242,7 +242,7 @@ def test_reclassify_apply_with_nothing_to_move_prints_no_job(tmp_path: Path) -> 
     assert "Job:" not in result.stdout
 
 
-def test_reclassify_apply_reports_a_taken_destination_instead_of_overwriting(tmp_path: Path) -> None:
+def test_reclassify_apply_taken_destination_not_overwritten(tmp_path: Path) -> None:
     library = _library_with_a_misfiled_note(tmp_path)
     (library / _REFILED).write_text("already here", encoding="utf-8")
 
@@ -254,7 +254,7 @@ def test_reclassify_apply_reports_a_taken_destination_instead_of_overwriting(tmp
     assert (library / _REFILED).read_text(encoding="utf-8") == "already here"
 
 
-def test_reclassify_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> None:
+def test_reclassify_folder_outside_library_fails_cleanly(tmp_path: Path) -> None:
     library = _library(tmp_path)
     outside = tmp_path / "elsewhere"
     outside.mkdir()
@@ -271,7 +271,7 @@ def test_reclassify_folder_outside_the_library_fails_cleanly(tmp_path: Path) -> 
 # region Library layout: where it lives, what it is called
 
 
-def test_sort_works_for_a_library_kept_under_a_dot_folder(tmp_path: Path) -> None:
+def test_sort_library_under_dot_folder(tmp_path: Path) -> None:
     """Regression: a library under a folder like ~/.vaults used to find no groups, so nothing filed."""
 
     library = tmp_path / ".vaults" / "library"
@@ -284,7 +284,7 @@ def test_sort_works_for_a_library_kept_under_a_dot_folder(tmp_path: Path) -> Non
     assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
 
 
-def test_reclassify_works_for_a_library_kept_under_an_underscore_folder(tmp_path: Path) -> None:
+def test_reclassify_library_under_underscore_folder(tmp_path: Path) -> None:
     library = tmp_path / "_work" / "library"
     shutil.copytree(_MOCK_LIBRARY, library)
     (library / _MISFILED).write_text(_ARCHITECTURE_TEXT, encoding="utf-8")
@@ -296,7 +296,7 @@ def test_reclassify_works_for_a_library_kept_under_an_underscore_folder(tmp_path
     assert (library / _REFILED).exists()
 
 
-def test_sort_uses_the_inbox_named_in_the_libraries_config(tmp_path: Path) -> None:
+def test_sort_uses_inbox_named_in_config(tmp_path: Path) -> None:
     library = _library(tmp_path)
     config = library / ".microfiche" / "microfiche-config.toml"
     config.write_text(config.read_text(encoding="utf-8").replace('"_sorting"', '"Incoming"', 1), encoding="utf-8")
@@ -310,7 +310,7 @@ def test_sort_uses_the_inbox_named_in_the_libraries_config(tmp_path: Path) -> No
     assert (library / "Incoming" / "SolarConstructionNotes.md").exists()
 
 
-def test_sort_works_for_a_library_with_no_config_folder_at_all(tmp_path: Path) -> None:
+def test_sort_library_without_config_folder(tmp_path: Path) -> None:
     """Regression: with no config the inbox used to be treated as a group."""
 
     library = _library(tmp_path)
@@ -322,7 +322,7 @@ def test_sort_works_for_a_library_with_no_config_folder_at_all(tmp_path: Path) -
     assert "Filed: 1" in result.stdout
 
 
-def test_config_shows_the_library_inbox(tmp_path: Path) -> None:
+def test_config_shows_library_inbox(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "--library", str(_library(tmp_path))])
 
     assert result.exit_code == 0
@@ -330,7 +330,7 @@ def test_config_shows_the_library_inbox(tmp_path: Path) -> None:
     assert "_sorting" in result.stdout
 
 
-def test_config_shows_the_library_templates(tmp_path: Path) -> None:
+def test_config_shows_library_templates(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "--library", str(_library(tmp_path))])
 
     assert result.exit_code == 0
@@ -339,7 +339,7 @@ def test_config_shows_the_library_templates(tmp_path: Path) -> None:
     assert "personal_project" in result.stdout
 
 
-def test_config_still_lists_library_templates_when_the_library_defines_none(tmp_path: Path) -> None:
+def test_config_lists_templates_when_library_defines_none(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "--library", str(tmp_path)])
 
     assert result.exit_code == 0
@@ -352,7 +352,7 @@ def test_config_still_lists_library_templates_when_the_library_defines_none(tmp_
 # region Files that can't be read
 
 
-def test_sort_files_what_it_can_and_names_the_file_it_could_not_read(tmp_path: Path) -> None:
+def test_sort_files_readable_and_names_unreadable_file(tmp_path: Path) -> None:
     """Regression: one corrupt file used to abort the whole sort with a traceback."""
 
     library = _library(tmp_path)
@@ -369,7 +369,7 @@ def test_sort_files_what_it_can_and_names_the_file_it_could_not_read(tmp_path: P
     assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
 
 
-def test_reclassify_names_a_file_it_could_not_read(tmp_path: Path) -> None:
+def test_reclassify_names_unreadable_file(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "Project Phoenix" / "03 Research" / "broken.docx").write_text("not a zip", encoding="utf-8")
 
@@ -392,9 +392,7 @@ def _break_config(library: Path) -> None:
 
 
 @pytest.mark.parametrize("command", ["sort", "reclassify", "propose-categories", "config"])
-def test_a_command_that_needs_the_config_stops_with_a_clear_message_when_it_is_invalid(
-    tmp_path: Path, command: str
-) -> None:
+def test_commands_invalid_config_stops_with_clear_message(tmp_path: Path, command: str) -> None:
     library = _library(tmp_path)
     _break_config(library)
 
@@ -405,7 +403,7 @@ def test_a_command_that_needs_the_config_stops_with_a_clear_message_when_it_is_i
     assert isinstance(result.exception, SystemExit)  # a clean exit, not an uncaught ConfigError
 
 
-def test_a_job_can_still_be_rolled_back_and_the_audit_log_read_when_the_config_is_invalid(tmp_path: Path) -> None:
+def test_rollback_and_audit_work_with_invalid_config(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job_id = _sort(library)
     _break_config(library)

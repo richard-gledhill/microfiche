@@ -197,6 +197,15 @@ it becomes a unit (or proposal) left for review, with the reason.
 - Use `tmp_path` and `Library(path)`; copy `tests/mock_library` for integration tests. Use fake
   resolvers/providers: no network or Ollama in the suite.
 - Lay test files out as described under Module layout.
+- Name tests `test_<subject>_<scenario>_<result>`, in the present tense:
+  - `<subject>` is the function, class, command or behaviour under test (`file_batch`, `rollback_job`,
+    `classify_unit`), so `pytest -k` and a failure's node id say what broke.
+  - Leave out articles and filler (a, an, the, is, are, can, be, that, should) and keep it to about 50 characters
+    after `test_`.
+  - Leave out `<result>` when the scenario already implies it (`test_classify_document_threshold_boundary_inclusive`).
+  - Put anything that doesn't fit in a short comment in the test body. A parametrized test's name describes
+    the whole family.
+  - Don't reuse a name within a file; pytest runs only the last one.
 
 **Docs**
 - User docs track the CLI: any change to a command, an option, or a command's status in

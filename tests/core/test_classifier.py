@@ -75,7 +75,7 @@ class PerDocumentResolver:
 # region Happy path and threshold
 
 
-def test_a_confident_rules_answer_is_used_and_the_fallback_is_never_asked() -> None:
+def test_classify_document_confident_rules_answer_skips_fallback() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
     fallback = FakeResolver("ai_fallback", _group(ATLAS, 0.7), _category(REQS, 0.7))
 
@@ -88,7 +88,7 @@ def test_a_confident_rules_answer_is_used_and_the_fallback_is_never_asked() -> N
     assert fallback.category_calls == []
 
 
-def test_overall_confidence_is_the_weaker_stage() -> None:
+def test_classify_document_confidence_takes_weaker_stage() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.9))
 
     result = Classifier(rules).classify_document(_document(), TAXONOMY)
@@ -96,20 +96,20 @@ def test_overall_confidence_is_the_weaker_stage() -> None:
     assert result.overall_confidence == 0.9
 
 
-def test_the_threshold_boundary_is_inclusive() -> None:
+def test_classify_document_threshold_boundary_inclusive() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.8))
 
     assert Classifier(rules, threshold=0.8).classify_document(_document(), TAXONOMY).confident is True
     assert Classifier(rules, threshold=0.81).classify_document(_document(), TAXONOMY).confident is False
 
 
-def test_the_default_threshold_files_keyword_hint_matches() -> None:
+def test_classify_document_default_threshold_files_keyword_hint() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.75))  # a keyword-hint score
 
     assert Classifier(rules).classify_document(_document(), TAXONOMY).confident is True
 
 
-def test_a_stricter_threshold_leaves_keyword_hint_matches_for_review() -> None:
+def test_classify_document_stricter_threshold_reviews_hints() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(ARCH, 0.75))
 
     result = Classifier(rules, threshold=0.8).classify_document(_document(), TAXONOMY)
@@ -118,13 +118,13 @@ def test_a_stricter_threshold_leaves_keyword_hint_matches_for_review() -> None:
     assert result.category.name == ARCH  # still suggested, just not filed
 
 
-def test_a_result_with_no_category_is_never_confident_even_at_a_zero_threshold() -> None:
+def test_classify_document_no_category_never_confident() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(None))
 
     assert Classifier(rules, threshold=0.0).classify_document(_document(), TAXONOMY).confident is False
 
 
-def test_the_threshold_is_exposed() -> None:
+def test_classifier_threshold_exposed() -> None:
     assert Classifier(FakeResolver("r", _group(None), _category(None)), threshold=0.5).threshold == 0.5
 
 
@@ -134,7 +134,7 @@ def test_the_threshold_is_exposed() -> None:
 # region Per-stage AI fallback
 
 
-def test_a_confident_rules_group_is_kept_and_the_ai_is_asked_only_for_the_category() -> None:
+def test_classify_document_confident_group_ai_picks_category() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 1.0), _category(None))
     fallback = FakeResolver("ai_fallback", _group(ATLAS, 0.7), _category(ARCH, 0.7))
 
@@ -146,7 +146,7 @@ def test_a_confident_rules_group_is_kept_and_the_ai_is_asked_only_for_the_catego
     assert fallback.category_calls == [PHOENIX]
 
 
-def test_the_ai_decides_both_stages_when_the_rules_resolve_neither() -> None:
+def test_classify_document_unresolved_rules_ai_decides_both() -> None:
     rules = FakeResolver("rules_engine", _group(None), _category(None))
     fallback = FakeResolver("ai_fallback", _group(ATLAS, 0.7), _category(REQS, 0.7))
 
@@ -157,7 +157,7 @@ def test_the_ai_decides_both_stages_when_the_rules_resolve_neither() -> None:
     assert result.confident is True
 
 
-def test_the_ai_saying_none_keeps_the_weak_rules_suggestion() -> None:
+def test_classify_document_ai_none_keeps_weak_rules_suggestion() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 0.85), _category(ARCH, 0.75))
     fallback = FakeResolver("ai_fallback", _group(None), _category(None))
 
@@ -168,7 +168,7 @@ def test_the_ai_saying_none_keeps_the_weak_rules_suggestion() -> None:
     assert result.confident is False
 
 
-def test_an_ai_answer_replaces_a_weak_rules_answer_even_when_the_ai_is_less_sure() -> None:
+def test_classify_document_ai_replaces_weak_rules_answer() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX, 0.85), _category(ARCH, 0.9))
     fallback = FakeResolver("ai_fallback", _group(ATLAS, 0.7), _category(ARCH, 0.7))
 
@@ -178,7 +178,7 @@ def test_an_ai_answer_replaces_a_weak_rules_answer_even_when_the_ai_is_less_sure
     assert result.group.confidence == 0.7
 
 
-def test_an_ai_answer_below_the_threshold_is_used_but_not_confident() -> None:
+def test_classify_document_ai_below_threshold_used_not_confident() -> None:
     rules = FakeResolver("rules_engine", _group(None), _category(None))
     fallback = FakeResolver("ai_fallback", _group(PHOENIX, 0.7), _category(ARCH, 0.7))
 
@@ -188,7 +188,7 @@ def test_an_ai_answer_below_the_threshold_is_used_but_not_confident() -> None:
     assert result.confident is False
 
 
-def test_without_a_fallback_a_weak_answer_just_stays_weak() -> None:
+def test_classify_document_no_fallback_weak_answer_stays_weak() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(None))
 
     result = Classifier(rules).classify_document(_document(), TAXONOMY)
@@ -198,7 +198,7 @@ def test_without_a_fallback_a_weak_answer_just_stays_weak() -> None:
     assert result.confident is False
 
 
-def test_the_category_stage_is_skipped_when_no_group_resolves() -> None:
+def test_classify_document_no_group_skips_category_stage() -> None:
     rules = FakeResolver("rules_engine", _group(None), _category(ARCH))
 
     result = Classifier(rules).classify_document(_document(), TAXONOMY)
@@ -215,7 +215,7 @@ def test_the_category_stage_is_skipped_when_no_group_resolves() -> None:
 # region Taxonomy enforced whoever answers
 
 
-def test_a_category_that_is_not_in_the_group_is_rejected() -> None:
+def test_classify_document_category_outside_group_rejected() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category("04 Launch", 0.95))
 
     result = Classifier(rules).classify_document(_document(), TAXONOMY)
@@ -225,7 +225,7 @@ def test_a_category_that_is_not_in_the_group_is_rejected() -> None:
     assert result.confident is False
 
 
-def test_a_group_that_is_not_in_the_taxonomy_is_rejected() -> None:
+def test_classify_document_group_outside_taxonomy_rejected() -> None:
     rules = FakeResolver("rules_engine", _group("Project Nowhere"), _category(ARCH))
 
     result = Classifier(rules).classify_document(_document(), TAXONOMY)
@@ -235,7 +235,7 @@ def test_a_group_that_is_not_in_the_taxonomy_is_rejected() -> None:
     assert result.confident is False
 
 
-def test_a_rejected_rules_category_lets_the_ai_try() -> None:
+def test_classify_document_rejected_category_lets_ai_try() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category("04 Launch", 0.95))
     fallback = FakeResolver("ai_fallback", _group(None), _category(ARCH, 0.7))
 
@@ -260,7 +260,7 @@ def _voting_classifier(answers: dict[str, tuple[GroupMatch, CategoryMatch]]) -> 
     return Classifier(PerDocumentResolver(answers))
 
 
-def test_a_single_document_unit_is_classified_directly() -> None:
+def test_classify_unit_single_document_classified_directly() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
     unit = SortableUnit(source_path=Path("a.md"), kind="file", documents=[_document()])
 
@@ -269,7 +269,7 @@ def test_a_single_document_unit_is_classified_directly() -> None:
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
 
 
-def test_a_folder_is_filed_under_the_pair_most_documents_voted_for() -> None:
+def test_classify_unit_folder_filed_under_most_voted_pair() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX), _category(ARCH)),
         "b.md": (_group(PHOENIX), _category(ARCH)),
@@ -281,7 +281,7 @@ def test_a_folder_is_filed_under_the_pair_most_documents_voted_for() -> None:
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
 
 
-def test_a_unique_plurality_wins_even_without_a_majority() -> None:
+def test_classify_unit_unique_plurality_wins() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX), _category(ARCH)),
         "b.md": (_group(PHOENIX), _category(ARCH)),
@@ -295,7 +295,7 @@ def test_a_unique_plurality_wins_even_without_a_majority() -> None:
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
 
 
-def test_the_winning_pair_is_represented_by_its_most_confident_document() -> None:
+def test_classify_unit_winner_shown_by_most_confident_document() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX, 0.85), _category(ARCH, 0.75)),
         "b.md": (_group(PHOENIX, 1.0), _category(ARCH, 0.95)),
@@ -307,7 +307,7 @@ def test_the_winning_pair_is_represented_by_its_most_confident_document() -> Non
     assert result.overall_confidence == 0.95
 
 
-def test_a_tied_vote_is_not_guessed_it_is_left_for_review_with_the_disagreement_explained() -> None:
+def test_classify_unit_tied_vote_goes_to_review() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX), _category(ARCH)),
         "b.md": (_group(ATLAS), _category(REQS)),
@@ -325,7 +325,7 @@ def test_a_tied_vote_is_not_guessed_it_is_left_for_review_with_the_disagreement_
     assert "Project Atlas/01 Requirements (1 documents)" in result.category.reason
 
 
-def test_a_tie_for_first_place_is_a_tie_even_when_other_pairs_trail() -> None:
+def test_classify_unit_first_place_tie_with_trailing_pairs() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX), _category(ARCH)),
         "b.md": (_group(PHOENIX), _category(ARCH)),
@@ -341,7 +341,7 @@ def test_a_tie_for_first_place_is_a_tie_even_when_other_pairs_trail() -> None:
     assert "Project Phoenix/01 Requirements" not in result.category.reason
 
 
-def test_documents_with_no_group_do_not_vote() -> None:
+def test_classify_unit_documents_without_group_do_not_vote() -> None:
     classifier = _voting_classifier({
         "a.md": (_group(PHOENIX), _category(ARCH)),
         "b.md": (_group(None), _category(None)),
@@ -353,7 +353,7 @@ def test_documents_with_no_group_do_not_vote() -> None:
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
 
 
-def test_a_folder_where_no_document_resolves_a_group_shows_the_first_documents_reasoning() -> None:
+def test_classify_unit_no_group_resolved_shows_first_reason() -> None:
     classifier = _voting_classifier({
         "a.md": (GroupMatch(name=None, confidence=0.0, reason="first reason"), _category(None)),
         "b.md": (GroupMatch(name=None, confidence=0.0, reason="second reason"), _category(None)),
@@ -366,7 +366,7 @@ def test_a_folder_where_no_document_resolves_a_group_shows_the_first_documents_r
 
 
 @pytest.mark.parametrize("threshold", [0.5, 0.8, 0.95])
-def test_a_folders_result_carries_the_classifiers_threshold_decision(threshold: float) -> None:
+def test_classify_unit_result_carries_threshold_decision(threshold: float) -> None:
     classifier = Classifier(
         PerDocumentResolver({
             "a.md": (_group(PHOENIX), _category(ARCH, 0.9)),
@@ -390,7 +390,7 @@ def _unreadable(name: str, reason: str = "PackageNotFoundError: not a zip") -> U
     return UnreadableDocument(file_path=Path(name), reason=reason)
 
 
-def test_a_unit_with_no_readable_document_is_left_unresolved_with_the_reason() -> None:
+def test_classify_unit_unreadable_unit_unresolved_with_reason() -> None:
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
     unit = SortableUnit(
         source_path=Path("broken.docx"), kind="file", documents=[], unreadable=[_unreadable("broken.docx")]
@@ -406,7 +406,7 @@ def test_a_unit_with_no_readable_document_is_left_unresolved_with_the_reason() -
     assert rules.group_calls == 0  # nothing to classify, so the resolvers are never asked
 
 
-def test_every_unreadable_file_is_named_in_the_reason() -> None:
+def test_classify_unit_names_every_unreadable_file() -> None:
     unit = SortableUnit(
         source_path=Path("bundle"),
         kind="folder",
@@ -420,7 +420,7 @@ def test_every_unreadable_file_is_named_in_the_reason() -> None:
     assert "Could not read 'b.pdf': reason b" in result.category.reason
 
 
-def test_a_unit_with_no_documents_at_all_says_so() -> None:
+def test_classify_unit_no_documents_says_so() -> None:
     unit = SortableUnit(source_path=Path("empty"), kind="folder", documents=[])
 
     result = Classifier(FakeResolver("rules_engine", _group(None), _category(None))).classify_unit(unit, TAXONOMY)
@@ -429,7 +429,7 @@ def test_a_unit_with_no_documents_at_all_says_so() -> None:
     assert result.confident is False
 
 
-def test_unreadable_files_in_a_folder_do_not_vote_and_do_not_block_classification() -> None:
+def test_classify_unit_unreadable_files_do_not_vote_or_block() -> None:
     unit = SortableUnit(
         source_path=Path("folder"),
         kind="folder",

@@ -97,7 +97,7 @@ Ranked by how central they are to the product's core promise, not by ease of imp
 - **Review the other signal strengths** (hint 0.75, AI 0.70, and the other "move to config" constants in
   `rules/`), now that there is a harness to check them against.
 - **Ask before running on defaults.** A missing `.microfiche/microfiche-config.toml`, or one that leaves out
-  sections, silently falls back to the defaults (pinned by `test_load_config_falls_back_to_defaults_when_files_are_missing`
+  sections, silently falls back to the defaults (pinned by `test_load_config_missing_files_fall_back_to_defaults`
   and the CLI test for a library with no config folder). A misnamed config file or the wrong `--library` path
   therefore looks like a normal run on settings the user never chose. Instead, `sort`, `reclassify` and
   `propose-categories` should say which config was not found or which sections are being defaulted, and ask

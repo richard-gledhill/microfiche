@@ -14,14 +14,14 @@ def _make_folder(root: Path) -> Path:
     return folder
 
 
-def test_unit_hash_of_a_file_is_its_file_hash(tmp_path: Path) -> None:
+def test_unit_hash_file_equals_file_hash(tmp_path: Path) -> None:
     path = tmp_path / "note.txt"
     path.write_text("hello", encoding="utf-8")
 
     assert unit_hash(path) == file_hash(path) == hashlib.sha256(b"hello").hexdigest()
 
 
-def test_unit_hash_of_a_folder_is_stable_across_calls_and_locations(tmp_path: Path) -> None:
+def test_unit_hash_folder_stable_across_calls_and_locations(tmp_path: Path) -> None:
     first = _make_folder(tmp_path / "one")
     second = _make_folder(tmp_path / "two")
 
@@ -29,7 +29,7 @@ def test_unit_hash_of_a_folder_is_stable_across_calls_and_locations(tmp_path: Pa
     assert unit_hash(first) == unit_hash(second)
 
 
-def test_unit_hash_of_a_folder_changes_when_a_file_is_edited(tmp_path: Path) -> None:
+def test_unit_hash_folder_changes_on_edit(tmp_path: Path) -> None:
     folder = _make_folder(tmp_path)
     before = unit_hash(folder)
 
@@ -38,7 +38,7 @@ def test_unit_hash_of_a_folder_changes_when_a_file_is_edited(tmp_path: Path) -> 
     assert unit_hash(folder) != before
 
 
-def test_unit_hash_of_a_folder_changes_when_a_file_is_added(tmp_path: Path) -> None:
+def test_unit_hash_folder_changes_on_add(tmp_path: Path) -> None:
     folder = _make_folder(tmp_path)
     before = unit_hash(folder)
 
@@ -47,7 +47,7 @@ def test_unit_hash_of_a_folder_changes_when_a_file_is_added(tmp_path: Path) -> N
     assert unit_hash(folder) != before
 
 
-def test_unit_hash_of_a_folder_changes_when_a_file_is_renamed(tmp_path: Path) -> None:
+def test_unit_hash_folder_changes_on_rename(tmp_path: Path) -> None:
     folder = _make_folder(tmp_path)
     before = unit_hash(folder)
 

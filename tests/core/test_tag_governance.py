@@ -16,7 +16,7 @@ def test_tag_index_round_trip(tmp_path: Path) -> None:
     assert reloaded.canonical_tags == {"requirements", "architecture"}
 
 
-def test_map_tags_suggest_mode_normalizes_close_matches_and_proposes_new(tmp_path: Path) -> None:
+def test_map_tags_suggest_mode_normalizes_and_proposes_new(tmp_path: Path) -> None:
     index = TagIndex(path=tmp_path / "TagIndex.md", canonical_tags={"requirements"})
 
     resolved = map_tags(["requirement", "brand-new-tag"], index, mode="suggest")

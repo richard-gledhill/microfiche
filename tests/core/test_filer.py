@@ -81,7 +81,7 @@ def _snapshot(library: Path) -> dict[str, str]:
 # region file_batch
 
 
-def test_file_batch_moves_each_unit_to_its_group_and_category(tmp_path: Path) -> None:
+def test_file_batch_moves_units_to_group_category(tmp_path: Path) -> None:
     library = _library(tmp_path)
     requirements = _file_unit(library, "reqs.md")
     design = _file_unit(library, "design.md")
@@ -103,7 +103,7 @@ def test_file_batch_writes_no_sidecar_files(tmp_path: Path) -> None:
     assert list(library.rglob("*.metadata.json")) == []
 
 
-def test_file_batch_with_nothing_to_file_writes_nothing(tmp_path: Path) -> None:
+def test_file_batch_empty_writes_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     assert file_batch(Library(library), []) is None
@@ -121,7 +121,7 @@ def test_file_batch_applies_naming_rules(tmp_path: Path) -> None:
     assert (library / GROUP / REQUIREMENTS / "final_reqs.md").exists()
 
 
-def test_file_batch_saves_a_loadable_job(tmp_path: Path) -> None:
+def test_file_batch_saves_loadable_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     job = file_batch(Library(library), [(_file_unit(library, "reqs.md"), _classified())])
@@ -132,7 +132,7 @@ def test_file_batch_saves_a_loadable_job(tmp_path: Path) -> None:
     assert loaded.rolled_back_at is None
 
 
-def test_file_batch_records_what_was_filed_and_why_in_the_ledger(tmp_path: Path) -> None:
+def test_file_batch_records_what_and_why_in_ledger(tmp_path: Path) -> None:
     library = _library(tmp_path)
     unit = _file_unit(library, "reqs.md", text="hash me")
     expected_hash = file_hash(unit.source_path)
@@ -151,7 +151,7 @@ def test_file_batch_records_what_was_filed_and_why_in_the_ledger(tmp_path: Path)
     assert (record.confidence, record.classified_by) == (0.9, "rules_engine")
 
 
-def test_file_batch_appends_one_readable_audit_line_per_move(tmp_path: Path) -> None:
+def test_file_batch_appends_audit_line_per_move(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     job = file_batch(
@@ -165,7 +165,7 @@ def test_file_batch_appends_one_readable_audit_line_per_move(tmp_path: Path) -> 
     assert lines[0].endswith(f"_sorting/a.md -> {GROUP}/{REQUIREMENTS}/a.md")
 
 
-def test_an_unresolved_classification_aborts_the_whole_batch_before_anything_moves(tmp_path: Path) -> None:
+def test_file_batch_unresolved_aborts_before_moving(tmp_path: Path) -> None:
     library = _library(tmp_path)
     good = _file_unit(library, "good.md")
     bad = _file_unit(library, "bad.md")
@@ -178,7 +178,7 @@ def test_an_unresolved_classification_aborts_the_whole_batch_before_anything_mov
     assert not (library / ".microfiche").exists()
 
 
-def test_a_folder_unit_is_filed_whole_and_hashed_as_a_manifest(tmp_path: Path) -> None:
+def test_file_batch_folder_filed_whole_hashed_as_manifest(tmp_path: Path) -> None:
     library = _library(tmp_path)
     unit = _folder_unit(library, "bundle")
     expected_hash = unit_hash(unit.source_path)
@@ -191,7 +191,7 @@ def test_a_folder_unit_is_filed_whole_and_hashed_as_a_manifest(tmp_path: Path) -
     assert record.content_hash == expected_hash == unit_hash(library / record.path)
 
 
-def test_a_destination_collision_keeps_earlier_moves_in_a_saved_job_that_can_be_rolled_back(tmp_path: Path) -> None:
+def test_file_batch_collision_keeps_earlier_moves(tmp_path: Path) -> None:
     library = _library(tmp_path)
     first = _file_unit(library, "first.md")
     second = _file_unit(library, "second.md")
@@ -218,7 +218,7 @@ def test_a_destination_collision_keeps_earlier_moves_in_a_saved_job_that_can_be_
 # region rollback_job
 
 
-def test_rollback_restores_the_exact_pre_sort_tree(tmp_path: Path) -> None:
+def test_rollback_job_restores_pre_sort_tree(tmp_path: Path) -> None:
     library = _library(tmp_path)
     units = [_file_unit(library, "a.md", "alpha"), _file_unit(library, "b.md", "beta"), _folder_unit(library, "bundle")]
     before = _snapshot(library)
@@ -233,7 +233,7 @@ def test_rollback_restores_the_exact_pre_sort_tree(tmp_path: Path) -> None:
     assert load_job(library / ".microfiche", job.job_id).rolled_back_at is not None
 
 
-def test_rollback_updates_the_ledger_and_the_audit_log(tmp_path: Path) -> None:
+def test_rollback_job_updates_ledger_and_audit_log(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
@@ -248,7 +248,7 @@ def test_rollback_updates_the_ledger_and_the_audit_log(tmp_path: Path) -> None:
     assert f"job={job.job_id} rollback {GROUP}/{REQUIREMENTS}/a.md -> _sorting/a.md" in audit_lines[1]
 
 
-def test_rolling_back_twice_is_refused(tmp_path: Path) -> None:
+def test_rollback_job_twice_refused(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
@@ -259,14 +259,14 @@ def test_rolling_back_twice_is_refused(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("job_id", ["no-such-job", "../escape", ""])
-def test_rolling_back_an_unknown_or_malformed_job_id_raises_job_not_found(tmp_path: Path, job_id: str) -> None:
+def test_rollback_job_unknown_job_id_raises_not_found(tmp_path: Path, job_id: str) -> None:
     library = _library(tmp_path)
 
     with pytest.raises(JobNotFoundError):
         rollback_job(Library(library), job_id)
 
 
-def test_rollback_that_stops_part_way_can_be_retried_once_the_blocker_is_removed(tmp_path: Path) -> None:
+def test_rollback_job_partial_retries_after_blocker_removed(tmp_path: Path) -> None:
     library = _library(tmp_path)
     first = _file_unit(library, "first.md")
     second = _file_unit(library, "second.md")
@@ -291,7 +291,7 @@ def test_rollback_that_stops_part_way_can_be_retried_once_the_blocker_is_removed
     assert Ledger(library / ".microfiche").current() == []
 
 
-def test_rollback_raises_when_a_filed_unit_has_vanished(tmp_path: Path) -> None:
+def test_rollback_job_vanished_unit_raises(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None
@@ -303,7 +303,7 @@ def test_rollback_raises_when_a_filed_unit_has_vanished(tmp_path: Path) -> None:
     assert load_job(library / ".microfiche", job.job_id).rolled_back_at is None
 
 
-def test_a_broken_config_file_does_not_stop_a_job_being_rolled_back(tmp_path: Path) -> None:
+def test_rollback_job_invalid_config_still_works(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
     assert job is not None

@@ -26,7 +26,7 @@ def test_rules_engine_resolves_group_and_category_by_exact_name() -> None:
     assert result.overall_confidence > 0.6
 
 
-def test_rules_engine_returns_unresolved_for_unknown_content() -> None:
+def test_rules_engine_unknown_content_unresolved() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements"]})
     classifier = Classifier(RulesEngine(category_hints={}, filing_rules=[]))
 
@@ -36,7 +36,7 @@ def test_rules_engine_returns_unresolved_for_unknown_content() -> None:
     assert result.overall_confidence == 0.0
 
 
-def test_a_filing_rule_naming_a_category_the_group_lacks_does_not_apply() -> None:
+def test_filing_rule_category_missing_from_group_ignored() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements"], "Project Atlas": ["01 Requirements"]})
     rules = [{"pattern": "launch-plan*", "category": "04 Launch"}]
     engine = RulesEngine(category_hints={}, filing_rules=rules)
@@ -46,7 +46,7 @@ def test_a_filing_rule_naming_a_category_the_group_lacks_does_not_apply() -> Non
     assert match.name is None
 
 
-def test_a_filing_rule_that_does_not_apply_leaves_keyword_hints_to_decide() -> None:
+def test_filing_rule_ignored_leaves_keyword_hints_to_decide() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements", "02 Architecture"]})
     rules = [{"pattern": "plan*", "category": "04 Launch"}]
     hints = {"02 Architecture": ["system diagram"]}
@@ -57,7 +57,7 @@ def test_a_filing_rule_that_does_not_apply_leaves_keyword_hints_to_decide() -> N
     assert match.name == "02 Architecture"
 
 
-def test_a_filing_rule_naming_an_existing_category_wins_over_keyword_hints() -> None:
+def test_filing_rule_existing_category_beats_keyword_hints() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements", "02 Architecture"]})
     rules = [{"pattern": "architecture*.pdf", "category": "02 Architecture"}]
     hints = {"01 Requirements": ["requirement"]}
