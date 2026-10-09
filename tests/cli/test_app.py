@@ -372,7 +372,7 @@ def test_a_command_that_needs_the_config_stops_with_a_clear_message_when_it_is_i
 
     assert result.exit_code == 1
     assert "classification.confidence_threshold" in result.stdout
-    assert "Traceback" not in result.stdout
+    assert isinstance(result.exception, SystemExit)  # a clean exit, not an uncaught ConfigError
 
 
 def test_a_job_can_still_be_rolled_back_and_the_audit_log_read_when_the_config_is_invalid(tmp_path: Path) -> None:

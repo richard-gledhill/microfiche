@@ -198,20 +198,15 @@ class MicroficheConfig(_ConfigSection):
 
 
 class ConfigError(ValueError):
-    """Exception raised for errors related to configuration."""
-
-    def __init__(self, error: Exception | str) -> None:
-        super().__init__(f"Config file error: {error}")
-        self.error = error
+    """The library's configuration can't be used; the message says why and where."""
 
 
 class TomlConfigParseError(ConfigError):
     """Exception raised when a TOML configuration file fails to parse."""
 
     def __init__(self, path: Path | str, error: Exception | str) -> None:
-        super().__init__(f"Failed to parse TOML configuration at {path}: {error}")
+        super().__init__(f"Config file error: Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
-        self.error = error
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -243,19 +238,17 @@ def _load_toml(path: Path) -> dict[str, Any]:
 def _loc_to_dot_sep(loc: tuple[str | int, ...]) -> str:
     """Join an error location into a dotted path, such as ``filing_rules.rules[0].pattern``."""
     path = ""
-    for i, x in enumerate(loc):
-        if isinstance(x, str):
-            if i > 0:
-                path += "."
-            path += x
-        elif isinstance(x, int):
-            path += f"[{x}]"
+    for i, part in enumerate(loc):
+        if isinstance(part, int):
+            path += f"[{part}]"
+        else:
+            path += f".{part}" if i else part
     return path
 
 
 def _describe_errors(target_file: Path, err: ValidationError) -> str:
     """Format pydantic validation errors as one line per problem, under the file path."""
-    lines = [f"{target_file}:"]
+    lines = [f"Config file error: {target_file}:"]
     for error in err.errors():
         setting = _loc_to_dot_sep(error["loc"])
         match error["type"], len(error["loc"]):
@@ -264,7 +257,7 @@ def _describe_errors(target_file: Path, err: ValidationError) -> str:
             case "extra_forbidden", _:
                 reason = "unknown setting"
             case _:
-                reason = error["msg"]
+                reason = error["msg"].removeprefix("Value error, ")
         lines.append(f"  {setting}: {reason}")
     return "\n".join(lines)
 
@@ -277,8 +270,8 @@ def load_config(config_path: Path) -> MicroficheConfig:
     than being silently ignored.
 
     Args:
-        config_path: The folder holding ``microfiche-config.toml``, which is a library's
-            ``.microfiche/`` folder.
+        config_path: The folder holding ``microfiche-config.toml`` (a library's ``.microfiche/``
+            folder), or the path of a config file itself.
 
     Returns:
         The validated configuration.
@@ -289,7 +282,7 @@ def load_config(config_path: Path) -> MicroficheConfig:
             the file and every setting that is wrong.
     """
 
-    target_file = config_path / CONFIG_FILENAME
+    target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
 
     config = _load_toml(target_file)
 

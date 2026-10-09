@@ -1,5 +1,6 @@
 """Tests for loading microfiche's configuration file."""
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -259,3 +260,31 @@ def test_an_inbox_that_is_not_a_plain_folder_name_is_rejected(name: str) -> None
 
     with pytest.raises(ValidationError, match="not a valid folder name"):
         MicroficheConfig.model_validate(config)
+
+
+def test_a_path_to_the_config_file_itself_is_loaded(tmp_path: Path) -> None:
+    config_file = tmp_path / "custom.toml"
+    config_file.write_text("[classification]\nconfidence_threshold = 0.7\n", encoding="utf-8")
+
+    assert load_config(config_file).classification.confidence_threshold == 0.7
+
+
+def test_a_config_error_is_unchanged_by_copying_it(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        '[classification]\nconfidence_threshold = "high"\n', encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert str(copy.copy(exc_info.value)) == str(exc_info.value)
+
+
+def test_a_rejected_inbox_name_is_reported_without_pydantics_value_error_prefix(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[library_structure]\nlibrary_inbox = "a/b"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert "library_structure.library_inbox" in str(exc_info.value)
+    assert "Value error" not in str(exc_info.value)
