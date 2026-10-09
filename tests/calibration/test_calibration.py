@@ -48,57 +48,57 @@ def _case(
 # region The maths of one threshold
 
 
-def test_a_confident_correct_answer_is_filed_correctly() -> None:
+def test_evaluate_confident_correct_answer_filed_correctly() -> None:
     outcome = evaluate([_case(confidence=0.9)], threshold=0.8)
 
     assert (outcome.filed_correct, outcome.filed_wrong, outcome.held_right, outcome.held_other) == (1, 0, 0, 0)
 
 
-def test_a_confident_wrong_answer_is_a_misfile() -> None:
+def test_evaluate_confident_wrong_answer_misfile() -> None:
     outcome = evaluate([_case(predicted=("G", "Other"), confidence=0.9)], threshold=0.8)
 
     assert (outcome.filed_correct, outcome.filed_wrong) == (0, 1)
     assert outcome.misfile_rate == 1.0
 
 
-def test_a_correct_answer_below_the_threshold_is_held_though_right() -> None:
+def test_evaluate_correct_answer_below_threshold_held() -> None:
     outcome = evaluate([_case(confidence=0.75)], threshold=0.8)
 
     assert (outcome.filed, outcome.held_right, outcome.held_other) == (0, 1, 0)
 
 
-def test_a_wrong_answer_below_the_threshold_is_held_with_nothing_right_on_offer() -> None:
+def test_evaluate_wrong_answer_below_threshold_held_nothing_right() -> None:
     outcome = evaluate([_case(predicted=("G", "Other"), confidence=0.75)], threshold=0.8)
 
     assert (outcome.filed, outcome.held_right, outcome.held_other) == (0, 0, 1)
 
 
-def test_the_threshold_boundary_is_inclusive() -> None:
+def test_evaluate_threshold_boundary_inclusive() -> None:
     case = _case(confidence=0.8)
 
     assert evaluate([case], 0.8).filed == 1
     assert evaluate([case], 0.81).filed == 0
 
 
-def test_an_unresolved_answer_is_never_filed_even_at_a_zero_threshold() -> None:
+def test_evaluate_unresolved_answer_never_filed() -> None:
     case = _case(predicted=("G", None), confidence=0.0)
 
     assert evaluate([case], 0.0).filed == 0
 
 
-def test_filing_a_document_that_belongs_nowhere_is_a_misfile() -> None:
+def test_evaluate_filing_document_belonging_nowhere_misfile() -> None:
     outcome = evaluate([_case(truth=None, predicted=("G", "C"), confidence=0.9)], threshold=0.8)
 
     assert outcome.filed_wrong == 1
 
 
-def test_holding_a_document_that_belongs_nowhere_is_right_but_not_a_missed_filing() -> None:
+def test_evaluate_holding_document_belonging_nowhere_right() -> None:
     outcome = evaluate([_case(truth=None, predicted=(None, None), confidence=0.0)], threshold=0.8)
 
     assert (outcome.filed, outcome.held_other, outcome.belonging) == (0, 1, 0)
 
 
-def test_rates_and_per_hundred_figures() -> None:
+def test_outcome_rates_and_per_hundred_figures() -> None:
     cases = [
         _case(confidence=0.9),
         _case(confidence=0.9),
@@ -116,13 +116,13 @@ def test_rates_and_per_hundred_figures() -> None:
     assert outcome.misfiles_per_100 == pytest.approx(100 / 6)
 
 
-def test_rates_of_an_empty_outcome_are_zero_not_an_error() -> None:
+def test_outcome_empty_rates_zero_not_error() -> None:
     outcome = evaluate([], threshold=0.8)
 
     assert (outcome.misfile_rate, outcome.coverage, outcome.misfiles_per_100) == (0.0, 0.0, 0.0)
 
 
-def test_raising_the_threshold_never_files_more() -> None:
+def test_sweep_raising_threshold_never_files_more() -> None:
     cases = [_case(confidence=c) for c in (0.0, 0.5, 0.75, 0.9, 0.95)]
 
     filed = [outcome.filed for outcome in sweep(cases)]
@@ -138,7 +138,7 @@ def test_misfiles_lists_only_wrong_filings() -> None:
     assert misfiles([right, wrong, held], 0.8) == [wrong]
 
 
-def test_by_signal_leaves_out_unresolved_answers() -> None:
+def test_by_signal_omits_unresolved_answers() -> None:
     resolved = _case(group_signal="exact", category_signal="hint")
     unresolved = _case(predicted=(None, None), group_signal="none", category_signal="none", confidence=0.0)
 
@@ -157,7 +157,7 @@ def test_by_kind_groups_cases() -> None:
 # region Blending ordinary and adversarial documents
 
 
-def test_a_blend_weights_the_ordinary_and_adversarial_outcomes_by_share() -> None:
+def test_blend_weights_outcomes_by_share() -> None:
     ordinary = evaluate([_case(confidence=0.9)] * 4, 0.8)  # 4 filed correctly of 4
     adversarial = evaluate([_case(predicted=("G", "X"), confidence=0.9)] * 2, 0.8)  # 2 misfiled of 2
 
@@ -167,20 +167,20 @@ def test_a_blend_weights_the_ordinary_and_adversarial_outcomes_by_share() -> Non
     assert (half.right, half.wrong) == (50.0, 50.0)
 
 
-def test_a_blend_with_an_empty_side_ignores_it() -> None:
+def test_blend_empty_side_ignored() -> None:
     ordinary = evaluate([_case(confidence=0.9)] * 4, 0.8)
     nothing = evaluate([], 0.8)
 
     assert blend(ordinary, nothing, 0.3).right == pytest.approx(70.0)
 
 
-def test_break_even_is_extra_reviews_per_misfile_avoided() -> None:
+def test_break_even_extra_reviews_per_misfile_avoided() -> None:
     higher = Blend(right=30.0, wrong=5.0)
 
     assert break_even(Blend(right=80.0, wrong=10.0), higher) == 10.0  # 50 more reviews for 5 fewer misfires
 
 
-def test_break_even_is_none_when_the_higher_threshold_avoids_no_misfiles() -> None:
+def test_break_even_none_when_higher_threshold_avoids_none() -> None:
     assert break_even(Blend(right=80.0, wrong=5.0), Blend(right=30.0, wrong=5.0)) is None
 
 
@@ -190,7 +190,7 @@ def test_break_even_is_none_when_the_higher_threshold_avoids_no_misfiles() -> No
 # region The harness on any labelled library
 
 
-def test_the_harness_classifies_any_labelled_library(tmp_path: Path) -> None:
+def test_harness_classifies_any_labelled_library(tmp_path: Path) -> None:
     library = tmp_path / "lib"
     (library / ".microfiche").mkdir(parents=True)
     (library / ".microfiche" / "microfiche-config.toml").write_text(
@@ -210,7 +210,7 @@ def test_the_harness_classifies_any_labelled_library(tmp_path: Path) -> None:
     assert not cases[f"{UNFILED}/b.md"].resolved
 
 
-def test_the_harness_skips_the_inbox_excluded_folders_and_loose_files_and_reads_nested_files(tmp_path: Path) -> None:
+def test_harness_skips_inbox_and_excluded_reads_nested_files(tmp_path: Path) -> None:
     library = tmp_path / "lib"
     (library / ".microfiche").mkdir(parents=True)
     (library / ".microfiche" / "microfiche-config.toml").write_text(
@@ -249,7 +249,7 @@ def _documents(library_dir: Path) -> list[Path]:
     ]
 
 
-def test_the_corpus_is_big_and_varied_enough_to_mean_something() -> None:
+def test_corpus_big_and_varied_enough() -> None:
     documents = [d for library in LIBRARIES for d in _documents(library)]
 
     assert len(LIBRARIES) >= 5
@@ -257,7 +257,7 @@ def test_the_corpus_is_big_and_varied_enough_to_mean_something() -> None:
 
 
 @pytest.mark.parametrize("library_dir", LIBRARIES, ids=lambda p: p.name)
-def test_every_library_has_a_config_and_a_tag_for_every_document(library_dir: Path) -> None:
+def test_corpus_every_library_has_config_and_tags(library_dir: Path) -> None:
     assert (library_dir / ".microfiche" / "microfiche-config.toml").is_file()
     kinds = json.loads((library_dir / "kinds.json").read_text(encoding="utf-8"))
     documents = {d.relative_to(library_dir).as_posix() for d in _documents(library_dir)}
@@ -267,7 +267,7 @@ def test_every_library_has_a_config_and_a_tag_for_every_document(library_dir: Pa
 
 
 @pytest.mark.parametrize("library_dir", LIBRARIES, ids=lambda p: p.name)
-def test_every_document_sits_where_its_truth_says_it_does(library_dir: Path) -> None:
+def test_corpus_documents_sit_where_truth_says(library_dir: Path) -> None:
     taxonomy = Library(library_dir).taxonomy()
 
     for document in _documents(library_dir):
@@ -280,11 +280,11 @@ def test_every_document_sits_where_its_truth_says_it_does(library_dir: Path) -> 
 
 
 @pytest.mark.parametrize("library_dir", LIBRARIES, ids=lambda p: p.name)
-def test_every_library_has_documents_that_belong_nowhere(library_dir: Path) -> None:
+def test_corpus_every_library_has_documents_belonging_nowhere(library_dir: Path) -> None:
     assert any(d.relative_to(library_dir).parts[0] == UNFILED for d in _documents(library_dir))
 
 
-def test_the_kinds_that_make_a_name_or_hint_match_the_wrong_answer_are_represented() -> None:
+def test_corpus_represents_adversarial_kinds() -> None:
     kinds = {case.kind for case in load_corpus()}
 
     assert kinds >= ADVERSARIAL_KINDS
@@ -309,7 +309,7 @@ def _corpus_case(path_fragment: str) -> Case:
         ("software-projects/Project Phoenix/01 Requirements/backlog-march.md", 0.75, "exact", "hint"),
     ],
 )
-def test_known_documents_score_the_way_the_signals_promise(
+def test_known_documents_score_as_signals_promise(
     path_fragment: str, confidence: float, group_signal: str, category_signal: str
 ) -> None:
     case = _corpus_case(path_fragment)
@@ -319,14 +319,14 @@ def test_known_documents_score_the_way_the_signals_promise(
     assert (case.group_signal, case.category_signal) == (group_signal, category_signal)
 
 
-def test_a_document_that_names_no_group_is_not_resolved() -> None:
+def test_known_documents_naming_no_group_unresolved() -> None:
     case = _corpus_case("software-projects/_unfiled/holiday-rota.md")
 
     assert not case.resolved
     assert case.truth is None
 
 
-def test_a_cross_reference_files_under_the_wrong_group_with_full_confidence() -> None:
+def test_known_documents_cross_reference_misfiles_confidently() -> None:
     """The corpus exists to show this: a passing mention of another project outranks the real one."""
 
     case = _corpus_case("software-projects/Project Phoenix/02 Architecture/carrier-adapter.md")
@@ -342,7 +342,7 @@ def test_a_cross_reference_files_under_the_wrong_group_with_full_confidence() ->
 # region The report
 
 
-def test_the_report_has_every_section_and_marks_the_default() -> None:
+def test_format_report_has_every_section_and_marks_default() -> None:
     report = format_report(load_corpus(), default_threshold=0.8)
 
     for heading in (
@@ -382,14 +382,14 @@ def _adversarial(corpus: list[Case]) -> list[Case]:
     return [case for case in corpus if case.kind in ADVERSARIAL_KINDS]
 
 
-def test_at_the_default_threshold_ordinary_documents_are_filed_accurately_and_mostly_filed(corpus: list[Case]) -> None:
+def test_default_threshold_files_ordinary_documents_accurately(corpus: list[Case]) -> None:
     outcome = evaluate(_ordinary(corpus), DEFAULT_CONFIDENCE_THRESHOLD)
 
     assert outcome.coverage >= 0.90
     assert outcome.misfile_rate <= 0.02
 
 
-def test_the_default_does_not_hold_back_correct_keyword_hint_matches(corpus: list[Case]) -> None:
+def test_default_threshold_files_correct_keyword_hints(corpus: list[Case]) -> None:
     """A threshold above the hint score (0.75) silently switches hints off: that is what 0.8 did."""
 
     hints = [case for case in corpus if case.kind == "hint" and case.correct]
@@ -398,7 +398,7 @@ def test_the_default_does_not_hold_back_correct_keyword_hint_matches(corpus: lis
     assert all(case.is_filed(DEFAULT_CONFIDENCE_THRESHOLD) for case in hints)
 
 
-def test_filename_rules_are_right_every_time_and_survive_the_strictest_useful_threshold(corpus: list[Case]) -> None:
+def test_filename_rules_always_right_at_strictest_threshold(corpus: list[Case]) -> None:
     rules = [case for case in corpus if case.kind == "rule"]
 
     assert rules
@@ -406,7 +406,7 @@ def test_filename_rules_are_right_every_time_and_survive_the_strictest_useful_th
     assert [case.kind for case in corpus if case.is_filed(0.95)] == ["rule"] * len(rules)
 
 
-def test_a_higher_threshold_files_less_without_filing_any_more_accurately(corpus: list[Case]) -> None:
+def test_higher_threshold_files_less_not_more_accurately(corpus: list[Case]) -> None:
     """The central finding: 0.8 is not safer per document filed, it just files far fewer.
 
     With 5% tricky documents the share of auto-filed documents that are wrong is about the same at 0.75
@@ -430,7 +430,7 @@ def test_a_higher_threshold_files_less_without_filing_any_more_accurately(corpus
     )
 
 
-def test_no_threshold_makes_a_confident_category_name_match_reliable_on_tricky_documents(corpus: list[Case]) -> None:
+def test_no_threshold_makes_name_match_reliable_when_tricky(corpus: list[Case]) -> None:
     """Category-name matches score 0.9 and are wrong every time on the tricky documents, so no threshold
     between 0.75 and 0.9 can separate them: the weakness is in the matching, not the cut-off."""
 
@@ -450,21 +450,21 @@ AI_RESULTS = sorted(RESULTS_DIR.glob("ai-*.json"))
 
 
 @pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
-def test_the_saved_ai_answers_cover_exactly_the_corpus(corpus: list[Case]) -> None:
+def test_ai_arm_saved_answers_cover_exact_corpus(corpus: list[Case]) -> None:
     saved = {f"{r.taxonomy}/{r.path}" for r in load(AI_RESULTS[0])}
 
     assert saved == {f"{case.taxonomy}/{case.path}" for case in corpus}
 
 
 @pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
-def test_the_measured_model_was_accurate_on_what_it_answered() -> None:
+def test_ai_arm_model_accurate_on_what_it_answered() -> None:
     answered = [r for r in load(AI_RESULTS[0]) if r.answered]
 
     assert sum(r.correct for r in answered) / len(answered) >= 0.95
 
 
 @pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
-def test_ai_answers_score_below_the_default_threshold_so_they_never_file_by_default() -> None:
+def test_ai_arm_answers_below_default_threshold_never_file() -> None:
     recorded = RecordedAnswers(load(AI_RESULTS[0]))
     threshold = DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -475,7 +475,7 @@ def test_ai_answers_score_below_the_default_threshold_so_they_never_file_by_defa
 
 
 @pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
-def test_lowering_the_threshold_to_the_ai_score_lets_ai_answers_file() -> None:
+def test_ai_arm_lowering_threshold_lets_answers_file() -> None:
     recorded = RecordedAnswers(load(AI_RESULTS[0]))
 
     alone = evaluate(load_corpus(threshold=0.7), 0.7)

@@ -36,7 +36,7 @@ def _snapshot(library: Path) -> dict[str, str]:
     }
 
 
-def test_sort_files_confident_units_and_leaves_the_rest_in_the_inbox_for_review(tmp_path: Path) -> None:
+def test_run_sort_files_confident_units_leaves_rest_for_review(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     report = run_sort(Library(library))
@@ -48,7 +48,7 @@ def test_sort_files_confident_units_and_leaves_the_rest_in_the_inbox_for_review(
     assert (library / "_sorting" / _SOLAR_NOTE).exists()
 
 
-def test_sort_records_one_job_covering_everything_it_filed(tmp_path: Path) -> None:
+def test_run_sort_records_one_job_for_all_filed(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     report = run_sort(Library(library))
@@ -64,7 +64,7 @@ def test_sort_records_one_job_covering_everything_it_filed(tmp_path: Path) -> No
     assert (library / MICROFICHE_DIRNAME / AUDIT_LOG_FILENAME).read_text(encoding="utf-8").count("\n") == 1
 
 
-def test_units_sent_to_review_are_not_moved_or_recorded(tmp_path: Path) -> None:
+def test_run_sort_review_units_not_moved_or_recorded(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
     run_sort(Library(library))
@@ -73,7 +73,7 @@ def test_units_sent_to_review_are_not_moved_or_recorded(tmp_path: Path) -> None:
     assert recorded == [f"_sorting/{_PHOENIX_NOTE}"]
 
 
-def test_sort_with_nothing_confident_enough_writes_no_job_ledger_or_audit_log(tmp_path: Path) -> None:
+def test_run_sort_nothing_confident_writes_no_state(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / _PHOENIX_NOTE).unlink()
     before = _snapshot(library)
@@ -91,7 +91,7 @@ def test_sort_with_nothing_confident_enough_writes_no_job_ledger_or_audit_log(tm
     assert not Ledger(state_dir).path.exists()
 
 
-def test_sort_without_an_inbox_does_nothing(tmp_path: Path) -> None:
+def test_run_sort_no_inbox_does_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
     shutil.rmtree(library / "_sorting")
 
@@ -102,7 +102,7 @@ def test_sort_without_an_inbox_does_nothing(tmp_path: Path) -> None:
     assert report.needs_review == []
 
 
-def test_a_folder_in_the_inbox_is_filed_whole_when_keep_folders_is_set(tmp_path: Path) -> None:
+def test_run_sort_keep_folders_files_folder_whole(tmp_path: Path) -> None:
     library = _library(tmp_path)
     bundle = library / "_sorting" / "phoenix-bundle"
     bundle.mkdir()
@@ -120,7 +120,7 @@ def test_a_folder_in_the_inbox_is_filed_whole_when_keep_folders_is_set(tmp_path:
     assert [r.path for r in folder_records] == ["Project Phoenix/02 Architecture/phoenix-bundle"]
 
 
-def test_a_sort_can_be_rolled_back_to_the_exact_pre_sort_library(tmp_path: Path) -> None:
+def test_run_sort_rollback_restores_library(tmp_path: Path) -> None:
     library = _library(tmp_path)
     before = _snapshot(library)
     report = run_sort(Library(library))
@@ -138,7 +138,7 @@ def test_a_sort_can_be_rolled_back_to_the_exact_pre_sort_library(tmp_path: Path)
 _HINT_ONLY_TEXT = "Project Phoenix user story backlog."
 
 
-def test_a_keyword_hint_match_is_filed_at_the_default_threshold(tmp_path: Path) -> None:
+def test_run_sort_default_threshold_files_keyword_hint(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
 
@@ -148,7 +148,7 @@ def test_a_keyword_hint_match_is_filed_at_the_default_threshold(tmp_path: Path) 
     assert (library / "Project Phoenix" / "01 Requirements" / "backlog.md").exists()
 
 
-def test_raising_the_libraries_threshold_leaves_the_keyword_hint_match_for_review(tmp_path: Path) -> None:
+def test_run_sort_raised_threshold_reviews_keyword_hint(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "backlog.md").write_text(_HINT_ONLY_TEXT, encoding="utf-8")
     lib = Library(library)
@@ -160,7 +160,7 @@ def test_raising_the_libraries_threshold_leaves_the_keyword_hint_match_for_revie
     assert (library / "_sorting" / "backlog.md").exists()
 
 
-def test_one_unreadable_file_does_not_stop_the_rest_of_the_inbox_being_sorted(tmp_path: Path) -> None:
+def test_run_sort_unreadable_file_does_not_stop_rest(tmp_path: Path) -> None:
     """Regression: a corrupt file used to raise out of the scan, so nothing at all was filed."""
 
     library = _library(tmp_path)
@@ -179,7 +179,7 @@ def test_one_unreadable_file_does_not_stop_the_rest_of_the_inbox_being_sorted(tm
     assert [move.new_path for move in report.job.moves] == [library / _PHOENIX_DESTINATION]
 
 
-def test_an_inbox_holding_only_an_unreadable_file_files_nothing_and_writes_no_job(tmp_path: Path) -> None:
+def test_run_sort_only_unreadable_file_writes_no_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / _PHOENIX_NOTE).unlink()
     (library / "_sorting" / _SOLAR_NOTE).unlink()

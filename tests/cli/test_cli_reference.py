@@ -14,7 +14,7 @@ _REGENERATE = "make docs-cli"
 runner = CliRunner()
 
 
-def test_cli_reference_matches_the_app(tmp_path: Path) -> None:
+def test_cli_reference_matches_app(tmp_path: Path) -> None:
     generated = tmp_path / "cli-reference.md"
     result = runner.invoke(
         typer_cli,
@@ -29,7 +29,7 @@ def test_cli_reference_matches_the_app(tmp_path: Path) -> None:
     )
 
 
-def test_stub_commands_say_they_are_not_implemented_yet() -> None:
+def test_stub_commands_say_not_implemented() -> None:
     for command in ("review", "index"):
         result = runner.invoke(app, [command, "--help"])
 

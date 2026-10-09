@@ -15,7 +15,7 @@ def test_document_round_trip() -> None:
     assert document.file_name == "b.txt"
 
 
-def test_taxonomy_categories_for_unknown_group_returns_empty_list() -> None:
+def test_taxonomy_categories_for_unknown_group_empty() -> None:
     taxonomy = Taxonomy(groups={"Phoenix": ["01 Requirements"]})
     assert taxonomy.categories_for("Atlas") == []
     assert taxonomy.categories_for("Phoenix") == ["01 Requirements"]
@@ -47,7 +47,7 @@ def test_ledger_record_round_trips_through_json() -> None:
     assert LedgerRecord.model_validate_json(record.model_dump_json()) == record
 
 
-def test_rolled_back_ledger_record_needs_no_classification_fields() -> None:
+def test_ledger_record_rolled_back_needs_no_classification() -> None:
     record = LedgerRecord(
         event="rolled_back",
         job_id="job1",
@@ -61,7 +61,7 @@ def test_rolled_back_ledger_record_needs_no_classification_fields() -> None:
     assert record.confidence is None
 
 
-def test_job_is_not_rolled_back_by_default_and_round_trips_through_json() -> None:
+def test_job_defaults_not_rolled_back_round_trips_json() -> None:
     job = Job(job_id="job1", moves=[AuditEvent(original_path=Path("a.txt"), new_path=Path("b/a.txt"), action="move")])
 
     assert job.rolled_back_at is None

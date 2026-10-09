@@ -60,21 +60,21 @@ def _make_pdf(path: Path, text: str) -> Path:
 # region Which formats are supported
 
 
-def test_the_supported_formats() -> None:
+def test_supported_extensions() -> None:
     assert {".pdf", ".docx", ".txt", ".md", ".markdown", ".msg", ".eml"} == SUPPORTED_EXTENSIONS
 
 
 @pytest.mark.parametrize("name", ["a.pdf", "a.DOCX", "a.Txt", "a.md", "a.markdown", "a.msg", "a.EML"])
-def test_supported_files_are_recognised_whatever_the_case(name: str) -> None:
+def test_is_supported_ignores_case(name: str) -> None:
     assert is_supported(Path(name)) is True
 
 
 @pytest.mark.parametrize("name", ["photo.png", "sheet.xlsx", "noextension", "archive.tar.gz", ".md.bak"])
-def test_other_files_are_not_supported(name: str) -> None:
+def test_is_supported_other_files_false(name: str) -> None:
     assert is_supported(Path(name)) is False
 
 
-def test_parsing_an_unsupported_file_raises_unsupported_format(tmp_path: Path) -> None:
+def test_parse_document_unsupported_file_raises(tmp_path: Path) -> None:
     path = _write(tmp_path / "photo.png", b"\x89PNG")
 
     with pytest.raises(UnsupportedFormatError) as excinfo:
@@ -90,7 +90,7 @@ def test_parsing_an_unsupported_file_raises_unsupported_format(tmp_path: Path) -
 # region Each format
 
 
-def test_a_text_file_is_read_with_its_header_fields(tmp_path: Path) -> None:
+def test_parse_document_text_file_reads_header_fields(tmp_path: Path) -> None:
     path = _write(tmp_path / "NOTES.TXT", "Hello world")
 
     document = parse_document(path)
@@ -103,14 +103,14 @@ def test_a_text_file_is_read_with_its_header_fields(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("name", ["a.md", "a.markdown"])
-def test_markdown_is_read_as_text(tmp_path: Path, name: str) -> None:
+def test_parse_document_markdown_read_as_text(tmp_path: Path, name: str) -> None:
     document = parse_document(_write(tmp_path / name, "# Title\n\nBody"))
 
     assert document.content == "# Title\n\nBody"
     assert document.extension == Path(name).suffix
 
 
-def test_undecodable_bytes_in_a_text_file_are_replaced_not_fatal(tmp_path: Path) -> None:
+def test_parse_document_undecodable_bytes_replaced(tmp_path: Path) -> None:
     path = _write(tmp_path / "latin1.txt", b"caf\xe9 society")
 
     document = parse_document(path)
@@ -119,7 +119,7 @@ def test_undecodable_bytes_in_a_text_file_are_replaced_not_fatal(tmp_path: Path)
     assert "society" in document.content
 
 
-def test_an_eml_file_gives_its_body_and_headers(tmp_path: Path) -> None:
+def test_parse_document_eml_gives_body_and_headers(tmp_path: Path) -> None:
     document = parse_document(_write(tmp_path / "plan.eml", _EML))
 
     assert document.content.strip() == "Please review the plan."
@@ -131,28 +131,28 @@ def test_an_eml_file_gives_its_body_and_headers(tmp_path: Path) -> None:
     }
 
 
-def test_an_empty_eml_file_has_no_content_but_is_still_readable(tmp_path: Path) -> None:
+def test_parse_document_empty_eml_readable_without_content(tmp_path: Path) -> None:
     document = parse_document(_write(tmp_path / "empty.eml", b""))
 
     assert document.content == ""
     assert document.metadata["subject"] == ""
 
 
-def test_a_docx_file_gives_its_paragraphs(tmp_path: Path) -> None:
+def test_parse_document_docx_gives_paragraphs(tmp_path: Path) -> None:
     document = parse_document(_make_docx(tmp_path / "spec.docx", "First paragraph", "Second paragraph"))
 
     assert document.content == "First paragraph\nSecond paragraph"
     assert document.extension == ".docx"
 
 
-def test_a_pdf_file_gives_its_text_and_metadata(tmp_path: Path) -> None:
+def test_parse_document_pdf_gives_text_and_metadata(tmp_path: Path) -> None:
     document = parse_document(_make_pdf(tmp_path / "report.pdf", "Quarterly report"))
 
     assert "Quarterly report" in document.content
     assert document.metadata.get("format", "").startswith("PDF")
 
 
-def test_a_pdf_with_no_text_layer_reads_as_empty_text(tmp_path: Path) -> None:
+def test_parse_document_pdf_without_text_layer_empty(tmp_path: Path) -> None:
     """Scanned (image-only) PDFs aren't OCRed, so they read as empty text and end up in review."""
 
     path = tmp_path / "scanned.pdf"
@@ -164,7 +164,7 @@ def test_a_pdf_with_no_text_layer_reads_as_empty_text(tmp_path: Path) -> None:
     assert parse_document(path).content == ""
 
 
-def test_a_password_protected_pdf_is_unreadable(tmp_path: Path) -> None:
+def test_parse_document_password_protected_pdf_unreadable(tmp_path: Path) -> None:
     path = tmp_path / "locked.pdf"
     pdf = pymupdf.open()
     pdf.new_page().insert_text((72, 72), "secret")
@@ -191,9 +191,7 @@ def test_a_password_protected_pdf_is_unreadable(tmp_path: Path) -> None:
         ("bad.msg", b"not an OLE2 structured storage file"),
     ],
 )
-def test_a_corrupt_file_raises_unreadable_document_with_the_original_as_its_cause(
-    tmp_path: Path, name: str, data: bytes
-) -> None:
+def test_parse_document_corrupt_raises_unreadable_with_cause(tmp_path: Path, name: str, data: bytes) -> None:
     path = _write(tmp_path / name, data)
 
     with pytest.raises(UnreadableDocumentError) as excinfo:
@@ -206,7 +204,7 @@ def test_a_corrupt_file_raises_unreadable_document_with_the_original_as_its_caus
     assert type(excinfo.value.__cause__).__name__ in excinfo.value.reason
 
 
-def test_the_reason_is_one_short_line(tmp_path: Path) -> None:
+def test_parse_document_unreadable_reason_one_line(tmp_path: Path) -> None:
     path = _write(tmp_path / "bad.docx", b"junk")
 
     with pytest.raises(UnreadableDocumentError) as excinfo:
@@ -216,7 +214,7 @@ def test_the_reason_is_one_short_line(tmp_path: Path) -> None:
     assert len(excinfo.value.reason) <= 200
 
 
-def test_a_missing_file_is_unreadable_not_a_raw_os_error(tmp_path: Path) -> None:
+def test_parse_document_missing_file_unreadable(tmp_path: Path) -> None:
     with pytest.raises(UnreadableDocumentError):
         parse_document(tmp_path / "gone.txt")
 
@@ -227,7 +225,7 @@ def test_a_missing_file_is_unreadable_not_a_raw_os_error(tmp_path: Path) -> None
 # region Reading a batch
 
 
-def test_read_documents_reads_supported_files_in_the_order_given(tmp_path: Path) -> None:
+def test_read_documents_keeps_given_order(tmp_path: Path) -> None:
     b = _write(tmp_path / "b.txt", "bee")
     a = _write(tmp_path / "a.md", "ay")
 
@@ -237,14 +235,14 @@ def test_read_documents_reads_supported_files_in_the_order_given(tmp_path: Path)
     assert result.unreadable == []
 
 
-def test_read_documents_skips_unsupported_files_silently(tmp_path: Path) -> None:
+def test_read_documents_skips_unsupported_silently(tmp_path: Path) -> None:
     result = read_documents([_write(tmp_path / "photo.png", b"x"), _write(tmp_path / "note.txt", "hi")])
 
     assert [document.file_name for document in result.documents] == ["note.txt"]
     assert result.unreadable == []
 
 
-def test_read_documents_carries_on_past_an_unreadable_file(tmp_path: Path) -> None:
+def test_read_documents_continues_past_unreadable(tmp_path: Path) -> None:
     good_before = _write(tmp_path / "a.txt", "first")
     bad = _write(tmp_path / "bad.docx", b"junk")
     good_after = _write(tmp_path / "z.txt", "last")
@@ -257,14 +255,14 @@ def test_read_documents_carries_on_past_an_unreadable_file(tmp_path: Path) -> No
     assert "PackageNotFoundError" in unreadable.reason
 
 
-def test_read_documents_of_nothing_is_empty() -> None:
+def test_read_documents_nothing_empty() -> None:
     result = read_documents([])
 
     assert result.documents == []
     assert result.unreadable == []
 
 
-def test_read_documents_accepts_a_generator(tmp_path: Path) -> None:
+def test_read_documents_accepts_generator(tmp_path: Path) -> None:
     paths = (_write(tmp_path / f"{name}.txt", name) for name in ("one", "two"))
 
     assert [d.content for d in read_documents(paths).documents] == ["one", "two"]
@@ -276,7 +274,7 @@ def test_read_documents_accepts_a_generator(tmp_path: Path) -> None:
 # region The shared header
 
 
-def test_document_from_fills_in_the_header_every_parser_shares() -> None:
+def test_document_from_fills_shared_header() -> None:
     document = document_from(Path("dir/Report.PDF"), "text", {"k": "v"})
 
     assert document.file_path == Path("dir/Report.PDF")
@@ -286,7 +284,7 @@ def test_document_from_fills_in_the_header_every_parser_shares() -> None:
     assert document.metadata == {"k": "v"}
 
 
-def test_document_from_without_metadata_gives_an_empty_dict() -> None:
+def test_document_from_no_metadata_empty_dict() -> None:
     assert document_from(Path("a.txt"), "x").metadata == {}
 
 
