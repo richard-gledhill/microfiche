@@ -12,7 +12,20 @@ levels = ["group", "category"]
 file_target_level = 2
 
 [classification]
+# A document files without asking only if its confidence reaches this (see docs/development/calibration.md).
 confidence_threshold = 0.75
+# How sure each kind of match is. The threshold above decides which of them file on their own.
+name_match_confidence = 0.9
+filename_match_confidence = 0.95
+hint_match_confidence = 0.75
+# How close (0 to 100) a near-miss must be to a group's name to count as that group.
+fuzzy_group_threshold = 85
+
+[ai]
+# How sure any AI answer is. Below [classification] confidence_threshold, an AI-only answer goes to review.
+ai_confidence = 0.70
+# How much of a document's text is sent to the AI.
+max_document_chars = 4000
 
 [exclusions]
 exclude = []

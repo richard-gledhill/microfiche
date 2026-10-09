@@ -97,7 +97,7 @@ class Classifier:
         """
 
         return cls(
-            RulesEngine(config.category_hints.categories, config.filing_rules.rules),
+            RulesEngine(config.category_hints.categories, config.filing_rules.rules, config.classification),
             fallback,
             threshold=config.classification.confidence_threshold,
         )

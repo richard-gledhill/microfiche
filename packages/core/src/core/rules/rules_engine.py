@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from core.config import ClassificationConfig
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
@@ -22,6 +23,8 @@ class RulesEngine:
     Args:
         category_hints: Keywords per category name.
         filing_rules: Filename-pattern rules, each naming a pattern and a category.
+        settings: The ``[classification]`` settings: how sure each kind of match is, and how close a
+            near-miss to a group name must be.
 
     Attributes:
         name: Identifies the resolver in ``ClassificationResult.classified_by``.
@@ -29,9 +32,15 @@ class RulesEngine:
 
     name: str = "rules_engine"
 
-    def __init__(self, category_hints: dict[str, list[str]], filing_rules: list[dict[str, str]]) -> None:
+    def __init__(
+        self,
+        category_hints: dict[str, list[str]],
+        filing_rules: list[dict[str, str]],
+        settings: ClassificationConfig,
+    ) -> None:
         self._category_hints = category_hints
         self._filing_rules = filing_rules
+        self._settings = settings
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Propose a group by matching the document's text against the taxonomy's group names.
@@ -44,7 +53,7 @@ class RulesEngine:
             The proposed group, with ``name=None`` if none matched.
         """
 
-        return match_group(document.content, taxonomy.group_names)
+        return match_group(document.content, taxonomy.group_names, fuzzy_threshold=self._settings.fuzzy_group_threshold)
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Propose a category of ``group``: by filename rule first, then by name or keyword hint.
@@ -62,7 +71,15 @@ class RulesEngine:
         # A filing rule is global but categories belong to a group: a rule naming a category this
         # group doesn't have simply doesn't apply here, and the keyword rules get their turn.
         applicable_rules = [rule for rule in self._filing_rules if rule.get("category") in categories]
-        by_filename = match_by_filename(document.file_name, applicable_rules)
+        by_filename = match_by_filename(
+            document.file_name, applicable_rules, confidence=self._settings.filename_match_confidence
+        )
         if by_filename.name is not None:
             return by_filename
-        return match_category(document.content, categories, self._category_hints)
+        return match_category(
+            document.content,
+            categories,
+            self._category_hints,
+            name_confidence=self._settings.name_match_confidence,
+            hint_confidence=self._settings.hint_match_confidence,
+        )

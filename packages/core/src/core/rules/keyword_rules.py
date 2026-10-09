@@ -6,8 +6,6 @@ import re
 
 from core.models.classification import CategoryMatch
 
-_HINT_MATCH_CONFIDENCE = 0.75
-_NAME_MATCH_CONFIDENCE = 0.9
 _LEADING_ORDER_PREFIX_RE = re.compile(r"^\d+\s*")
 
 
@@ -17,13 +15,22 @@ def _normalize(category_name: str) -> str:
     return _LEADING_ORDER_PREFIX_RE.sub("", category_name).strip().lower()
 
 
-def match_category(text: str, category_names: list[str], hints: dict[str, list[str]]) -> CategoryMatch:
+def match_category(
+    text: str,
+    category_names: list[str],
+    hints: dict[str, list[str]],
+    *,
+    name_confidence: float,
+    hint_confidence: float,
+) -> CategoryMatch:
     """Match ``text`` against a group's existing category names, falling back to keyword hints.
 
     Args:
         text: The text to be analyzed for matching.
         category_names: The group's existing category names.
         hints: Keywords per category name, used when the category name itself doesn't appear.
+        name_confidence: The confidence of a match on a category's name.
+        hint_confidence: The confidence of a match on a keyword hint.
 
     Returns:
         The matching category with its confidence and the reason for it, or a match with
@@ -36,7 +43,7 @@ def match_category(text: str, category_names: list[str], hints: dict[str, list[s
         if _normalize(category_name) in lowered:
             return CategoryMatch(
                 name=category_name,
-                confidence=_NAME_MATCH_CONFIDENCE,
+                confidence=name_confidence,
                 reason=f"Category name '{category_name}' found in document text",
             )
 
@@ -45,7 +52,7 @@ def match_category(text: str, category_names: list[str], hints: dict[str, list[s
             if keyword.lower() in lowered:
                 return CategoryMatch(
                     name=category_name,
-                    confidence=_HINT_MATCH_CONFIDENCE,
+                    confidence=hint_confidence,
                     reason=f"Keyword hint '{keyword}' matched for category '{category_name}'",
                 )
 

@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from core.config import (
+    AIConfig,
     CategoryHintsConfig,
     ClassificationConfig,
     ConfigError,
@@ -35,7 +36,18 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("filing_rules", FilingRulesConfig),
     ("naming_rules", NamingRulesConfig),
     ("classification", ClassificationConfig),
+    ("ai", AIConfig),
 ]
+
+
+def _classification(**overrides: Any) -> ClassificationConfig:
+    """The packaged ``[classification]`` settings with ``overrides`` applied."""
+    return ClassificationConfig(**{**_packaged_defaults()["classification"], **overrides})
+
+
+def _ai(**overrides: Any) -> AIConfig:
+    """The packaged ``[ai]`` settings with ``overrides`` applied."""
+    return AIConfig(**{**_packaged_defaults()["ai"], **overrides})
 
 
 def _packaged_defaults() -> dict[str, Any]:
@@ -141,7 +153,7 @@ def test_load_config_custom_confidence_threshold(tmp_path: Path) -> None:
     [0.0, 0.5, 1.0],
 )
 def test_classification_config_threshold_in_range_accepted(value: float) -> None:
-    assert ClassificationConfig(confidence_threshold=value).confidence_threshold == value
+    assert _classification(confidence_threshold=value).confidence_threshold == value
 
 
 @pytest.mark.parametrize(
@@ -150,7 +162,7 @@ def test_classification_config_threshold_in_range_accepted(value: float) -> None
 )
 def test_classification_config_threshold_out_of_range_rejected(value: float) -> None:
     with pytest.raises(ValidationError):
-        ClassificationConfig(confidence_threshold=value)
+        _classification(confidence_threshold=value)
 
 
 @pytest.mark.parametrize("section", [model for _, model in _SECTIONS] + [MicroficheConfig])
@@ -160,6 +172,67 @@ def test_config_section_no_defaults_of_its_own(section: type[BaseModel]) -> None
         section()
 
     assert {error["type"] for error in exc_info.value.errors()} == {"missing"}
+
+
+def test_load_config_signal_strengths_default_to_todays_values() -> None:
+    settings = load_config(Path("does-not-exist")).classification
+
+    assert settings.name_match_confidence == 0.9
+    assert settings.filename_match_confidence == 0.95
+    assert settings.hint_match_confidence == 0.75
+    assert settings.fuzzy_group_threshold == 85
+
+
+def test_load_config_ai_settings_default_to_todays_values() -> None:
+    settings = load_config(Path("does-not-exist")).ai
+
+    assert settings.ai_confidence == 0.70
+    assert settings.max_document_chars == 4000
+
+
+def test_load_config_custom_signal_strength(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nhint_match_confidence = 0.6\n", encoding="utf-8"
+    )
+
+    settings = load_config(tmp_path).classification
+
+    assert settings.hint_match_confidence == 0.6
+    # Not mentioned, so the packaged default stands.
+    assert settings.name_match_confidence == 0.9
+
+
+def test_load_config_custom_ai_settings(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[ai]\nmax_document_chars = 100\n", encoding="utf-8")
+
+    settings = load_config(tmp_path).ai
+
+    assert settings.max_document_chars == 100
+    assert settings.ai_confidence == 0.70
+
+
+@pytest.mark.parametrize("name", ["name_match_confidence", "filename_match_confidence", "hint_match_confidence"])
+@pytest.mark.parametrize("value", [-0.1, 1.01])
+def test_classification_config_score_out_of_range_rejected(name: str, value: float) -> None:
+    with pytest.raises(ValidationError, match=name):
+        _classification(**{name: value})
+
+
+@pytest.mark.parametrize("value", [-1, 101])
+def test_classification_config_fuzzy_threshold_out_of_range_rejected(value: int) -> None:
+    with pytest.raises(ValidationError, match="fuzzy_group_threshold"):
+        _classification(fuzzy_group_threshold=value)
+
+
+@pytest.mark.parametrize("value", [-0.1, 1.01])
+def test_ai_config_confidence_out_of_range_rejected(value: float) -> None:
+    with pytest.raises(ValidationError, match="ai_confidence"):
+        _ai(ai_confidence=value)
+
+
+def test_ai_config_max_document_chars_below_one_rejected() -> None:
+    with pytest.raises(ValidationError, match="max_document_chars"):
+        _ai(max_document_chars=0)
 
 
 def test_load_config_shipped_library_templates_loaded() -> None:

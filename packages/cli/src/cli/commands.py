@@ -52,8 +52,9 @@ def sort(
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
-    ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None
-    report = run_sort(_open_library(library), keep_folders=keep_folders, ai_classifier=ai_classifier)
+    opened = _open_library(library)
+    ai_classifier = LLMClassifier(OllamaProvider(), opened.config.ai) if use_ai else None
+    report = run_sort(opened, keep_folders=keep_folders, ai_classifier=ai_classifier)
     render_sort_report(console, report)
 
 

@@ -6,11 +6,8 @@ from thefuzz import fuzz
 
 from core.models.classification import GroupMatch
 
-_FUZZY_MATCH_THRESHOLD = 85
-# Todo: Move to config
 
-
-def match_group(text: str, group_names: list[str]) -> GroupMatch:
+def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> GroupMatch:
     """Match ``text`` against known group names by substring, then fuzzy match.
 
     A group name found in the lowercased text is an exact match. Otherwise the best fuzzy match
@@ -23,13 +20,13 @@ def match_group(text: str, group_names: list[str]) -> GroupMatch:
     Args:
         text: The text to be analyzed for matching.
         group_names: The group names to match against the text.
+        fuzzy_threshold: The lowest fuzzy score (0 to 100) that counts as a match.
 
     Returns:
         The best matching group with its confidence and the reason for it, or a match with
         ``name=None`` when nothing clears the confidence threshold.
 
     Todo:
-        - Review hard coded numbers.
         - Need to review the group_name match. Consider as config option to sort by extracted title and keywords.
     """
 
@@ -45,7 +42,7 @@ def match_group(text: str, group_names: list[str]) -> GroupMatch:
         if score > best_score:
             best_name, best_score = group_name, score
 
-    if best_name is not None and best_score >= _FUZZY_MATCH_THRESHOLD:
+    if best_name is not None and best_score >= fuzzy_threshold:
         return GroupMatch(
             name=best_name,
             confidence=best_score / 100,

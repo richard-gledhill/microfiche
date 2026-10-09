@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from core.ai.base import AIProvider
 from core.ai.prompts import CATEGORY_RESOLUTION_PROMPT, GROUP_RESOLUTION_PROMPT
+from core.config import AIConfig
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
-
-_MAX_DOCUMENT_CHARS = 4000
-_AI_CONFIDENCE = 0.7
 
 
 class LLMClassifier:
@@ -21,6 +19,8 @@ class LLMClassifier:
 
     Args:
         provider: The model to ask.
+        settings: The ``[ai]`` settings: how sure an AI answer is, and how much of a
+            document is sent.
 
     Attributes:
         name: Identifies the resolver in ``ClassificationResult.classified_by``.
@@ -28,8 +28,9 @@ class LLMClassifier:
 
     name: str = "ai_fallback"
 
-    def __init__(self, provider: AIProvider) -> None:
+    def __init__(self, provider: AIProvider, settings: AIConfig) -> None:
         self._provider = provider
+        self._settings = settings
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Ask the model which of the taxonomy's groups ``document`` belongs to.
@@ -45,12 +46,12 @@ class LLMClassifier:
 
         prompt = GROUP_RESOLUTION_PROMPT.format(
             group_names=", ".join(taxonomy.group_names),
-            document_text=document.content[:_MAX_DOCUMENT_CHARS],
+            document_text=document.content[: self._settings.max_document_chars],
         )
         answer = self._provider.complete(prompt).strip()
         if answer.upper() == "NONE" or answer not in taxonomy.group_names:
             return GroupMatch(name=None, confidence=0.0, reason="AI found no matching group")
-        return GroupMatch(name=answer, confidence=_AI_CONFIDENCE, reason="Resolved by AI fallback")
+        return GroupMatch(name=answer, confidence=self._settings.ai_confidence, reason="Resolved by AI fallback")
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Ask the model which of ``group``'s categories ``document`` belongs to.
@@ -69,9 +70,9 @@ class LLMClassifier:
         prompt = CATEGORY_RESOLUTION_PROMPT.format(
             group_name=group,
             category_names=", ".join(categories),
-            document_text=document.content[:_MAX_DOCUMENT_CHARS],
+            document_text=document.content[: self._settings.max_document_chars],
         )
         answer = self._provider.complete(prompt).strip()
         if answer.upper() == "NONE" or answer not in categories:
             return CategoryMatch(name=None, confidence=0.0, reason="AI found no matching category")
-        return CategoryMatch(name=answer, confidence=_AI_CONFIDENCE, reason="Resolved by AI fallback")
+        return CategoryMatch(name=answer, confidence=self._settings.ai_confidence, reason="Resolved by AI fallback")

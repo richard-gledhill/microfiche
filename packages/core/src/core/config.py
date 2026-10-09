@@ -149,9 +149,35 @@ class ClassificationConfig(_ConfigSection):
             0.95 for filename rules, 0.75 for keyword hints and 0.70 for AI answers, so the
             default of 0.75 files everything except AI answers; raise it to 0.8 to hold keyword-hint
             matches for review too, or lower it to 0.7 to file AI answers.
+        name_match_confidence (float): From 0 to 1. How sure a match is when a category's name
+            appears in the document text.
+        filename_match_confidence (float): From 0 to 1. How sure a match is when a filename rule
+            applies.
+        hint_match_confidence (float): From 0 to 1. How sure a match is when one of a category's
+            keyword hints appears in the document text.
+        fuzzy_group_threshold (int): From 0 to 100. How close a near-miss must be to a group's name
+            (a ``thefuzz`` partial-ratio score) to count as that group.
     """
 
     confidence_threshold: float = Field(ge=0.0, le=1.0)
+    name_match_confidence: float = Field(ge=0.0, le=1.0)
+    filename_match_confidence: float = Field(ge=0.0, le=1.0)
+    hint_match_confidence: float = Field(ge=0.0, le=1.0)
+    fuzzy_group_threshold: int = Field(ge=0, le=100)
+
+
+class AIConfig(_ConfigSection):
+    """How the AI fallback is trusted and what it is sent.
+
+    Attributes:
+        ai_confidence (float): From 0 to 1. How sure any answer from the AI fallback is, whatever
+            model gave it. Compared with ``[classification] confidence_threshold`` to decide whether
+            an AI-only answer files or goes to review.
+        max_document_chars (int): At least 1. How much of a document's text is sent to the AI.
+    """
+
+    ai_confidence: float = Field(ge=0.0, le=1.0)
+    max_document_chars: int = Field(ge=1)
 
 
 class MicroficheConfig(_ConfigSection):
@@ -174,6 +200,7 @@ class MicroficheConfig(_ConfigSection):
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
+        ai (AIConfig): Configuration for the AI fallback.
         library_templates (dict[str, list[str]]): Named category sets for a future
             `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
@@ -185,6 +212,7 @@ class MicroficheConfig(_ConfigSection):
     filing_rules: FilingRulesConfig
     naming_rules: NamingRulesConfig
     classification: ClassificationConfig
+    ai: AIConfig
     library_templates: dict[str, list[str]]
 
 

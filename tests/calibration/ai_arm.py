@@ -20,13 +20,18 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.ai.llm_classifier import _AI_CONFIDENCE, LLMClassifier  # the score the pipeline gives any AI answer
+from core.ai.llm_classifier import LLMClassifier
+from core.config import load_config
 from core.library.library import Library
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
 from core.parsers import read_documents
 from harness import ADVERSARIAL_KINDS, CORPUS_ROOT, UNFILED, evaluate, load_corpus
+
+# The calibration measures the packaged settings; _AI_CONFIDENCE is the score the pipeline gives any AI answer.
+_SETTINGS = load_config(Path("does-not-exist")).ai
+_AI_CONFIDENCE = _SETTINGS.ai_confidence
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
@@ -121,7 +126,7 @@ def run(model: str) -> list[AiResult]:
         done = {f"{r['taxonomy']}/{r['path']}": r for r in json.loads(out.read_text(encoding="utf-8"))}
 
     provider = OllamaHttpProvider(model)
-    resolver = LLMClassifier(provider)
+    resolver = LLMClassifier(provider, _SETTINGS)
     started = time.time()
     for library_dir in sorted(p for p in CORPUS_ROOT.iterdir() if p.is_dir()):
         taxonomy = Library(library_dir).taxonomy()
