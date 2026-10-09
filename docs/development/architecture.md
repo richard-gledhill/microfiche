@@ -57,7 +57,9 @@ depth = 2
 levels = ["group", "category"]
 file_target_level = 2   # loose files (and kept-whole folders) are filed at the leaf
 ```
-Depth is configurable for future flexibility, but 2 is the only depth the MVP implements against.
+Depth is configurable for future flexibility, but 2 is the only depth implemented today. Stage 4.6 plans depth 1
+(groups only), and Stage 4.7 plans depth 3 (group, category, subcategory), provisionally; see
+[library-depth.md](library-depth.md). The word *group* is used at every depth.
 
 ## 3. Sorting is a single, library-wide inbox — two-stage classification
 
@@ -264,7 +266,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   with a generated JSON Schema. Hints still only match folders that already exist (§1); they never define
   the taxonomy. `naming_rules` stays in the TOML.
 * **Depth is the only structural setting in the config.** `[library_structure] depth` stays and is validated
-  as 2; `levels` and `file_target_level` are dropped (`levels` moves to the JSON if it is kept at all).
+  against the supported range (2 today; 1–2 from Stage 4.6, and 3 from Stage 4.7 if it goes ahead); `levels` and `file_target_level` are dropped (`levels` moves to the JSON if it is kept at all).
   `library_templates` is dropped until an `init` command exists; a template catalog would reuse the library
   file's node schema.
 * **Scores and thresholds are config.** `[classification]` gains the signal strengths (name, filename rule,
