@@ -17,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- plan configuration, operations and AI classifier stages (4.1-4.5) [`7434c12`](https://github.com/richard-gledhill/microfiche/commit/7434c12)
+- :robot: changelog file generated [`30fc202`](https://github.com/richard-gledhill/microfiche/commit/30fc202)
 - add test naming convention [`c62187e`](https://github.com/richard-gledhill/microfiche/commit/c62187e)
 - add module layout and region conventions [`5f72f23`](https://github.com/richard-gledhill/microfiche/commit/5f72f23)
 - :robot: changelog file generated [`e825209`](https://github.com/richard-gledhill/microfiche/commit/e825209)
@@ -81,6 +83,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
 
 ### Other
+- Merge pull request #40 from richard-gledhill/docs/mvp-plan-stage-4x [`ded075b`](https://github.com/richard-gledhill/microfiche/commit/ded075b)
 - Merge pull request #39 from richard-gledhill/chore/test-naming [`689029b`](https://github.com/richard-gledhill/microfiche/commit/689029b)
 - Merge pull request #38 from richard-gledhill/chore/module-layout-regions [`bb08fa6`](https://github.com/richard-gledhill/microfiche/commit/bb08fa6)
 - Merge pull request #37 from richard-gledhill/chore/ignore-idea-json-schemas [`b8bab81`](https://github.com/richard-gledhill/microfiche/commit/b8bab81)
