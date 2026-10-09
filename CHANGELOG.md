@@ -7,10 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Unreleased changes
 
 ### Documentation
+- add a test-first (TDD) note to scratch.md [`f786d26`](https://github.com/richard-gledhill/microfiche/commit/f786d26)
+- :robot: changelog file generated [`62099e3`](https://github.com/richard-gledhill/microfiche/commit/62099e3)
 - :robot: changelog file generated [`61fa6b5`](https://github.com/richard-gledhill/microfiche/commit/61fa6b5)
 - plan library depth, non-library folders and filing target mode (4.6-4.9) [`ed7557d`](https://github.com/richard-gledhill/microfiche/commit/ed7557d)
 
 ### Other
+- Merge pull request #43 from richard-gledhill/docs/scratch-tdd-note [`827be89`](https://github.com/richard-gledhill/microfiche/commit/827be89)
 - Merge pull request #42 from richard-gledhill/docs/mvp-plan-depth-folders [`11bc7a7`](https://github.com/richard-gledhill/microfiche/commit/11bc7a7)
 
 ## v0.1.4 (2026-10-09)
