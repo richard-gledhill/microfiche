@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`3720c99`](https://github.com/richard-gledhill/microfiche/commit/3720c99)
 - plan configuration, operations and AI classifier stages (4.1-4.5) [`7434c12`](https://github.com/richard-gledhill/microfiche/commit/7434c12)
 - :robot: changelog file generated [`30fc202`](https://github.com/richard-gledhill/microfiche/commit/30fc202)
 - add test naming convention [`c62187e`](https://github.com/richard-gledhill/microfiche/commit/c62187e)
@@ -65,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - validate config sections against unknown keys and invalid data [`3b72640`](https://github.com/richard-gledhill/microfiche/commit/3b72640)
 
 ### Chore
+- bump version to 0.1.4 [`12a6dbb`](https://github.com/richard-gledhill/microfiche/commit/12a6dbb)
 - ignore the IDE-generated .idea/jsonSchemas.xml [`c3571d9`](https://github.com/richard-gledhill/microfiche/commit/c3571d9)
 - ignore the .temp directory for ad hoc local files [`867ceb3`](https://github.com/richard-gledhill/microfiche/commit/867ceb3)
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
@@ -83,6 +85,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
 
 ### Other
+- Merge pull request #41 from richard-gledhill/chore/bump-version-0.1.4 [`0ac88bb`](https://github.com/richard-gledhill/microfiche/commit/0ac88bb)
 - Merge pull request #40 from richard-gledhill/docs/mvp-plan-stage-4x [`ded075b`](https://github.com/richard-gledhill/microfiche/commit/ded075b)
 - Merge pull request #39 from richard-gledhill/chore/test-naming [`689029b`](https://github.com/richard-gledhill/microfiche/commit/689029b)
 - Merge pull request #38 from richard-gledhill/chore/module-layout-regions [`bb08fa6`](https://github.com/richard-gledhill/microfiche/commit/bb08fa6)
