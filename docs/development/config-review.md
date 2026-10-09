@@ -52,7 +52,7 @@ Cautions:
   constructors, so `Classifier` still owns the decision and resolvers only propose.
 - **Calibration must still hold.** The defaults must reproduce today's numbers, so `tests/calibration/`
   keeps passing unchanged.
-- Validate ranges: scores 0-1, fuzzy thresholds 0-100, `max_document_chars` at least 1.
+- Validate ranges: scores 0-1, fuzzy thresholds 0-100, `[ai] max_document_chars` at least 0, where 0 means unlimited and warns once per run.
 
 ## 2. `keep_folders` on by default, and in config
 
@@ -90,8 +90,8 @@ Nothing reads AI config today: `commands.py` hard-codes `LLMClassifier(OllamaPro
 `OpenAIProvider` is unreachable. A TOML entry does nothing without an `AIConfig` model, a
 `build_provider(config)` factory in `core/ai`, and the CLI calling it.
 
-**Tier 1, for the MVP.** `[ai]` with `provider = "ollama" | "openai"`, `model`, `host`, `timeout` and the AI
-score from point 1. This replaces the unbuilt `--ai-provider` task in build-plan Stage 4. API keys never
+**Tier 1, for the MVP.** `[ai]` with `provider = "ollama" | "openai"`, `model`, `host`, `timeout`, the AI
+score from point 1 and `max_document_chars` (0 means unlimited, with a one-per-run warning about token usage, time and the context window). This replaces the unbuilt `--ai-provider` task in build-plan Stage 4. API keys never
 go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a per-run switch or becomes
 `[ai] enabled` is open.
 

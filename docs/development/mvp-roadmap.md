@@ -79,8 +79,8 @@ Ranked by how central they are to the product's core promise, not by ease of imp
 
 Reviewed in [config-review.md](config-review.md), scheduled as
 [Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation), not built. In short: one packaged
-defaults file; the confidence scores, fuzzy thresholds and `max_document_chars` as `[classification]`
-settings; `[sorting] keep_folders` (default on); an `[ai]` section that makes `OpenAIProvider` reachable;
+defaults file; the confidence scores and fuzzy thresholds as `[classification]`
+settings; `[sorting] keep_folders` (default on); an `[ai]` section that makes `OpenAIProvider` reachable and holds `max_document_chars` (0 means unlimited, with a warning);
 and category hints and filing rules moved to `.microfiche/microfiche-library.json`. `library_templates`,
 `levels` and `file_target_level` are unused today and are dropped. Until it lands, the "Future work" items
 below that mention making scores configurable still apply.

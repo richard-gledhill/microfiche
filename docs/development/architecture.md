@@ -278,7 +278,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   longer ignored (as §4 describes today): its documents are filed one by one, and the emptied folder is
   removed and recorded in the job so `rollback` can recreate it. A folder that isn't empty afterwards stays,
   and the report says why.
-* **`[ai]`** names the kind of classifier (a chat model, or from Stage 4.5 a decision model that returns a bounded choice with a probability; see [ai-classifier-options.md](ai-classifier-options.md)), the provider (`ollama` or `openai`), model, host, timeout and score; `core.ai` builds the
+* **`[ai]`** names the kind of classifier (a chat model, or from Stage 4.5 a decision model that returns a bounded choice with a probability; see [ai-classifier-options.md](ai-classifier-options.md)), the provider (`ollama` or `openai`), model, host, timeout, score and `max_document_chars` (how much of a document is sent; `0` means unlimited and prints a warning once per run about token usage, processing time and the model's context window); `core.ai` builds the
   provider from it. A `command` provider (the config names a program to run) is deferred behind a security
   decision.
 

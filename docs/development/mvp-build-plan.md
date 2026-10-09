@@ -194,16 +194,18 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 
 **Design**
 - Design the packaged defaults file and the load order: defaults, then the library's file, deep-merged (tables merge, lists replace), then validated.
-- Design the `[classification]` additions (signal strengths, fuzzy thresholds, `max_document_chars`) with range validation, and how they reach `RulesEngine` and `LLMClassifier` by constructor.
+- Design the `[classification]` additions (signal strengths, fuzzy thresholds) with range validation, and how they reach `RulesEngine` and `LLMClassifier` by constructor.
 - Design `[sorting] keep_folders` (default on) and the CLI precedence: `--keep-folders` or `--keep-folders-off` (passing both is an error), then library config, then packaged default. What the setting does when off is Stage 4.2.
-- Design `[ai]` (provider, model, host, timeout, score, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, Stage 4.5) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
+- Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, Stage 4.5) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
+- Design `[ai] max_document_chars` (how much of a document is sent to the AI): at least 0, where `0` means no limit. An unlimited run prints one warning before any document is classified, never one per document, about token usage, processing time and the model's context window (a longer document may fail or be cut off). The CLI prints it and `core` stays quiet; Stage 4.4 also logs it at WARNING. With `provider = "openai"` the warning also says the cost is real money.
 - Design the `microfiche-library.json` node schema (`name`, `hints`, `rules`, `children`), with category hints global by category name to start with.
 
 **Build**
 - Add `core/defaults/microfiche-config.toml`, load it with `importlib.resources`, and remove the default values from the pydantic models.
-- Move the signal strengths, fuzzy thresholds and `max_document_chars` into `[classification]` and thread them through the constructors.
+- Move the signal strengths and fuzzy thresholds into `[classification]` and thread them through the constructors. `max_document_chars` is read only by the AI, so it goes in `[ai]` instead.
 - Add `[sorting] keep_folders = true` and keep `--keep-folders` as a boolean switch, adding a `--keep-folders-off` switch beside it (no `--no-keep-folders`): `--keep-folders` forces folders on for that run, `--keep-folders-off` forces them off, passing both exits with an error, and passing neither defers to the setting; make `propose-categories` use the setting too.
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
+- Add `[ai] max_document_chars` (default 4000) and make `0` mean unlimited: send the whole document, and print the one-per-run warning designed above.
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it.
 - Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
@@ -214,6 +216,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Write a test that each new setting changes the behaviour it names, using fake resolvers rather than the real rules.
 - Write a CLI test for `keep_folders` precedence: either flag, when passed, over config over default, and passing both is an error.
 - Write tests that `build_provider` returns the provider the config names, and fails with a clear message when the OpenAI key variable is unset.
+- Write tests for `[ai] max_document_chars`: a positive value cuts the text sent, `0` sends the whole document (`content[:0]` would send nothing, so this guards against that slip), a negative value is rejected, and the CLI prints the unlimited warning once per run, not per document, and not when the limit is positive.
 - Re-run `tests/calibration/report.py` and confirm the default threshold's findings still hold; update [calibration.md](calibration.md) if not.
 
 **Deploy**
