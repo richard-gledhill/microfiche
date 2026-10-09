@@ -11,22 +11,6 @@ from typer.testing import CliRunner
 runner = CliRunner()
 
 
-def test_app_help_lists_all_commands() -> None:
-    result = runner.invoke(app, ["--help"])
-
-    assert result.exit_code == 0
-    for command_name in ["sort", "review", "propose-categories", "reclassify", "index", "audit", "rollback", "config"]:
-        assert command_name in result.stdout
-
-
-def test_config_command_shows_defaults_for_an_unconfigured_library(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["config", "--library", str(tmp_path)])
-
-    assert result.exit_code == 0
-    assert "2" in result.stdout  # library_structure.depth default
-    assert "suggest" in result.stdout  # obsidian.tag_mode default
-
-
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
 _PHOENIX_NOTE = "PhoenixArchitectureNotes.md"
 _JOB_LINE = re.compile(r"^Job: (\S+)$", re.MULTILINE)
@@ -56,6 +40,22 @@ def _sort(library: Path) -> str:
     match = _JOB_LINE.search(result.stdout)
     assert match is not None, result.stdout
     return match.group(1)
+
+
+def test_app_help_lists_all_commands() -> None:
+    result = runner.invoke(app, ["--help"])
+
+    assert result.exit_code == 0
+    for command_name in ["sort", "review", "propose-categories", "reclassify", "index", "audit", "rollback", "config"]:
+        assert command_name in result.stdout
+
+
+def test_config_command_shows_defaults_for_an_unconfigured_library(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["config", "--library", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "2" in result.stdout  # library_structure.depth default
+    assert "suggest" in result.stdout  # obsidian.tag_mode default
 
 
 def test_sort_prints_the_job_id_and_how_to_undo_it(tmp_path: Path) -> None:

@@ -27,26 +27,6 @@ _ARCHITECTURE = "Project Phoenix/02 Architecture"
 _REQUIREMENTS = "Project Phoenix/01 Requirements"
 
 
-def test_reclassify_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
-    """Regression test: .microfiche/ is an operational folder, not sortable content.
-
-    Uses the actual shipped default exclusions (microfiche-config.toml [exclusions], not a
-    synthetic one, so this catches a regression in the defaults themselves.
-    """
-
-    (tmp_path / "Project Phoenix" / "01 Requirements").mkdir(parents=True)
-    config_dir = tmp_path / ".microfiche"
-    config_dir.mkdir()
-    (config_dir / "README.md").write_text("Not a project document.", encoding="utf-8")
-    (tmp_path / ".logs").mkdir()
-    (tmp_path / ".logs" / "notes.md").write_text("Not a project document either.", encoding="utf-8")
-
-    config = load_config(_REPO_CONFIG_DIR)
-    proposals = run_reclassify(Library(tmp_path, config=config))
-
-    assert proposals == []
-
-
 def _library(tmp_path: Path) -> Path:
     library = tmp_path / "library"
     shutil.copytree(_MOCK_LIBRARY, library)
@@ -225,6 +205,26 @@ def test_a_destination_taken_after_planning_stops_the_apply_but_keeps_earlier_mo
     blocker.unlink()
     rollback_job(Library(library), job_file.stem.removeprefix("job_"))
     assert _snapshot(library) == before
+
+
+def test_reclassify_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
+    """Regression test: .microfiche/ is an operational folder, not sortable content.
+
+    Uses the actual shipped default exclusions (microfiche-config.toml [exclusions], not a
+    synthetic one, so this catches a regression in the defaults themselves.
+    """
+
+    (tmp_path / "Project Phoenix" / "01 Requirements").mkdir(parents=True)
+    config_dir = tmp_path / ".microfiche"
+    config_dir.mkdir()
+    (config_dir / "README.md").write_text("Not a project document.", encoding="utf-8")
+    (tmp_path / ".logs").mkdir()
+    (tmp_path / ".logs" / "notes.md").write_text("Not a project document either.", encoding="utf-8")
+
+    config = load_config(_REPO_CONFIG_DIR)
+    proposals = run_reclassify(Library(tmp_path, config=config))
+
+    assert proposals == []
 
 
 def test_scope_limits_which_documents_are_considered(tmp_path: Path) -> None:
