@@ -273,8 +273,8 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   keyword hint, AI) and the fuzzy-match thresholds, passed into `RulesEngine` and `LLMClassifier` by
   constructor. `confidence_threshold` keeps its meaning; the shipped values reproduce today's behaviour.
 * **`[sorting] keep_folders`** defaults to `true` (§4 then reads "on by default"); `--keep-folders` stays a
-  boolean switch (no `--no-keep-folders`); passing it overrides the config, and turning folders off is a config
-  setting. With it off (Stage 4.2), an inbox folder is no
+  boolean switch and `--keep-folders-off` is its counterpart (passing both is an error); whichever is passed
+  overrides the config. With it off (Stage 4.2), an inbox folder is no
   longer ignored (as §4 describes today): its documents are filed one by one, and the emptied folder is
   removed and recorded in the job so `rollback` can recreate it. A folder that isn't empty afterwards stays,
   and the report says why.
