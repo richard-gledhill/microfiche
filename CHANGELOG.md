@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - normalize CHANGELOG.md's trailing newline in the changelog workflow [`6f14854`](https://github.com/richard-gledhill/microfiche/commit/6f14854)
 
 ### Documentation
+- :robot: changelog file generated [`9ddd068`](https://github.com/richard-gledhill/microfiche/commit/9ddd068)
 - :robot: changelog file generated [`ad8b5f5`](https://github.com/richard-gledhill/microfiche/commit/ad8b5f5)
 - add "ask before running on defaults" to the MVP roadmap [`466d1f7`](https://github.com/richard-gledhill/microfiche/commit/466d1f7)
 - say that an invalid config stops the run with a message naming each problem (how-to-use.md, mvp-roadmap.md, microfiche/README.md) [`886e789`](https://github.com/richard-gledhill/microfiche/commit/886e789)
@@ -58,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - validate config sections against unknown keys and invalid data [`3b72640`](https://github.com/richard-gledhill/microfiche/commit/3b72640)
 
 ### Chore
+- ignore the IDE-generated .idea/jsonSchemas.xml [`c3571d9`](https://github.com/richard-gledhill/microfiche/commit/c3571d9)
 - ignore the .temp directory for ad hoc local files [`867ceb3`](https://github.com/richard-gledhill/microfiche/commit/867ceb3)
 - exclude CHANGELOG.md from the end-of-file-fixer hook [`8d62963`](https://github.com/richard-gledhill/microfiche/commit/8d62963)
 - bump pre-commit from 4.6.1 to 4.6.2 [`62e61a9`](https://github.com/richard-gledhill/microfiche/commit/62e61a9)
@@ -71,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - unify config-related exception hierarchy and update tests [`e858813`](https://github.com/richard-gledhill/microfiche/commit/e858813)
 
 ### Other
+- Merge pull request #37 from richard-gledhill/chore/ignore-idea-json-schemas [`b8bab81`](https://github.com/richard-gledhill/microfiche/commit/b8bab81)
 - Merge pull request #36 from richard-gledhill/docs/add-development-scratch.md [`80f3b9e`](https://github.com/richard-gledhill/microfiche/commit/80f3b9e)
 - Merge pull request #35 from richard-gledhill/fix/config-validation [`d7fde9a`](https://github.com/richard-gledhill/microfiche/commit/d7fde9a)
 - Merge pull request #34 [`d6a03e8`](https://github.com/richard-gledhill/microfiche/commit/d6a03e8)
