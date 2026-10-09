@@ -180,6 +180,18 @@ class AIConfig(_ConfigSection):
     max_document_chars: int = Field(ge=1)
 
 
+class SortingConfig(_ConfigSection):
+    """How the inbox is sorted.
+
+    Attributes:
+        keep_folders (bool): Whether a folder in the inbox is filed whole, as one unit under its
+            dominant category, rather than being left alone. The ``--keep-folders`` and
+            ``--keep-folders-off`` options override it for one run.
+    """
+
+    keep_folders: bool
+
+
 class MicroficheConfig(_ConfigSection):
     """Configuration container for Microfiche.
 
@@ -201,6 +213,7 @@ class MicroficheConfig(_ConfigSection):
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
         ai (AIConfig): Configuration for the AI fallback.
+        sorting (SortingConfig): Configuration for how the inbox is sorted.
         library_templates (dict[str, list[str]]): Named category sets for a future
             `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
@@ -213,6 +226,7 @@ class MicroficheConfig(_ConfigSection):
     naming_rules: NamingRulesConfig
     classification: ClassificationConfig
     ai: AIConfig
+    sorting: SortingConfig
     library_templates: dict[str, list[str]]
 
 

@@ -35,6 +35,22 @@ def _tree(library: Path) -> set[str]:
     }
 
 
+def _bundle_in_inbox(library: Path) -> Path:
+    """Put the Phoenix note inside an inbox folder, and return that folder."""
+
+    bundle = library / "_sorting" / "bundle"
+    bundle.mkdir()
+    (library / "_sorting" / _PHOENIX_NOTE).rename(bundle / _PHOENIX_NOTE)
+    return bundle
+
+
+def _set_keep_folders(library: Path, value: bool) -> None:
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8") + f"\n[sorting]\nkeep_folders = {str(value).lower()}\n", encoding="utf-8"
+    )
+
+
 def _sort(library: Path) -> str:
     """Run `sort` on ``library`` and return the job id it printed."""
 
@@ -171,6 +187,78 @@ def test_rollback_blocked_by_file_explains_and_retries(tmp_path: Path) -> None:
 
     assert retried.exit_code == 0
     assert _tree(library) == before
+
+
+# endregion
+
+
+# region Keeping inbox folders whole
+
+
+def test_sort_inbox_folder_filed_whole_by_default(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (library / "Project Phoenix" / "02 Architecture" / "bundle" / _PHOENIX_NOTE).exists()
+    assert not bundle.exists()
+
+
+def test_sort_keep_folders_off_in_config_leaves_inbox_folder(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+    _set_keep_folders(library, False)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (bundle / _PHOENIX_NOTE).exists()
+
+
+def test_sort_keep_folders_flag_overrides_config_off(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+    _set_keep_folders(library, False)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders"])
+
+    assert result.exit_code == 0, result.stdout
+    assert not bundle.exists()
+
+
+def test_sort_keep_folders_off_flag_overrides_default(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders-off"])
+
+    assert result.exit_code == 0, result.stdout
+    assert (bundle / _PHOENIX_NOTE).exists()
+
+
+def test_sort_both_keep_folders_flags_fail_without_sorting(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders", "--keep-folders-off"])
+
+    assert result.exit_code == 1
+    assert "--keep-folders" in result.stdout
+    assert "--keep-folders-off" in result.stdout
+    assert _tree(library) == before
+
+
+def test_propose_categories_uses_keep_folders_setting(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _bundle_in_inbox(library)
+    _set_keep_folders(library, False)
+
+    result = runner.invoke(app, ["propose-categories", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "PhoenixArchitectureNotes" not in result.stdout  # the folder's document is not read
 
 
 # endregion

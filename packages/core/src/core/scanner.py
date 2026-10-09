@@ -10,7 +10,7 @@ from core.models.unit import SortableUnit
 from core.parsers import is_supported, read_documents
 
 
-def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[SortableUnit]:
+def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) -> list[SortableUnit]:
     """Scan the library's inbox and return the units ready for classification.
 
     The inbox is ``library.inbox`` (``_sorting`` unless the config's
@@ -20,12 +20,13 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[
     ``unreadable`` list, so the unit is left for review rather than the whole run failing.
 
     Loose supported files become single-document units. Sub-folders are only descended into
-    (and kept whole as one unit) when ``keep_folders`` is True and they contain at least one
+    (and kept whole as one unit) when keeping folders is on and they contain at least one
     file with a supported extension; otherwise they're left alone for the user to handle manually.
 
     Args:
         library: The library whose inbox to scan.
-        keep_folders: Whether to include folders with supported files as sortable units.
+        keep_folders: Whether to include folders with supported files as sortable units. ``None``
+            (the default) uses the library's ``[sorting] keep_folders`` setting.
 
     Returns:
         The ``SortableUnit`` objects for the files and, optionally, folders in the inbox.
@@ -34,12 +35,13 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool = False) -> list[
     Todo:
         - Raise warning for handle empty sorting inbox directory.
         - Recursive inbox folders.
-        - Review keep_folders option. Should it default to True by default?
     """
 
     inbox = library.inbox
     if not inbox.exists():
         return []
+    if keep_folders is None:
+        keep_folders = library.config.sorting.keep_folders
 
     units: list[SortableUnit] = []
     for entry in sorted(inbox.iterdir()):

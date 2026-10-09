@@ -69,7 +69,7 @@ def test_scan_sorting_inbox_folders_ignored_unless_kept_whole(tmp_path: Path) ->
     _write(tmp_path / "_sorting" / "bundle" / "one.md")
     _write(tmp_path / "_sorting" / "bundle" / "two.md")
 
-    assert scan_sorting_inbox(Library(tmp_path)) == []
+    assert scan_sorting_inbox(Library(tmp_path), keep_folders=False) == []
 
     (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
     assert unit.kind == "folder"
@@ -133,6 +133,37 @@ def test_scan_sorting_inbox_all_unreadable_folder_still_unit(tmp_path: Path) -> 
 
     assert unit.documents == []
     assert [u.file_path.name for u in unit.unreadable] == ["bad.docx"]
+
+
+def _set_keep_folders(library: Path, value: bool) -> None:
+    (library / ".microfiche").mkdir(exist_ok=True)
+    (library / ".microfiche" / "microfiche-config.toml").write_text(
+        f"[sorting]\nkeep_folders = {str(value).lower()}\n", encoding="utf-8"
+    )
+
+
+def test_scan_sorting_inbox_keep_folders_defaults_to_library_setting_on(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path))
+
+    assert unit.kind == "folder"
+
+
+def test_scan_sorting_inbox_keep_folders_off_in_library_config_leaves_folders(tmp_path: Path) -> None:
+    _set_keep_folders(tmp_path, False)
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+
+    assert scan_sorting_inbox(Library(tmp_path)) == []
+
+
+def test_scan_sorting_inbox_keep_folders_argument_overrides_library_setting(tmp_path: Path) -> None:
+    _set_keep_folders(tmp_path, False)
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
+
+    assert unit.kind == "folder"
 
 
 def test_scan_sorting_inbox_folder_unsupported_files_ignored(tmp_path: Path) -> None:

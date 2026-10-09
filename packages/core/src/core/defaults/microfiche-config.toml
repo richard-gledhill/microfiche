@@ -27,6 +27,10 @@ ai_confidence = 0.70
 # How much of a document's text is sent to the AI.
 max_document_chars = 4000
 
+[sorting]
+# File a folder dropped in the inbox whole, under its dominant category. Off leaves folders alone.
+keep_folders = true
+
 [exclusions]
 exclude = []
 

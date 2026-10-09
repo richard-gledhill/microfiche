@@ -44,7 +44,14 @@ _SCOPE_OPTION = typer.Option(None, "--scope")
 def sort(
     library: Path = _LIBRARY_OPTION,
     keep_folders: bool = typer.Option(
-        False, "--keep-folders", help="Sort whole folders from the inbox intact, filed by dominant category."
+        False,
+        "--keep-folders",
+        help="Sort whole folders from the inbox intact, filed by dominant category, for this run.",
+    ),
+    keep_folders_off: bool = typer.Option(
+        False,
+        "--keep-folders-off",
+        help="Leave folders in the inbox alone for this run, whatever the library's keep_folders setting says.",
     ),
     use_ai: bool = typer.Option(
         False, "--use-ai", help="Fall back to a local Ollama model for classifications the rules engine can't resolve."
@@ -52,9 +59,13 @@ def sort(
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
+    if keep_folders and keep_folders_off:
+        _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library)
     ai_classifier = LLMClassifier(OllamaProvider(), opened.config.ai) if use_ai else None
-    report = run_sort(opened, keep_folders=keep_folders, ai_classifier=ai_classifier)
+    report = run_sort(
+        opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
+    )
     render_sort_report(console, report)
 
 
@@ -71,7 +82,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
     Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-    units = scan_sorting_inbox(_open_library(library), keep_folders=True)
+    units = scan_sorting_inbox(_open_library(library))
     documents = [document for unit in units for document in unit.documents]
     suggestions = suggest_categories(documents)
     if not suggestions:
@@ -167,6 +178,14 @@ def _open_library(path: Path) -> Library:
     except ConfigError as err:
         _fail(str(err))
     return library
+
+
+def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool | None:
+    """What the keep-folders options say for this run: on, off, or ``None`` to use the library's setting."""
+
+    if keep_folders:
+        return True
+    return False if keep_folders_off else None
 
 
 def _fail(message: str) -> NoReturn:

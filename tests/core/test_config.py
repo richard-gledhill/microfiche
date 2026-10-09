@@ -16,6 +16,7 @@ from core.config import (
     MicroficheConfig,
     NamingRulesConfig,
     ObsidianConfig,
+    SortingConfig,
     TomlConfigParseError,
     load_config,
 )
@@ -37,6 +38,7 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("naming_rules", NamingRulesConfig),
     ("classification", ClassificationConfig),
     ("ai", AIConfig),
+    ("sorting", SortingConfig),
 ]
 
 
@@ -233,6 +235,23 @@ def test_ai_config_confidence_out_of_range_rejected(value: float) -> None:
 def test_ai_config_max_document_chars_below_one_rejected() -> None:
     with pytest.raises(ValidationError, match="max_document_chars"):
         _ai(max_document_chars=0)
+
+
+def test_load_config_keep_folders_defaults_on() -> None:
+    assert load_config(Path("does-not-exist")).sorting.keep_folders is True
+
+
+def test_load_config_keep_folders_off_in_library_config(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[sorting]\nkeep_folders = false\n", encoding="utf-8")
+
+    assert load_config(tmp_path).sorting.keep_folders is False
+
+
+def test_load_config_keep_folders_not_a_boolean_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[sorting]\nkeep_folders = "perhaps"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"sorting.keep_folders"):
+        load_config(tmp_path)
 
 
 def test_load_config_shipped_library_templates_loaded() -> None:
