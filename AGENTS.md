@@ -171,9 +171,32 @@ it becomes a unit (or proposal) left for review, with the reason.
 - `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
   just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
 
+**Module layout**
+- Order a module like this, omitting what it doesn't have:
+  1. Module docstring.
+  2. Imports: `from __future__`, then standard library, third-party, local (`ruff` sorts them).
+  3. Module dunders (`__all__`, `__version__`). These go after the imports, unlike PEP 8, which puts them
+     before; it matches `cli/app.py` and `parsers/__init__.py`.
+  4. Constants and types: constants, type aliases, `TypeVar`s, `Protocol`s and plain data models (dataclasses,
+     Pydantic). Code further down uses them in signatures.
+  5. Errors: custom exceptions.
+  6. Public API: the functions and classes other modules import. High up, so a reader sees what the module offers first.
+  7. Helpers: `_`-prefixed, module-private functions, kept last as implementation detail.
+- Order matters only for names used at import time (constants, decorators, default arguments, class bodies):
+  those must be defined above their use. A function body can call a helper defined below it.
+- In a module of about 150+ lines with at least three of sections 4-7, wrap each in `# region <name>` ...
+  `# endregion` (PyCharm and VS Code fold them), using exactly these names: `Constants and types`, `Errors`,
+  `Public API`, `Helpers`. Shorter modules get no regions. Don't use `# ---` divider comments.
+- A test file mirrors its module. It opens with a `Test helpers` region (shared constants, builders, fakes,
+  fixtures; a helper used by one section stays in that section). Then come regions in the module's order with
+  the module's names. Inside `Public API`, nest one region per function or class under test, or per behaviour
+  when one class has many tests. If the module has no regions, use one top-level region per function, class or
+  behaviour. Keep a decorator (`@pytest.mark.parametrize`) with its test, never a region marker between them.
+
 **Tests**
 - Use `tmp_path` and `Library(path)`; copy `tests/mock_library` for integration tests. Use fake
   resolvers/providers: no network or Ollama in the suite.
+- Lay test files out as described under Module layout.
 
 **Docs**
 - User docs track the CLI: any change to a command, an option, or a command's status in
