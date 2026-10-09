@@ -14,7 +14,7 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 | `library_structure` | Depth of the group/category hierarchy (default: 2 levels), and `library_inbox`, the inbox folder name (default `"_sorting"`). |
 | `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category, or leave it alone. `sort --keep-folders-off` and `--keep-folders` override it for one run. |
 | `classification` | `confidence_threshold` (default 0.75): how sure microfiche must be to file without review. `name_match_confidence` (0.9), `filename_match_confidence` (0.95) and `hint_match_confidence` (0.75): how sure each kind of match is. `fuzzy_group_threshold` (0–100, default 85): how close a near-miss must be to a group's name. |
-| `ai` | `ai_confidence` (0–1, default 0.70): how sure any AI-fallback answer is. `max_document_chars` (default 4000): how much of a document's text is sent to the AI. |
+| `ai` | `provider` (`"ollama"` or `"openai"`), `model`, `host`, `timeout` and `api_key_env` (the name of the variable holding the OpenAI key). `ai_confidence` (0–1, default 0.70): how sure any AI-fallback answer is. `max_document_chars` (default 4000; `0` = all of it, with a warning): how much of a document's text is sent. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `category_hints` | Keyword hints per *existing* category name, under `[category_hints.categories]` — not the category list itself. |
 | `filing_rules` | Filename-glob rules, checked before keyword hints. |

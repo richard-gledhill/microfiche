@@ -21,14 +21,12 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 ## Cross-cutting feature status
 
-- **AI fallback** — Ollama is wired via `--use-ai` (`cli/commands.py`), applied per stage by
-  `Classifier`. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
+- **AI fallback** — wired via `--use-ai` (`cli/commands.py`), applied per stage by `Classifier`. The `[ai]`
+  section picks the provider (`ollama` or `openai`), model, host, timeout and the OpenAI key variable;
+  `core.ai.factory.build_provider` builds it, and `sort` says when document text goes to OpenAI. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
   review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file. Measured at
   98% precision on one local model (see [calibration.md](calibration.md)), but only consulted where
   the rules are unsure, so it adds little as built.
-  `OpenAIProvider`
-  (`core/ai/openai_provider.py`) is fully implemented but never imported anywhere else —
-  unreachable from the CLI despite `core`'s `ai` extra advertising `openai` support.
 - **Obsidian tag governance** (`tag_index.py`, `tag_mapper.py`) — implemented, unit-tested,
   not called from the sort pipeline.
 - **Naming rules** (`library/naming.py`) — wired; `filer.py` applies them before filing.

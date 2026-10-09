@@ -321,6 +321,43 @@ Ollama server):
     uv run microfiche sort --library "$HOME\Documents\Library" --use-ai
     ```
 
+`--use-ai` asks the AI named in the `[ai]` section of the library's config. The default is a local
+Ollama model; nothing leaves your machine. These are the settings, with their defaults:
+
+```toml
+[ai]
+provider = "ollama"               # "ollama" or "openai"
+model = ""                        # empty = the provider's own default model
+host = ""                         # Ollama only; empty = Ollama's default address
+timeout = 120                     # seconds to wait for one answer
+api_key_env = "OPENAI_API_KEY"    # the NAME of the variable holding your OpenAI key
+ai_confidence = 0.70              # how sure any AI answer is
+max_document_chars = 4000         # how much of each document is sent; 0 = all of it
+```
+
+**Using OpenAI instead.** Set `provider = "openai"` and put your key in the environment variable named
+by `api_key_env`, not in the file (microfiche refuses a value that looks like a key). This sends the
+text of every document the AI is asked about to OpenAI, so `sort` says so each time it runs. If the
+variable is not set, `sort` stops with a message naming it before anything is moved.
+
+=== "Bash"
+
+    ```bash
+    export OPENAI_API_KEY="your key"
+    uv run microfiche sort --library ~/Documents/Library --use-ai
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    $env:OPENAI_API_KEY = "your key"
+    uv run microfiche sort --library "$HOME\Documents\Library" --use-ai
+    ```
+
+**Sending whole documents.** `max_document_chars = 0` removes the limit. That uses more tokens
+(and with OpenAI, costs more) and takes longer, and a document longer than the model's context window
+may fail or be cut off, so `sort` prints a warning once before it starts.
+
 ## 4. Maintain the library
 
 Suggest new category names based on what's in the inbox (prints suggestions only — never creates
@@ -425,7 +462,7 @@ same command again):
 
 microfiche is pre-release. At the moment:
 
-- `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
+- `reclassify` doesn't use the AI fallback; it only applies the rule-based classifier.
 - At the default confidence threshold, documents matched only by the AI fallback are left for
   review, so `--use-ai` only suggests until you lower the threshold to `0.7`. See
   [How sure microfiche has to be](#how-sure-microfiche-has-to-be).
