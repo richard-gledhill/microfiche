@@ -8,9 +8,18 @@ Internal planning/design docs — not published to the user-facing docs site (se
 - **[mvp-roadmap.md](mvp-roadmap.md)** — current. What's done/partial/stub per CLI command and
   feature, and the prioritized list of what's actually blocking MVP.
 - **[mvp-build-plan.md](mvp-build-plan.md)** — current. A staged, from-scratch process for
-  building to MVP (six stages, each Plan/Design/Build/Test/Deploy), written to be dropped
+  building to MVP (six stages plus interim stages 4.1 to 4.5, each Plan/Design/Build/Test/Deploy), written to be dropped
   into a GitHub Project. A different lens than `mvp-roadmap.md`: process/sequencing rather
   than status.
+- **[config-review.md](config-review.md)** — planned work. A review of the configuration: which hard-coded
+  constants should become settings, `keep_folders`, a packaged defaults file, AI settings, and moving category
+  hints out of the TOML into a library JSON file. Feeds Stage 4.1 of the build plan.
+- **[operations-review.md](operations-review.md)** — planned work. A review of robustness and diagnostics against
+  typical CLI file-organiser practice: name collisions, failure isolation, `sort --dry-run`, a run lock, logging,
+  release packaging. Feeds Stages 4.2 to 4.4 and Stage 6 of the build plan.
+- **[ai-classifier-options.md](ai-classifier-options.md)** — planned work. Chat-model versus decision-model
+  classifiers for the AI fallback, the candidates (Jev, Clef, Nimble, none yet verified) and the rules for adopting
+  one. Feeds Stage 4.5 of the build plan.
 - **[calibration.md](calibration.md)** — current. How the default confidence threshold was measured: the
   corpus and harness in `tests/calibration/`, the results, what they mean, and how to repeat them on your
   own documents.

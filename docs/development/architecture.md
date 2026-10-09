@@ -244,8 +244,44 @@ No database, no vector store, no semantic search in this MVP — `ai/` is a fall
 resolution and for `propose-categories --use-ai`, not a always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
 
+## 10. Configuration layout (planned, Stage 4.1)
+
+**Not built yet.** §1-§9 describe what exists; this section is the target for
+[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation). The reasoning for each point is in
+[config-review.md](config-review.md).
+
+```
+core/defaults/microfiche-config.toml   # packaged defaults, the only source of default values
+<library>/.microfiche/microfiche-config.toml   # the library's overrides, deep-merged over the defaults
+<library>/.microfiche/microfiche-library.json  # this library's category hints and filing rules (data, not settings)
+```
+
+* **Defaults live in one packaged file.** The loader reads it, deep-merges the library's file over it (tables
+  merge key by key, lists replace), then validates. The pydantic models no longer carry default values. This
+  replaces today's two sources (the models and the repo-root `microfiche/` template), which already disagree.
+* **Settings and data are separate.** `microfiche-config.toml` holds behaviour only. `category_hints` and
+  `filing_rules` move to `microfiche-library.json`, a recursive `{name, hints, rules, children}` node format
+  with a generated JSON Schema. Hints still only match folders that already exist (§1); they never define
+  the taxonomy. `naming_rules` stays in the TOML.
+* **Depth is the only structural setting in the config.** `[library_structure] depth` stays and is validated
+  as 2; `levels` and `file_target_level` are dropped (`levels` moves to the JSON if it is kept at all).
+  `library_templates` is dropped until an `init` command exists; a template catalog would reuse the library
+  file's node schema.
+* **Scores and thresholds are config.** `[classification]` gains the signal strengths (name, filename rule,
+  keyword hint, AI) and the fuzzy-match thresholds, passed into `RulesEngine` and `LLMClassifier` by
+  constructor. `confidence_threshold` keeps its meaning; the shipped values reproduce today's behaviour.
+* **`[sorting] keep_folders`** defaults to `true` (§4 then reads "on by default"); `--keep-folders` becomes
+  `--keep-folders/--no-keep-folders`, and the flag overrides the config. With it off (Stage 4.2), an inbox folder is no
+  longer ignored (as §4 describes today): its documents are filed one by one, and the emptied folder is
+  removed and recorded in the job so `rollback` can recreate it. A folder that isn't empty afterwards stays,
+  and the report says why.
+* **`[ai]`** names the kind of classifier (a chat model, or from Stage 4.5 a decision model that returns a bounded choice with a probability; see [ai-classifier-options.md](ai-classifier-options.md)), the provider (`ollama` or `openai`), model, host, timeout and score; `core.ai` builds the
+  provider from it. A `command` provider (the config names a program to run) is deferred behind a security
+  decision.
+
 ## See also
 
+- [config-review.md](config-review.md) — why the configuration is being reorganised, and what was weighed.
 - [mvp-roadmap.md](mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
 - [data-model.md](data-model.md) — the ledger/`AuditEvent`/`Job`/`audit.log` schemas as actually implemented.
 - [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to this design.

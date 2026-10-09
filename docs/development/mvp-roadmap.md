@@ -75,6 +75,26 @@ Ranked by how central they are to the product's core promise, not by ease of imp
    rather than shipping as a stub that exits 1? This doc surfaces the question; the
    maintainer decides.
 
+## Planned: configuration consolidation (Stage 4.1)
+
+Reviewed in [config-review.md](config-review.md), scheduled as
+[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation), not built. In short: one packaged
+defaults file; the confidence scores, fuzzy thresholds and `max_document_chars` as `[classification]`
+settings; `[sorting] keep_folders` (default on); an `[ai]` section that makes `OpenAIProvider` reachable;
+and category hints and filing rules moved to `.microfiche/microfiche-library.json`. `library_templates`,
+`levels` and `file_target_level` are unused today and are dropped. Until it lands, the "Future work" items
+below that mention making scores configurable still apply.
+
+Three further steps follow it, from [operations-review.md](operations-review.md); none is built:
+[Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) (a name collision sends the unit to
+review instead of crashing `sort`; `--no-keep-folders` files a folder's documents one by one and handles the
+emptied folder), [Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) (`sort --dry-run`, a run
+lock, per-unit failure isolation, symlink and size limits) and
+[Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) (logging, `--verbose`/`--quiet`, progress) and
+[Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as
+Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
+calibration corpus; see [ai-classifier-options.md](ai-classifier-options.md)).
+
 ## Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
@@ -112,6 +132,20 @@ Pulled forward from `architecture.md` §9 so it isn't confused with an unplanned
 database, no vector store, no semantic search. `ai/` stays a fallback path for group/category
 resolution and `propose-categories --use-ai`, not an always-on classification pass. ChromaDB,
 RAG, and knowledge-graph work are future-roadmap items, not MVP scope.
+
+Also postponed, after the review in [operations-review.md](operations-review.md):
+
+- **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
+- **Duplicate detection.** The ledger already hashes content and has a `same_content` lookup, so this should be a small follow-up.
+- **Renaming on collision** (a suffix setting). Collisions go to review instead.
+- **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche.
+- **Watch mode**, a daemon that sorts as files arrive.
+- **`--json` output** for scripting.
+- **Rotation or compaction** of the append-only ledger and `audit.log`.
+- **Structured (JSON) log output** and log shipping.
+- **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
+- **Telemetry:** none, and none is planned.
+- **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](ai-classifier-options.md)).
 
 ## See also
 
