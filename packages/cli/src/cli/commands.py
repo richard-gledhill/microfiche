@@ -26,12 +26,19 @@ from rich.markup import escape
 
 from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
 
+# region Constants and types
+
 console = Console()
 
 _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, help="Path to the library root.")
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
 _SCOPE_OPTION = typer.Option(None, "--scope")
+
+# endregion
+
+
+# region Public API
 
 
 def sort(
@@ -144,6 +151,12 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
     console.print(f"Reverted {len(job.moves)} move(s) from job {job_id}.", soft_wrap=True)
 
 
+# endregion
+
+
+# region Helpers
+
+
 def _open_library(path: Path) -> Library:
     """Open the library at ``path``, loading its config now so an invalid one stops the command up front."""
 
@@ -160,3 +173,6 @@ def _fail(message: str) -> NoReturn:
 
     console.print(f"[red]{escape(message)}[/red]", soft_wrap=True)
     raise typer.Exit(code=1)
+
+
+# endregion

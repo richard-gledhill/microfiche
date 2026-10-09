@@ -29,9 +29,16 @@ from core.models.unit import SortableUnit
 from core.utils.filesystem import ensure_dir, safe_move
 from core.utils.hashing import unit_hash
 
+# region Constants and types
+
 AUDIT_LOG_FILENAME = "audit.log"
 _ROLLBACK_DIRNAME = "rollback"
 _JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+# endregion
+
+
+# region Errors
 
 
 class UnresolvedClassificationError(ValueError):
@@ -67,6 +74,12 @@ class JobMoveMissingError(FileNotFoundError):
     def __init__(self, event: AuditEvent) -> None:
         self.event = event
         super().__init__(f"Cannot roll back: '{event.new_path}' is gone and '{event.original_path}' does not exist")
+
+
+# endregion
+
+
+# region Public API
 
 
 def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationResult]]) -> Job | None:
@@ -227,6 +240,12 @@ def save_job(state_dir: Path, job: Job) -> Path:
     return job_path
 
 
+# endregion
+
+
+# region Helpers
+
+
 def _file_unit(
     unit: SortableUnit,
     classification: ClassificationResult,
@@ -295,3 +314,6 @@ def _new_job_id() -> str:
     """A sortable, unique, filename-safe id like ``20261004-153012-a1b2c3``."""
 
     return f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
+
+
+# endregion

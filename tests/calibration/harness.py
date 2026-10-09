@@ -296,7 +296,7 @@ def format_report(cases: Sequence[Case], default_threshold: float) -> str:
     return "\n".join(lines)
 
 
-# --- formatting -------------------------------------------------------------------------------------
+# region Helpers
 
 
 def _threshold_table(cases: Sequence[Case], default_threshold: float) -> str:
@@ -367,3 +367,6 @@ def _category_signal(reason: str) -> str:
     if reason.startswith("Keyword hint"):
         return "hint"
     return "none"
+
+
+# endregion

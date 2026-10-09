@@ -20,6 +20,8 @@ from core.models.unit import SortableUnit
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD, combine_confidence
 from core.rules.rules_engine import RulesEngine
 
+# region Constants and types
+
 Match = TypeVar("Match", GroupMatch, CategoryMatch)
 
 
@@ -41,6 +43,12 @@ class Resolver(Protocol):
         """Propose which category of ``group`` ``document`` belongs to (``name=None`` if it can't tell)."""
 
         ...
+
+
+# endregion
+
+
+# region Public API
 
 
 class Classifier:
@@ -204,6 +212,12 @@ class Classifier:
         return "+".join(resolver.name for resolver in used)
 
 
+# endregion
+
+
+# region Helpers
+
+
 def _known_group(match: GroupMatch, taxonomy: Taxonomy) -> GroupMatch:
     """``match``, or an unresolved match if it names a group that isn't in the taxonomy."""
 
@@ -254,3 +268,6 @@ def _tied_vote(leaders: Sequence[tuple[tuple[str | None, str | None], int]]) -> 
         classified_by="folder_vote",
         confident=False,
     )
+
+
+# endregion

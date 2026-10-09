@@ -55,6 +55,11 @@ Docstrings follow [Google style](https://google.github.io/styleguide/pyguide.htm
 (`Args:`, `Returns:`, `Raises:` sections) — `mkdocstrings` renders them accordingly, so keep
 new docstrings consistent with that convention.
 
+Longer modules (about 150+ lines) follow a fixed order — constants and types, errors, public API, then
+private helpers — with each section wrapped in `# region` / `# endregion` so PyCharm and VS Code can fold it.
+A test file mirrors its module's sections. The full rules are under "Module layout" in
+[AGENTS.md](https://github.com/richard-gledhill/microfiche/blob/main/AGENTS.md#conventions).
+
 1. Fork the `microfiche` repo on GitHub.
 
 2. Clone your fork locally and set up the environment:

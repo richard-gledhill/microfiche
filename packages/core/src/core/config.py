@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
+# region Constants and types
+
 CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
@@ -30,14 +32,6 @@ class _ConfigSection(BaseModel):
     """
 
     model_config = ConfigDict(extra="forbid")
-
-
-class InvalidInboxNameError(ValueError):
-    """Raised when ``library_inbox`` isn't a usable folder name."""
-
-    def __init__(self, value: str, reason: str) -> None:
-        self.value = value
-        super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
 
 
 class LibraryStructureConfig(_ConfigSection):
@@ -197,6 +191,20 @@ class MicroficheConfig(_ConfigSection):
     library_templates: dict[str, list[str]] = Field(default_factory=dict)
 
 
+# endregion
+
+
+# region Errors
+
+
+class InvalidInboxNameError(ValueError):
+    """Raised when ``library_inbox`` isn't a usable folder name."""
+
+    def __init__(self, value: str, reason: str) -> None:
+        self.value = value
+        super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
+
+
 class ConfigError(ValueError):
     """The library's configuration can't be used; the message says why and where."""
 
@@ -207,6 +215,48 @@ class TomlConfigParseError(ConfigError):
     def __init__(self, path: Path | str, error: Exception | str) -> None:
         super().__init__(f"Config file error: Failed to parse TOML configuration at {path}: {error}")
         self.path = Path(path)
+
+
+# endregion
+
+
+# region Public API
+
+
+def load_config(config_path: Path) -> MicroficheConfig:
+    """Load the library's configuration from ``config_path`` into a ``MicroficheConfig``.
+
+    A missing file, or a missing section, falls back to the defaults. Anything that is present is
+    validated, so a mistyped section or setting, or a value of the wrong type, is an error rather
+    than being silently ignored.
+
+    Args:
+        config_path: The folder holding ``microfiche-config.toml`` (a library's ``.microfiche/``
+            folder), or the path of a config file itself.
+
+    Returns:
+        The validated configuration.
+
+    Raises:
+        TomlConfigParseError: If the file is not valid TOML.
+        ConfigError: If the file is valid TOML but not a valid configuration. The message names
+            the file and every setting that is wrong.
+    """
+
+    target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
+
+    config = _load_toml(target_file)
+
+    try:
+        return MicroficheConfig.model_validate(config)
+    except ValidationError as err:
+        raise ConfigError(_describe_errors(target_file, err)) from err
+
+
+# endregion
+
+
+# region Helpers
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -262,31 +312,4 @@ def _describe_errors(target_file: Path, err: ValidationError) -> str:
     return "\n".join(lines)
 
 
-def load_config(config_path: Path) -> MicroficheConfig:
-    """Load the library's configuration from ``config_path`` into a ``MicroficheConfig``.
-
-    A missing file, or a missing section, falls back to the defaults. Anything that is present is
-    validated, so a mistyped section or setting, or a value of the wrong type, is an error rather
-    than being silently ignored.
-
-    Args:
-        config_path: The folder holding ``microfiche-config.toml`` (a library's ``.microfiche/``
-            folder), or the path of a config file itself.
-
-    Returns:
-        The validated configuration.
-
-    Raises:
-        TomlConfigParseError: If the file is not valid TOML.
-        ConfigError: If the file is valid TOML but not a valid configuration. The message names
-            the file and every setting that is wrong.
-    """
-
-    target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
-
-    config = _load_toml(target_file)
-
-    try:
-        return MicroficheConfig.model_validate(config)
-    except ValidationError as err:
-        raise ConfigError(_describe_errors(target_file, err)) from err
+# endregion

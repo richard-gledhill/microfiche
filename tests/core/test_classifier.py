@@ -17,6 +17,9 @@ ARCH = "02 Architecture"
 TAXONOMY = Taxonomy(groups={PHOENIX: [REQS, ARCH], ATLAS: [REQS, ARCH]})
 
 
+# region Test helpers
+
+
 def _document(text: str = "text", file_name: str = "doc.md") -> Document:
     return Document(file_path=Path(file_name), file_name=file_name, extension=".md", content=text)
 
@@ -63,7 +66,13 @@ class PerDocumentResolver:
         return self._answers[document.file_name][1]
 
 
-# --- the happy path and the threshold --------------------------------------------------------
+# endregion
+
+
+# region Public API
+
+
+# region Happy path and threshold
 
 
 def test_a_confident_rules_answer_is_used_and_the_fallback_is_never_asked() -> None:
@@ -119,7 +128,10 @@ def test_the_threshold_is_exposed() -> None:
     assert Classifier(FakeResolver("r", _group(None), _category(None)), threshold=0.5).threshold == 0.5
 
 
-# --- per-stage AI fallback --------------------------------------------------------------------
+# endregion
+
+
+# region Per-stage AI fallback
 
 
 def test_a_confident_rules_group_is_kept_and_the_ai_is_asked_only_for_the_category() -> None:
@@ -197,7 +209,10 @@ def test_the_category_stage_is_skipped_when_no_group_resolves() -> None:
     assert result.overall_confidence == 0.0
 
 
-# --- the taxonomy is enforced whoever answers --------------------------------------------------
+# endregion
+
+
+# region Taxonomy enforced whoever answers
 
 
 def test_a_category_that_is_not_in_the_group_is_rejected() -> None:
@@ -230,7 +245,10 @@ def test_a_rejected_rules_category_lets_the_ai_try() -> None:
     assert result.classified_by == "rules_engine+ai_fallback"
 
 
-# --- folder units -----------------------------------------------------------------------------
+# endregion
+
+
+# region Folder units
 
 
 def _unit(names: list[str]) -> SortableUnit:
@@ -362,7 +380,10 @@ def test_a_folders_result_carries_the_classifiers_threshold_decision(threshold: 
     assert result.confident is (threshold <= 0.9)
 
 
-# --- units with nothing readable ---------------------------------------------------------------
+# endregion
+
+
+# region Units with nothing readable
 
 
 def _unreadable(name: str, reason: str = "PackageNotFoundError: not a zip") -> UnreadableDocument:
@@ -423,3 +444,9 @@ def test_unreadable_files_in_a_folder_do_not_vote_and_do_not_block_classificatio
     result = classifier.classify_unit(unit, TAXONOMY)
 
     assert (result.group.name, result.category.name) == (PHOENIX, ARCH)
+
+
+# endregion
+
+
+# endregion

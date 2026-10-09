@@ -13,21 +13,14 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+# region Constants and types
 
-def _format_value(value: object) -> str:
-    if isinstance(value, dict):
-        return ", ".join(f"{key}={_format_value(item)}" for key, item in value.items()) if value else "—"
-    if isinstance(value, list):
-        return ", ".join(str(item) for item in value) if value else "—"
-    return str(value)
+_ACTION_STYLES = {"move": "green", "keep": "dim", "review": "yellow", "conflict": "red"}
+
+# endregion
 
 
-def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tuple[str, Any]]:
-    """The ``(name, value)`` pairs of a config model, or of a plain dict setting."""
-
-    if isinstance(value, Mapping):
-        return list(value.items())
-    return list(value)
+# region Public API
 
 
 def render_config(console: Console, config: MicroficheConfig) -> None:
@@ -86,14 +79,6 @@ def render_sort_report(console: Console, report: SortReport) -> None:
         )
     if report.job is not None:
         _render_job(console, report.job)
-
-
-def _render_job(console: Console, job: Job) -> None:
-    console.print(f"Job: {job.job_id}", soft_wrap=True)
-    console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
-
-
-_ACTION_STYLES = {"move": "green", "keep": "dim", "review": "yellow", "conflict": "red"}
 
 
 def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal], *, dry_run: bool) -> None:
@@ -161,3 +146,33 @@ def render_reclassify_result(
             console.print("Re-run with --apply to move these files.")
     elif job is not None:
         _render_job(console, job)
+
+
+# endregion
+
+
+# region Helpers
+
+
+def _format_value(value: object) -> str:
+    if isinstance(value, dict):
+        return ", ".join(f"{key}={_format_value(item)}" for key, item in value.items()) if value else "—"
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value) if value else "—"
+    return str(value)
+
+
+def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tuple[str, Any]]:
+    """The ``(name, value)`` pairs of a config model, or of a plain dict setting."""
+
+    if isinstance(value, Mapping):
+        return list(value.items())
+    return list(value)
+
+
+def _render_job(console: Console, job: Job) -> None:
+    console.print(f"Job: {job.job_id}", soft_wrap=True)
+    console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
+
+
+# endregion

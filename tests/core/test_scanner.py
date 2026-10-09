@@ -5,11 +5,19 @@ from pathlib import Path
 from core.library.library import Library
 from core.scanner import scan_sorting_inbox
 
+# region Test helpers
+
 
 def _write(path: Path, text: str = "content") -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
     return path
+
+
+# endregion
+
+
+# region Scanning the inbox
 
 
 def test_loose_supported_files_in_the_default_inbox_become_units(tmp_path: Path) -> None:
@@ -75,7 +83,10 @@ def test_a_folder_with_no_supported_files_is_not_a_unit(tmp_path: Path) -> None:
     assert scan_sorting_inbox(Library(tmp_path), keep_folders=True) == []
 
 
-# --- files that can't be read ------------------------------------------------------------------
+# endregion
+
+
+# region Files that can't be read
 
 
 def _corrupt(path: Path) -> Path:
@@ -132,3 +143,6 @@ def test_unsupported_files_inside_a_folder_are_neither_documents_nor_unreadable(
 
     assert [document.file_name for document in unit.documents] == ["good.md"]
     assert unit.unreadable == []
+
+
+# endregion

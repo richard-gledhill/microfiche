@@ -20,6 +20,9 @@ from core.models.document import Document
 from core.models.unit import SortableUnit
 from core.utils.hashing import file_hash, unit_hash
 
+# region Test helpers
+
+
 GROUP = "Project Phoenix"
 REQUIREMENTS = "01 Requirements"
 ARCHITECTURE = "02 Architecture"
@@ -67,6 +70,15 @@ def _snapshot(library: Path) -> dict[str, str]:
         for path in sorted(library.rglob("*"))
         if path.is_file() and ".microfiche" not in path.relative_to(library).parts
     }
+
+
+# endregion
+
+
+# region Public API
+
+
+# region file_batch
 
 
 def test_file_batch_moves_each_unit_to_its_group_and_category(tmp_path: Path) -> None:
@@ -200,6 +212,12 @@ def test_a_destination_collision_keeps_earlier_moves_in_a_saved_job_that_can_be_
     assert _snapshot(library) == before
 
 
+# endregion
+
+
+# region rollback_job
+
+
 def test_rollback_restores_the_exact_pre_sort_tree(tmp_path: Path) -> None:
     library = _library(tmp_path)
     units = [_file_unit(library, "a.md", "alpha"), _file_unit(library, "b.md", "beta"), _folder_unit(library, "bundle")]
@@ -294,3 +312,9 @@ def test_a_broken_config_file_does_not_stop_a_job_being_rolled_back(tmp_path: Pa
     rollback_job(Library(library), job.job_id)  # needs only paths, so never reads the config
 
     assert (library / "_sorting" / "a.md").exists()
+
+
+# endregion
+
+
+# endregion

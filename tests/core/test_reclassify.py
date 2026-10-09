@@ -15,6 +15,9 @@ from core.reclassify import (
 )
 from core.utils.hashing import file_hash
 
+# region Test helpers
+
+
 _REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
 
@@ -25,26 +28,6 @@ _UNCLEAR_TEXT = "Nothing recognisable in here."
 _RESEARCH = "Project Phoenix/03 Research"
 _ARCHITECTURE = "Project Phoenix/02 Architecture"
 _REQUIREMENTS = "Project Phoenix/01 Requirements"
-
-
-def test_reclassify_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
-    """Regression test: .microfiche/ is an operational folder, not sortable content.
-
-    Uses the actual shipped default exclusions (microfiche-config.toml [exclusions], not a
-    synthetic one, so this catches a regression in the defaults themselves.
-    """
-
-    (tmp_path / "Project Phoenix" / "01 Requirements").mkdir(parents=True)
-    config_dir = tmp_path / ".microfiche"
-    config_dir.mkdir()
-    (config_dir / "README.md").write_text("Not a project document.", encoding="utf-8")
-    (tmp_path / ".logs").mkdir()
-    (tmp_path / ".logs" / "notes.md").write_text("Not a project document either.", encoding="utf-8")
-
-    config = load_config(_REPO_CONFIG_DIR)
-    proposals = run_reclassify(Library(tmp_path, config=config))
-
-    assert proposals == []
 
 
 def _library(tmp_path: Path) -> Path:
@@ -77,6 +60,12 @@ def _by_name(proposals: list[ReclassifyProposal]) -> dict[str, ReclassifyProposa
 
 def _named(proposals: list[ReclassifyProposal], name: str) -> list[ReclassifyProposal]:
     return [proposal for proposal in proposals if proposal.current_path.name == name]
+
+
+# endregion
+
+
+# region Planning proposals
 
 
 def test_proposals_say_what_applying_would_do_with_each_document(tmp_path: Path) -> None:
@@ -138,6 +127,12 @@ def test_two_documents_headed_for_the_same_destination_only_move_one(tmp_path: P
     proposals = _named(run_reclassify(Library(library)), "same.md")
 
     assert [p.action for p in proposals] == ["move", "conflict"]  # documents are visited in sorted path order
+
+
+# endregion
+
+
+# region Applying proposals
 
 
 def test_apply_moves_only_the_move_proposals_as_one_recorded_job(tmp_path: Path) -> None:
@@ -227,6 +222,32 @@ def test_a_destination_taken_after_planning_stops_the_apply_but_keeps_earlier_mo
     assert _snapshot(library) == before
 
 
+# endregion
+
+
+# region Scope and exclusions
+
+
+def test_reclassify_never_scans_the_library_s_own_config_or_logs_folders(tmp_path: Path) -> None:
+    """Regression test: .microfiche/ is an operational folder, not sortable content.
+
+    Uses the actual shipped default exclusions (microfiche-config.toml [exclusions], not a
+    synthetic one, so this catches a regression in the defaults themselves.
+    """
+
+    (tmp_path / "Project Phoenix" / "01 Requirements").mkdir(parents=True)
+    config_dir = tmp_path / ".microfiche"
+    config_dir.mkdir()
+    (config_dir / "README.md").write_text("Not a project document.", encoding="utf-8")
+    (tmp_path / ".logs").mkdir()
+    (tmp_path / ".logs" / "notes.md").write_text("Not a project document either.", encoding="utf-8")
+
+    config = load_config(_REPO_CONFIG_DIR)
+    proposals = run_reclassify(Library(tmp_path, config=config))
+
+    assert proposals == []
+
+
 def test_scope_limits_which_documents_are_considered(tmp_path: Path) -> None:
     library = _library(tmp_path)
     _write(library, f"{_RESEARCH}/in-scope.md", _ARCHITECTURE_TEXT)
@@ -258,6 +279,12 @@ def test_a_scope_outside_the_library_is_refused(tmp_path: Path) -> None:
         run_reclassify(Library(library), scope=outside)
 
 
+# endregion
+
+
+# region Confidence threshold
+
+
 def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_moved(tmp_path: Path) -> None:
     """A keyword hint scores 0.75: it is moved at the default threshold, held if the library raises it."""
 
@@ -272,6 +299,12 @@ def test_the_libraries_confidence_threshold_decides_whether_a_hint_match_is_move
     assert at_default.action == "move"
     assert at_default.destination == library / _REQUIREMENTS / "backlog.md"
     assert raised.action == "review"
+
+
+# endregion
+
+
+# region Unreadable files
 
 
 def test_an_unreadable_file_is_left_for_review_and_does_not_stop_the_rest(tmp_path: Path) -> None:
@@ -291,3 +324,6 @@ def test_an_unreadable_file_is_left_for_review_and_does_not_stop_the_rest(tmp_pa
 
     assert (library / _RESEARCH / "broken.docx").exists()
     assert (library / _ARCHITECTURE / "misfiled.md").exists()
+
+
+# endregion
