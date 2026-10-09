@@ -7,12 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Unreleased changes
 
 ### Documentation
+- add --keep-folders-off to the plan [`46d08b5`](https://github.com/richard-gledhill/microfiche/commit/46d08b5)
+- keep --keep-folders a boolean switch in the plan [`255c2c9`](https://github.com/richard-gledhill/microfiche/commit/255c2c9)
+- :robot: changelog file generated [`356cb28`](https://github.com/richard-gledhill/microfiche/commit/356cb28)
 - add a test-first (TDD) note to scratch.md [`f786d26`](https://github.com/richard-gledhill/microfiche/commit/f786d26)
 - :robot: changelog file generated [`62099e3`](https://github.com/richard-gledhill/microfiche/commit/62099e3)
 - :robot: changelog file generated [`61fa6b5`](https://github.com/richard-gledhill/microfiche/commit/61fa6b5)
 - plan library depth, non-library folders and filing target mode (4.6-4.9) [`ed7557d`](https://github.com/richard-gledhill/microfiche/commit/ed7557d)
 
 ### Other
+- Merge pull request #44 from richard-gledhill/docs/keep-folders-switch [`b5711fe`](https://github.com/richard-gledhill/microfiche/commit/b5711fe)
 - Merge pull request #43 from richard-gledhill/docs/scratch-tdd-note [`827be89`](https://github.com/richard-gledhill/microfiche/commit/827be89)
 - Merge pull request #42 from richard-gledhill/docs/mvp-plan-depth-folders [`11bc7a7`](https://github.com/richard-gledhill/microfiche/commit/11bc7a7)
 
