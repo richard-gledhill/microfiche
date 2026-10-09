@@ -27,3 +27,5 @@ Internal planning/design docs — not published to the user-facing docs site (se
   → concept 1b (revised to filesystem-as-source-of-truth) → superseded by `architecture.md`.
 - **[readme-template.md](readme-template.md)** — a reusable best-practices `README.md` template,
   not planning history.
+- **[scratch.md](scratch.md)** — a personal notebook of snippets and commands worth keeping from guided
+  build sessions. Not part of the product or the design record.
