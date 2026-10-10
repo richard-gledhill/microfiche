@@ -83,6 +83,9 @@ and category hints and filing rules moved to `.microfiche/microfiche-library.jso
 `levels` and `file_target_level` are unused today and are dropped. Until it lands, the "Future work" items
 below that mention making scores configurable still apply.
 
+The last step of Stage 4.1 replaces `thefuzz` with `rapidfuzz` (the same engine without the wrapper, with
+`score_cutoff` for faster group matching; see [fuzzy-matching-options.md](fuzzy-matching-options.md)).
+
 Three further steps follow it, from [operations-review.md](operations-review.md); none is built:
 [Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) (a name collision sends the unit to
 review instead of crashing `sort`; `keep_folders = false` files a folder's documents one by one and handles the
@@ -114,7 +117,9 @@ setting: `leaf_only` or `best_level`).
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
 - **Match group names on word boundaries.** `Car` matches `carrier` and `card`; short or common group
-  names file with full confidence on a substring (0 of 2 right on the corpus).
+  names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
+  regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
+  the same boundary test to fuzzy matches (see [fuzzy-matching-options.md](fuzzy-matching-options.md)).
 - **Use the AI where the rules are ambiguous or hint-level, and make its score configurable.** Today it is
   asked only when the rules are unsure, never about their confident mistakes, and always scores 0.70
   whatever model is behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call

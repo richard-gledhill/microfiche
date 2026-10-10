@@ -190,6 +190,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Decide which constants become settings and which stay fixed (file names, chunk sizes, display styles), per [config-review.md](config-review.md) point 1.
 - Define the split between settings (`microfiche-config.toml`) and library data (`microfiche-library.json`), and what is dropped: `library_templates`, `levels`, `file_target_level`. `depth` stays, as the one structural setting.
 - Decide whether `--use-ai` stays a per-run switch or becomes `[ai] enabled`, and whether the `init` command and a template catalog are in the MVP (the default is no).
+- Decide whether to keep `thefuzz` or depend on `rapidfuzz` directly. [fuzzy-matching-options.md](fuzzy-matching-options.md) records the comparison: `thefuzz` is a wrapper over RapidFuzz, scores and speed are the same for `partial_ratio`, and the calibration report is identical. The recommendation is to switch, as the last Build step, so `fuzzy_group_threshold` is settled before it ships.
 - Write the stage's exit criteria as a single sentence: with the shipped defaults the calibration report is unchanged, and each new setting changes the behaviour it names.
 
 **Design**
@@ -199,6 +200,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, Stage 4.5) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
 - Design `[ai] max_document_chars` (how much of a document is sent to the AI): at least 0, where `0` means no limit. An unlimited run prints one warning before any document is classified, never one per document, about token usage, processing time and the model's context window (a longer document may fail or be cut off). The CLI prints it and `core` stays quiet; Stage 4.4 also logs it at WARNING. With `provider = "openai"` the warning also says the cost is real money.
 - Design the `microfiche-library.json` node schema (`name`, `hints`, `rules`, `children`), with category hints global by category name to start with.
+- Design the fuzzy-library switch: pass `score_cutoff=fuzzy_group_threshold` to the group match, decide whether scores stay rounded integers or become floats (84.6 used to round up to 85 and pass), and give `tag_mapper` an explicit `processor` because RapidFuzz's `extractOne` does not lowercase or strip punctuation by default.
 
 **Build**
 - Add `core/defaults/microfiche-config.toml`, load it with `importlib.resources`, and remove the default values from the pydantic models.
@@ -209,6 +211,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it.
 - Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
+- Replace `thefuzz` with `rapidfuzz` in `rules/group_rules.py` and `obsidian/tag_mapper.py`, as its own commit after the library file work: declare `rapidfuzz` in `core`'s `pyproject.toml`, remove `thefuzz` and its mypy override, and pass `score_cutoff` and `processor` as designed.
 
 **Test**
 - Write a test that the shipped template and the packaged defaults agree (the `[obsidian] enabled` mismatch is the known case).
@@ -217,11 +220,13 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Write a CLI test for `keep_folders` precedence: either flag, when passed, over config over default, and passing both is an error.
 - Write tests that `build_provider` returns the provider the config names, and fails with a clear message when the OpenAI key variable is unset.
 - Write tests for `[ai] max_document_chars`: a positive value cuts the text sent, `0` sends the whole document (`content[:0]` would send nothing, so this guards against that slip), a negative value is rejected, and the CLI prints the unlimited warning once per run, not per document, and not when the limit is positive.
-- Re-run `tests/calibration/report.py` and confirm the default threshold's findings still hold; update [calibration.md](calibration.md) if not.
+- Re-run `tests/calibration/report.py` and confirm the default threshold's findings still hold; update [calibration.md](calibration.md) if not. After the fuzzy-library switch the report must be identical.
+- Write a `tag_mapper` test that `Python` still maps onto `python` after the switch, and a group-match boundary test that a score exactly at `fuzzy_group_threshold` is accepted and one point below is not.
 
 **Deploy**
 - Update `README.md`, `docs/how-to-use.md` and `docs/cli-reference.md` (`make docs-cli`) for the new settings and the changed `--keep-folders` default, in both the Bash and PowerShell tabs.
-- Update `architecture.md` (§4 and §10), `mvp-roadmap.md` and `module-diagram.md`, and add "library template" and "hints" to [CONTEXT.md](../../CONTEXT.md).
+- Update `architecture.md` (§3, §4 and §10), `mvp-roadmap.md` and `module-diagram.md`, and add "library template" and "hints" to [CONTEXT.md](../../CONTEXT.md).
+- Reword the places that name `thefuzz`: `AGENTS.md`, `calibration.md` and the `ClassificationConfig` docstring in `core/config.py`.
 - Merge to `main` without a new tag: this stage is an update on top of `v0.1.4`, and its changes ship with the next tag, `v0.1.5`.
 
 **Deferred:** an `init` command and a template catalog; a `command` AI provider (needs a decision on running
@@ -667,6 +672,9 @@ rather than in isolation:
 4.1. **Configuration consolidation before Obsidian/review** — Stage 5 adds `[obsidian]` and review
    settings; building them on the layered defaults loader, with scores and the AI provider already
    configurable, avoids adding a second batch of hard-coded constants.
+   The fuzzy-library switch is its last step: it must land before `v0.1.5` so the `fuzzy_group_threshold`
+   setting never changes meaning after release, and before Stage 5 wires `tag_mapper` (see
+   [fuzzy-matching-options.md](fuzzy-matching-options.md)).
 4.2. **Folder handling and collisions next** — the `keep_folders` default changes in 4.1, and turning it off
    has to start descending into folders; a name collision must route to review before that makes
    collisions common.
