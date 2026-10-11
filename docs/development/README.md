@@ -31,10 +31,10 @@ Internal planning/design docs — not published to the user-facing docs site (se
   unit, job, ledger, ...) and the words to avoid. Use these terms in code, docs and reviews.
 - **[data-model.md](data-model.md)** — current. The ledger, `AuditEvent`/`Job` schemas,
   `audit.log` format and `.microfiche/` directory layout, as one authoritative page.
-- **[module-diagram.md](module-diagram.md)** — generated from the actual source imports, not
-  hand-maintained prose. Two Mermaid diagrams: the module import graph, and the `sort` pipeline's
-  runtime data flow (including what's implemented but not yet wired in, e.g. the Obsidian
-  integration). Regenerate rather than hand-edit if it drifts.
+- **[module-diagram.md](module-diagram.md)** — two Mermaid diagrams: the module import graph, generated from
+  the actual source imports by `make module-diagram` (not hand-maintained prose), and the `sort` pipeline's
+  runtime data flow, written by hand (including what's implemented but not yet wired in, e.g. the Obsidian
+  integration). Regenerate the graph rather than hand-edit it if it drifts.
 - **[archive/](archive/)** — superseded design history, kept for context but not authoritative.
   Reading order: the original PRD → a three-option concepts brainstorm → concept 1a (SQLite-backed)
   → concept 1b (revised to filesystem-as-source-of-truth) → superseded by `architecture.md`.

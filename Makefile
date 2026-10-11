@@ -39,6 +39,10 @@ docs-cli: ## Regenerate docs/cli-reference.md from the Typer app
 library-schema: ## Regenerate microfiche/microfiche-library.schema.json from the library file model
 	@uv run python -c "import json, pathlib; from core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
 
+.PHONY: module-diagram
+module-diagram: ## Regenerate the import graph in docs/development/module-diagram.md from the source
+	@uv run python scripts/module_diagram.py
+
 .PHONY: docs-test
 docs-test: docs-cli ## Test if documentation can be built without warnings or errors
 	@uv run mkdocs build -s

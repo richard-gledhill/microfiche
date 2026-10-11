@@ -27,6 +27,7 @@ make check      # uv lock --locked, pre-commit run -a, mypy, deptry (core, then 
 make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 make docs       # mkdocs serve
 make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
+make module-diagram   # regenerate the import graph in docs/development/module-diagram.md from the source
 ```
 
 Single test / narrower run:
@@ -226,8 +227,9 @@ it becomes a unit (or proposal) left for review, with the reason.
 - `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
   by GitHub URL.
 - After a rename or behaviour change, grep the docs for the old name or number.
-  `architecture.md`, `mvp-roadmap.md` and `module-diagram.md` (update its edges when imports
-  change) go stale first.
+  `architecture.md`, `mvp-roadmap.md` and `module-diagram.md` go stale first. Run `make module-diagram` when
+  imports change: it rewrites the import graph's nodes and edges from the source (add `--check` to only report),
+  and the second, data-flow diagram is still edited by hand.
 
 **Git**
 - Branches follow `<type>/<short-description>`, `<type>` being a Conventional Commits type
