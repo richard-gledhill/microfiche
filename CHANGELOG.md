@@ -6,7 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Feature
+- read hints and filename rules from the library file [`35b4f86`](https://github.com/richard-gledhill/microfiche/commit/35b4f86)
+- load the library file with clear errors [`14e5ec8`](https://github.com/richard-gledhill/microfiche/commit/14e5ec8)
+- add the library file model, a folder tree of hints and rules [`eeabb35`](https://github.com/richard-gledhill/microfiche/commit/eeabb35)
+- build the AI provider from [ai] and allow unlimited document length [`a620009`](https://github.com/richard-gledhill/microfiche/commit/a620009)
+- add [sorting] keep_folders with --keep-folders and --keep-folders-off [`447d5c0`](https://github.com/richard-gledhill/microfiche/commit/447d5c0)
+- make signal strengths and fuzzy thresholds settings [`dda4103`](https://github.com/richard-gledhill/microfiche/commit/dda4103)
+- layer packaged defaults under the library config [`f054737`](https://github.com/richard-gledhill/microfiche/commit/f054737)
+
 ### Documentation
+- describe the configuration layout as built (Stage 4.1) [`56edb1f`](https://github.com/richard-gledhill/microfiche/commit/56edb1f)
+- regenerate the module diagram from the current imports [`0f64865`](https://github.com/richard-gledhill/microfiche/commit/0f64865)
+- record the rapidfuzz switch and the accent decision for Stage 5 [`ac55f32`](https://github.com/richard-gledhill/microfiche/commit/ac55f32)
+- point hints and filename rules at the library file [`0ff3325`](https://github.com/richard-gledhill/microfiche/commit/0ff3325)
+- plan a library file that follows the folders (Stage 4.10) [`202b42e`](https://github.com/richard-gledhill/microfiche/commit/202b42e)
+- plan the thefuzz to rapidfuzz switch as the last step of Stage 4.1 [`7ca1935`](https://github.com/richard-gledhill/microfiche/commit/7ca1935)
+- document the [ai] provider settings [`d419ed5`](https://github.com/richard-gledhill/microfiche/commit/d419ed5)
+- document the classification and ai settings [`e2faa99`](https://github.com/richard-gledhill/microfiche/commit/e2faa99)
+- document keep_folders and the folder flags [`6837ccc`](https://github.com/richard-gledhill/microfiche/commit/6837ccc)
+- place the AI score in [ai] [`a512364`](https://github.com/richard-gledhill/microfiche/commit/a512364)
+- move max_document_chars to [ai] and add unlimited mode to the plan [`5ddbf86`](https://github.com/richard-gledhill/microfiche/commit/5ddbf86)
+- :robot: changelog file generated [`5ec8367`](https://github.com/richard-gledhill/microfiche/commit/5ec8367)
 - add --keep-folders-off to the plan [`46d08b5`](https://github.com/richard-gledhill/microfiche/commit/46d08b5)
 - keep --keep-folders a boolean switch in the plan [`255c2c9`](https://github.com/richard-gledhill/microfiche/commit/255c2c9)
 - :robot: changelog file generated [`356cb28`](https://github.com/richard-gledhill/microfiche/commit/356cb28)
@@ -15,7 +36,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - :robot: changelog file generated [`61fa6b5`](https://github.com/richard-gledhill/microfiche/commit/61fa6b5)
 - plan library depth, non-library folders and filing target mode (4.6-4.9) [`ed7557d`](https://github.com/richard-gledhill/microfiche/commit/ed7557d)
 
+### Test
+- check that the shipped template and packaged defaults agree [`f437bd3`](https://github.com/richard-gledhill/microfiche/commit/f437bd3)
+
+### Build
+- add make library-schema to regenerate the library file schema [`587c8cd`](https://github.com/richard-gledhill/microfiche/commit/587c8cd)
+
+### Refactor
+- use rapidfuzz directly instead of thefuzz [`f212dc0`](https://github.com/richard-gledhill/microfiche/commit/f212dc0)
+- remove the moved and unused settings and validate depth [`b44d1a4`](https://github.com/richard-gledhill/microfiche/commit/b44d1a4)
+- remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
+
 ### Other
+- Merge pull request #45 from richard-gledhill/feature/config-consolidation [`d8f0df0`](https://github.com/richard-gledhill/microfiche/commit/d8f0df0)
 - Merge pull request #44 from richard-gledhill/docs/keep-folders-switch [`b5711fe`](https://github.com/richard-gledhill/microfiche/commit/b5711fe)
 - Merge pull request #43 from richard-gledhill/docs/scratch-tdd-note [`827be89`](https://github.com/richard-gledhill/microfiche/commit/827be89)
 - Merge pull request #42 from richard-gledhill/docs/mvp-plan-depth-folders [`11bc7a7`](https://github.com/richard-gledhill/microfiche/commit/11bc7a7)
