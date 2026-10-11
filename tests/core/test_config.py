@@ -1,6 +1,7 @@
 """Tests for loading microfiche's configuration file."""
 
 import copy
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +27,12 @@ from pydantic import BaseModel, ValidationError
 # region Test helpers
 
 
-_REPO_CONFIG_DIR = Path(__file__).resolve().parents[2] / "microfiche"
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_REPO_CONFIG_DIR = _REPO_ROOT / "microfiche"
+_PACKAGED_DEFAULTS = _REPO_ROOT / "packages" / "core" / "src" / "core" / "defaults" / "microfiche-config.toml"
+# The one setting the template deliberately sets differently: it ships example folder patterns to leave out,
+# while the packaged default excludes nothing beyond the inbox and the state folder.
+_TEMPLATE_MAY_DIFFER = {"exclusions.exclude"}
 
 _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("library_structure", LibraryStructureConfig),
@@ -42,6 +48,16 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
 def _classification(**overrides: Any) -> ClassificationConfig:
     """The packaged ``[classification]`` settings with ``overrides`` applied."""
     return ClassificationConfig(**{**_packaged_defaults()["classification"], **overrides})
+
+
+def _settings_in(toml_file: Path) -> dict[str, Any]:
+    """Every setting in a TOML file as ``{"section.name": value}``, read as written (nothing merged in)."""
+
+    found: dict[str, Any] = {}
+    for section, table in tomllib.loads(toml_file.read_text(encoding="utf-8")).items():
+        for name, value in table.items():
+            found[f"{section}.{name}"] = value
+    return found
 
 
 def _ai(**overrides: Any) -> AIConfig:
@@ -73,6 +89,55 @@ def test_load_config_reads_shipped_default_config() -> None:
     # microfiche-config [exclusions]).
     assert is_excluded(Path(".logs/audit.log"), config.exclusions.exclude)
     assert config.obsidian.tag_mode == "suggest"
+
+
+# region Template and packaged defaults
+
+
+def test_template_config_lists_exactly_the_settings_the_packaged_defaults_have() -> None:
+    # A setting added to the defaults but not the template would be invisible to anyone who copies the template.
+    template = _settings_in(_REPO_CONFIG_DIR / "microfiche-config.toml")
+    packaged = _settings_in(_PACKAGED_DEFAULTS)
+
+    assert set(template) == set(packaged)
+
+
+def test_template_config_values_equal_the_packaged_defaults_except_the_listed_ones() -> None:
+    template = _settings_in(_REPO_CONFIG_DIR / "microfiche-config.toml")
+    packaged = _settings_in(_PACKAGED_DEFAULTS)
+
+    differing = {name for name in packaged if template[name] != packaged[name]}
+
+    assert differing <= _TEMPLATE_MAY_DIFFER
+
+
+def test_template_config_loads_to_the_packaged_defaults_except_the_listed_ones() -> None:
+    # The same check on the validated result, so a value that parses differently is caught too.
+    template = load_config(_REPO_CONFIG_DIR).model_dump()
+    packaged = load_config(Path("does-not-exist")).model_dump()
+
+    differing = {
+        f"{section}.{name}"
+        for section, values in packaged.items()
+        for name, value in values.items()
+        if template[section][name] != value
+    }
+
+    assert differing <= _TEMPLATE_MAY_DIFFER
+
+
+@pytest.mark.parametrize("readme", ["README.md", "microfiche/README.md"])
+def test_readme_config_table_names_every_packaged_section(readme: str) -> None:
+    # These tables were the first place to drift when sections were added.
+    text = (_REPO_ROOT / readme).read_text(encoding="utf-8")
+    sections = {name.split(".")[0] for name in _settings_in(_PACKAGED_DEFAULTS)}
+
+    missing = {section for section in sections if f"| `{section}` |" not in text}
+
+    assert not missing
+
+
+# endregion
 
 
 def test_load_config_missing_files_fall_back_to_defaults(tmp_path: Path) -> None:
