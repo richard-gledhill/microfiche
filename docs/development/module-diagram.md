@@ -2,7 +2,7 @@
 
 Two Mermaid diagrams generated from the actual `packages/core/src/core` and
 `packages/cli/src/cli` source (grepped import statements, not the prose in
-[architecture.md](architecture.md)) as of 2026-10-08. If this drifts from the code, trust the
+[architecture.md](architecture.md)) as of 2026-10-11. If this drifts from the code, trust the
 code and regenerate this file rather than editing it to match a stale diagram.
 
 ## 1. Module import graph
@@ -65,7 +65,8 @@ flowchart TD
         a_prompts["prompts.py"]
         a_llm["llm_classifier.py"]
         a_ollama["ollama_provider.py"]
-        a_openai["openai_provider.py (unused - no --provider flag yet)"]
+        a_openai["openai_provider.py"]
+        a_factory["factory.py (build_provider)"]
     end
 
     subgraph LIBRARY["core/library"]
@@ -73,6 +74,7 @@ flowchart TD
         l_suggester["category_suggester.py"]
         l_naming["naming.py"]
         l_templates["templates.py (unused - no create-library command yet)"]
+        l_library_file["library_file.py (LibraryFile)"]
     end
 
     subgraph OBSIDIAN["core/obsidian (implemented, not yet called from the pipeline)"]
@@ -89,16 +91,20 @@ flowchart TD
     end
 
     cli_init --> cli_app
+
     cli_app --> cli_commands
+
     cli_commands --> cli_display
     cli_commands --> a_llm
-    cli_commands --> a_ollama
     cli_commands --> core_config
     cli_commands --> l_suggester
     cli_commands --> core_organizer
     cli_commands --> core_reclassify
     cli_commands --> core_filer
     cli_commands --> core_scanner
+    cli_commands --> a_factory
+    cli_commands --> l_library
+
     cli_display --> core_config
     cli_display --> core_organizer
     cli_display --> core_reclassify
@@ -106,28 +112,26 @@ flowchart TD
 
     core_organizer --> a_llm
     core_organizer --> core_classifier
-    core_organizer --> core_config
     core_organizer --> core_filer
     core_organizer --> l_library
     core_organizer --> m_audit
     core_organizer --> m_classification
     core_organizer --> m_job
     core_organizer --> m_unit
-    core_organizer --> r_engine
     core_organizer --> core_scanner
 
     core_scanner --> m_unit
     core_scanner --> p_init
+    core_scanner --> l_library
 
     core_classifier --> m_category
     core_classifier --> m_classification
     core_classifier --> m_document
     core_classifier --> m_unit
     core_classifier --> r_confidence
+    core_classifier --> l_library
+    core_classifier --> r_engine
 
-    core_config --> r_confidence
-
-    core_filer --> core_config
     core_filer --> core_ledger
     core_filer --> l_library
     core_filer --> l_naming
@@ -142,20 +146,19 @@ flowchart TD
     core_ledger --> m_ledger
 
     core_reclassify --> core_classifier
-    core_reclassify --> core_config
     core_reclassify --> core_filer
     core_reclassify --> l_library
     core_reclassify --> m_classification
     core_reclassify --> m_job
     core_reclassify --> m_unit
     core_reclassify --> p_init
-    core_reclassify --> r_engine
-    core_reclassify --> u_filesystem
 
     m_unit --> m_document
+
     m_job --> m_audit
 
     p_init --> p_registry
+
     p_registry --> m_document
     p_registry --> p_base
     p_registry --> p_txt
@@ -164,18 +167,25 @@ flowchart TD
     p_registry --> p_docx
     p_registry --> p_msg
     p_registry --> p_eml
+
     p_base --> m_document
+
     p_txt --> p_base
-    p_md --> p_base
-    p_pdf --> p_base
-    p_docx --> p_base
-    p_msg --> p_base
-    p_eml --> p_base
     p_txt --> m_document
+
+    p_md --> p_base
     p_md --> m_document
+
+    p_pdf --> p_base
     p_pdf --> m_document
+
+    p_docx --> p_base
     p_docx --> m_document
+
+    p_msg --> p_base
     p_msg --> m_document
+
+    p_eml --> p_base
     p_eml --> m_document
 
     r_engine --> m_category
@@ -184,8 +194,13 @@ flowchart TD
     r_engine --> r_group
     r_engine --> r_keyword
     r_engine --> r_metadata
+    r_engine --> core_config
+    r_engine --> l_library_file
+
     r_group --> m_classification
+
     r_keyword --> m_classification
+
     r_metadata --> m_classification
 
     a_llm --> a_base
@@ -193,20 +208,30 @@ flowchart TD
     a_llm --> m_category
     a_llm --> m_classification
     a_llm --> m_document
+    a_llm --> core_config
 
     l_library --> core_config
     l_library --> m_category
     l_library --> u_filesystem
+    l_library --> l_library_file
+
     l_suggester --> m_document
+
     l_templates --> u_filesystem
 
     o_tag_mapper --> o_tag_index
+
+    a_factory --> a_base
+    a_factory --> a_ollama
+    a_factory --> a_openai
+    a_factory --> core_config
+
+    l_library_file --> core_config
 ```
 
-**Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`openai_provider.py`,
-`templates.py`, the `logging.py` and `validation.py` helpers, and the entire `core/obsidian`
-subgraph) aren't dead code — they're implemented and tested, just not yet called from
-`organizer.py`/`filer.py`.
+**Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py`, the `logging.py`
+and `validation.py` helpers, and the `core/obsidian` subgraph, which only has an edge inside itself) aren't dead
+code — they're implemented and tested, just not yet called from `organizer.py`/`filer.py`.
 That's the gap this roadmap doc tracks, not a diagramming omission.
 
 ## 2. Sort pipeline data flow
@@ -217,20 +242,23 @@ What actually happens at runtime when `microfiche sort` runs, as opposed to what
 flowchart TD
     LibraryTree[("Library folder tree\n(group/category subfolders)")]
     SortingInbox[("inbox (_sorting/ by default)\n(loose files + folders)")]
-    ConfigFile[("microfiche-config.toml")]
+    ConfigFile[("microfiche-config.toml\n(over the packaged defaults)")]
+    LibraryFileJson[("microfiche-library.json\n(hints and filename rules)")]
 
     LibraryTree -->|"Library.taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
     ConfigFile -->|"load_config()"| Config["MicroficheConfig"]
+    LibraryFileJson -->|"load_library_file()\n(checked against depth)"| LibraryFile["LibraryFile\n(folder tree: hints, rules)"]
     SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if keep_folders)"]
     Units -->|"read_documents() via parsers/"| Documents["Document(s)\n(text + metadata)"]
     Units -.->|"a file that can't be read:\nno document, left for review with the reason"| NeedsReview
 
     Documents --> ClassifyUnit["Classifier.classify_unit()"]
     Taxonomy --> ClassifyUnit
-    Config -.->|"category_hints, filing_rules"| RulesEngine
+    LibraryFile -->|"hints_for / rules_for"| RulesEngine
+    Config -.->|"match strengths,\nfuzzy threshold"| RulesEngine
     ClassifyUnit --> RulesEngine["RulesEngine\n(group_rules -> keyword_rules/metadata_rules\n-> confidence.combine_confidence, min not average)"]
     RulesEngine -->|"confident: both stages resolved and\nconfidence >= threshold (default 0.75)"| Result["ClassificationResult"]
-    RulesEngine -->|"a stage below threshold and --use-ai\n(asked per stage, group then category)"| LLM["LLMClassifier\n(OllamaProvider today; OpenAIProvider exists,\nnot wired to a CLI flag)"]
+    RulesEngine -->|"a stage below threshold and --use-ai\n(asked per stage, group then category)"| LLM["LLMClassifier\n(Ollama or OpenAI, built from [ai]\nby build_provider)"]
     LLM --> Result
 
     Result -->|">= threshold"| FileUnit["filer.file_batch()\n(one Job per run)"]
