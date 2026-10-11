@@ -350,7 +350,40 @@ def load_config(config_path: Path) -> MicroficheConfig:
     try:
         return MicroficheConfig.model_validate(config)
     except ValidationError as err:
-        raise ConfigError(_describe_errors(target_file, err)) from err
+        raise ConfigError(describe_validation_errors(target_file, err)) from err
+
+
+def describe_validation_errors(
+    target_file: Path,
+    err: ValidationError,
+    *,
+    title: str = "Config file error",
+    unknown: tuple[str, str] = ("section", "setting"),
+) -> str:
+    """Format pydantic validation errors as one line per problem, under the file path.
+
+    Args:
+        target_file: The file that failed validation.
+        err: The validation error.
+        title: What the first line calls the file's kind of error.
+        unknown: What an unrecognised name is called at the top level and below it.
+
+    Returns:
+        A message naming the file and every problem, located by its path in the file.
+    """
+
+    lines = [f"{title}: {target_file}:"]
+    for error in err.errors():
+        location = _loc_to_dot_sep(error["loc"])
+        match error["type"], len(error["loc"]):
+            case "extra_forbidden", 1:
+                reason = f"unknown {unknown[0]}"
+            case "extra_forbidden", _:
+                reason = f"unknown {unknown[1]}"
+            case _:
+                reason = error["msg"].removeprefix("Value error, ")
+        lines.append(f"  {location}: {reason}" if location else f"  {reason}")
+    return "\n".join(lines)
 
 
 # endregion
@@ -421,22 +454,6 @@ def _loc_to_dot_sep(loc: tuple[str | int, ...]) -> str:
         else:
             path += f".{part}" if i else part
     return path
-
-
-def _describe_errors(target_file: Path, err: ValidationError) -> str:
-    """Format pydantic validation errors as one line per problem, under the file path."""
-    lines = [f"Config file error: {target_file}:"]
-    for error in err.errors():
-        setting = _loc_to_dot_sep(error["loc"])
-        match error["type"], len(error["loc"]):
-            case "extra_forbidden", 1:
-                reason = "unknown section"
-            case "extra_forbidden", _:
-                reason = "unknown setting"
-            case _:
-                reason = error["msg"].removeprefix("Value error, ")
-        lines.append(f"  {setting}: {reason}")
-    return "\n".join(lines)
 
 
 # endregion

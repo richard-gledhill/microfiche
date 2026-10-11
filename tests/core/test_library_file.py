@@ -5,13 +5,17 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from core.config import ConfigError
 from core.library.library_file import (
+    LIBRARY_FILENAME,
     DuplicateFolderError,
     FilingRule,
     FolderNode,
     LibraryFile,
+    LibraryFileTooDeepError,
     WildcardWithDataError,
     json_schema,
+    load_library_file,
 )
 from pydantic import ValidationError
 
@@ -30,6 +34,16 @@ def _file(*groups: dict[str, Any]) -> LibraryFile:
 
 def _node(name: str, **fields: Any) -> dict[str, Any]:
     return {"name": name, **fields}
+
+
+def _write_library_file(state_dir: Path, text: str) -> Path:
+    state_dir.mkdir(parents=True, exist_ok=True)
+    path = state_dir / LIBRARY_FILENAME
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+_TWO_LEVELS = '{"groups": [{"name": "A", "children": [{"name": "Notes", "hints": ["note"]}]}]}'
 
 
 def _shared_and_phoenix() -> LibraryFile:
@@ -336,6 +350,149 @@ def test_errors_name_what_is_wrong() -> None:
 
 
 # region Public API
+
+
+# region load_library_file
+
+
+def test_load_library_file_missing_file_gives_empty_file(tmp_path: Path) -> None:
+    library_file = load_library_file(tmp_path / ".microfiche", depth=2)
+
+    assert library_file.groups == []
+    assert library_file.hints_for("A", "Notes") == []
+
+
+def test_load_library_file_reads_groups_and_hints(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, _TWO_LEVELS)
+
+    library_file = load_library_file(tmp_path, depth=2)
+
+    assert library_file.hints_for("A", "Notes") == ["note"]
+
+
+def test_load_library_file_accepts_schema_key(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"$schema": "./microfiche-library.schema.json", "groups": []}')
+
+    assert load_library_file(tmp_path, depth=2).schema_ref == "./microfiche-library.schema.json"
+
+
+def test_load_library_file_template_file_loads(tmp_path: Path) -> None:
+    library_file = load_library_file(_TEMPLATE_DIR, depth=2)
+
+    assert library_file.hints_for("Any Group", "03 Research") == ["research", "article", "whitepaper"]
+
+
+def test_load_library_file_malformed_json_names_file_and_position(tmp_path: Path) -> None:
+    path = _write_library_file(tmp_path, '{"groups": [')
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=2)
+
+    message = str(exc_info.value)
+    assert str(path) in message
+    assert "Invalid JSON" in message
+    assert "line 1" in message
+
+
+def test_load_library_file_not_an_object_rejected(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, "[]")
+
+    with pytest.raises(ConfigError, match="object"):
+        load_library_file(tmp_path, depth=2)
+
+
+def test_load_library_file_not_utf8_rejected(tmp_path: Path) -> None:
+    tmp_path.mkdir(exist_ok=True)
+    (tmp_path / LIBRARY_FILENAME).write_bytes(b"\xff\xfe{}")
+
+    with pytest.raises(ConfigError, match="UTF-8"):
+        load_library_file(tmp_path, depth=2)
+
+
+def test_load_library_file_misspelt_key_located_by_path(tmp_path: Path) -> None:
+    path = _write_library_file(tmp_path, '{"groups": [{"name": "A", "children": [{"name": "B", "hint": ["x"]}]}]}')
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=2)
+
+    message = str(exc_info.value)
+    assert str(path) in message
+    assert "groups[0].children[0].hint: unknown key" in message
+    assert "Extra inputs are not permitted" not in message
+
+
+def test_load_library_file_misspelt_root_key_called_unknown_key(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"group": []}')
+
+    with pytest.raises(ConfigError, match="group: unknown key"):
+        load_library_file(tmp_path, depth=2)
+
+
+def test_load_library_file_missing_name_located_by_path(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": [{"hints": ["x"]}]}')
+
+    with pytest.raises(ConfigError, match=r"groups\[0\]\.name"):
+        load_library_file(tmp_path, depth=2)
+
+
+def test_load_library_file_duplicate_siblings_message_has_no_pydantic_prefix(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": [{"name": "A"}, {"name": "a"}]}')
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=2)
+
+    assert "more than once" in str(exc_info.value)
+    assert "Value error" not in str(exc_info.value)
+
+
+def test_load_library_file_reports_every_problem(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": [{"name": "A", "hint": []}, {"name": " ", "hints": [""]}]}')
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=2)
+
+    message = str(exc_info.value)
+    assert "groups[0].hint: unknown key" in message
+    assert "groups[1].name" in message
+    assert "groups[1].hints[0]" in message
+
+
+def test_load_library_file_tree_taller_than_depth_rejected(tmp_path: Path) -> None:
+    path = _write_library_file(tmp_path, _TWO_LEVELS)
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=1)
+
+    message = str(exc_info.value)
+    assert str(path) in message
+    assert "2 levels" in message
+    assert "depth" in message
+
+
+def test_load_library_file_tree_as_tall_as_depth_accepted(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, _TWO_LEVELS)
+
+    assert load_library_file(tmp_path, depth=2).height() == 2
+
+
+def test_load_library_file_error_is_a_config_error_not_a_pydantic_one(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": 5}')
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_library_file(tmp_path, depth=2)
+
+    assert not isinstance(exc_info.value, ValidationError)
+    assert "pydantic.dev" not in str(exc_info.value)
+
+
+def test_library_file_too_deep_error_names_both_numbers() -> None:
+    message = str(LibraryFileTooDeepError(Path("x.json"), levels=3, depth=2))
+
+    assert "3 levels" in message
+    assert "depth is 2" in message
+
+
+# endregion
 
 
 # region json_schema

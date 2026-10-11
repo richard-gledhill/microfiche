@@ -10,9 +10,12 @@ folder is never filed into, and the file never creates or removes a folder.
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError, model_validator
+
+from core.config import ConfigError, describe_validation_errors
 
 # region Constants and types
 
@@ -163,10 +166,64 @@ class WildcardWithDataError(ValueError):
         )
 
 
+class LibraryFileNotUtf8Error(ConfigError):
+    """Raised when the library file cannot be read as UTF-8 text."""
+
+    def __init__(self, path: Path) -> None:
+        super().__init__(f"Library file error: {path}: the file is not valid UTF-8 text")
+
+
+class LibraryFileTooDeepError(ConfigError):
+    """Raised when the file describes more levels of folders than the library's ``depth`` allows."""
+
+    def __init__(self, path: Path, levels: int, depth: int) -> None:
+        self.levels = levels
+        self.depth = depth
+        super().__init__(
+            f"Library file error: {path}: it describes {levels} levels of folders, but the library's "
+            f"depth is {depth} ([library_structure] depth in microfiche-config.toml)"
+        )
+
+
 # endregion
 
 
 # region Public API
+
+
+def load_library_file(state_dir: Path, depth: int) -> LibraryFile:
+    """Read the library file in ``state_dir`` (the library's ``.microfiche/`` folder).
+
+    A missing file is an empty one, so documents are matched on folder names alone. Anything that is
+    present is validated, so a misspelt key or a folder entry nested too deep is an error rather than
+    being ignored.
+
+    Args:
+        state_dir: The folder holding ``microfiche-library.json``.
+        depth: How many levels the library has, from ``[library_structure] depth``.
+
+    Returns:
+        The validated file.
+
+    Raises:
+        ConfigError: If the file is not valid UTF-8 JSON, is not a valid library file, or describes more
+            levels than ``depth``. The message names the file and every problem.
+    """
+
+    path = state_dir / LIBRARY_FILENAME
+    if not path.is_file():
+        return LibraryFile()
+    try:
+        library_file = LibraryFile.model_validate_json(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError as err:
+        raise LibraryFileNotUtf8Error(path) from err
+    except ValidationError as err:
+        raise ConfigError(
+            describe_validation_errors(path, err, title="Library file error", unknown=("key", "key"))
+        ) from err
+    if library_file.height() > depth:
+        raise LibraryFileTooDeepError(path, library_file.height(), depth)
+    return library_file
 
 
 def json_schema() -> dict[str, Any]:
