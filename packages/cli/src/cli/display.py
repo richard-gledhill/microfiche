@@ -67,6 +67,7 @@ def render_sort_report(console: Console, report: SortReport) -> None:
 
     console.print(f"[green]Filed:[/green] {len(report.filed)}")
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
+    console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
     for unit, classification in report.filed:
         console.print(
             f"  {unit.source_path.name} -> {classification.group.name}/{classification.category.name} "
@@ -77,6 +78,14 @@ def render_sort_report(console: Console, report: SortReport) -> None:
             f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.category.reason)}",
             soft_wrap=True,
         )
+    for duplicate in report.duplicates:
+        console.print(
+            f"  [cyan]{escape(duplicate.unit.source_path.name)}[/cyan] — {escape(duplicate.reason)}", soft_wrap=True
+        )
+    for folder in report.folders_removed:
+        console.print(f"  [dim]Removed the emptied inbox folder[/dim] {escape(folder.name)}", soft_wrap=True)
+    for folder, reason in report.folders_kept:
+        console.print(f"  [yellow]{escape(folder.name)}[/yellow] stays in the inbox: {escape(reason)}", soft_wrap=True)
     if report.job is not None:
         _render_job(console, report.job)
 

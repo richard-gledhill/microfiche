@@ -38,7 +38,8 @@ documents and sorts them with minimal manual effort. It's Obsidian-friendly, can
 - **Your library's folders *are* the taxonomy** — microfiche discovers groups and categories
   from the structure that's already there, rather than imposing a separate category list to
   maintain.
-- **Never deletes files** — every move is recorded and reversible with `microfiche rollback`.
+- **Never deletes files** — every move is recorded and reversible with `microfiche rollback`. A name clash or an
+  exact duplicate is left in the inbox with the reason, never overwritten.
 - **Obsidian-aware** — generates `index.md` folder notes and governs tags against a canonical
   `TagIndex.md`, so a sorted library is immediately usable as a vault.
 - **Fully offline-capable** — no cloud service is required; AI classification is opt-in.
@@ -152,6 +153,7 @@ uv run microfiche sort --library ~/Documents/Library
 ```text
 Filed: 12
 Needs review: 3
+Duplicates (left in the inbox): 1
   architecture_notes.docx -> Project Phoenix/02 Architecture (confidence 0.91, via rules_engine)
   ...
 Job: 20261004-153012-a1b2c3
@@ -183,7 +185,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `library_structure` | The group/category hierarchy (only the default two levels are implemented today) and `library_inbox`, the name of the inbox folder (default `"_sorting"`). |
 | `classification` | `confidence_threshold` (0–1, default 0.75, [measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md)): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so the default files hints but not AI answers; raise it to hold hints for review, lower it to 0.7 to file AI answers. Also how sure each kind of match is — `name_match_confidence` (0.9), `filename_match_confidence` (0.95), `hint_match_confidence` (0.75) — and `fuzzy_group_threshold` (0–100, default 85), how close a near-miss must be to a group's name. |
 | `ai` | Which AI `sort --use-ai` asks: `provider` (`"ollama"`, the default and local, or `"openai"`, which sends document text to OpenAI), `model`, `host` (Ollama), `timeout`, and `api_key_env` (the *name* of the variable holding the OpenAI key; never the key). `ai_confidence` (0–1, default 0.70): how sure any answer is. `max_document_chars` (default 4000; `0` sends the whole document, with a warning): how much text is sent. |
-| `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` leaves folders alone for one run; `--keep-folders` does the opposite. |
+| `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` files the documents inside folders one by one for one run, then removes each folder once it is empty; `--keep-folders` does the opposite. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |

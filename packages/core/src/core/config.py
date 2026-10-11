@@ -185,8 +185,9 @@ class SortingConfig(_ConfigSection):
 
     Attributes:
         keep_folders (bool): Whether a folder in the inbox is filed whole, as one unit under its
-            dominant category, rather than being left alone. The ``--keep-folders`` and
-            ``--keep-folders-off`` options override it for one run.
+            dominant category. If not, each document in it is filed on its own and the folder is
+            removed once it is empty. The ``--keep-folders`` and ``--keep-folders-off`` options
+            override it for one run.
     """
 
     keep_folders: bool

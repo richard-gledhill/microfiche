@@ -113,10 +113,12 @@ If no existing group matches at all, that's not automatically "low confidence" �
 
 ## 4. Sortable units: files and whole folders
 
-`_sorting/` can contain loose files and folders-full-of-documents. Folder handling is **on by default**
-(`[sorting] keep_folders = true`; `sort --keep-folders` and `--keep-folders-off` override it for one run) — when
-off, folders in `_sorting/` are left alone and reported, not descended into (Stage 4.2 changes this to filing their
-documents one by one).
+`_sorting/` can contain loose files and folders-full-of-documents. Folders are kept whole **by default**
+(`[sorting] keep_folders = true`; `sort --keep-folders` and `--keep-folders-off` override it for one run). When it is
+off, the scanner descends into each folder and every supported file in it, including those in nested sub-folders,
+becomes a single-document unit of its own, filed on its own merits. The unit remembers the top-level inbox folder it
+came from (`origin_folder`); see "Decision — emptied inbox folders" below. A folder with no supported file is left
+alone either way.
 
 ```
 core/models/unit.py
@@ -142,6 +144,36 @@ such files on their unit's `unreadable` list instead of raising. They don't take
 unit with no readable document at all is left unresolved — routed to review with "Could not read '<file>': …"
 as the reason — while everything else is sorted as normal. A folder with some unreadable files is classified by
 its readable ones and moves whole, as always.
+
+**Decision — a unit never overwrites, renames or deletes anything.** After a unit is classified, two further
+checks can hold it in the inbox. Neither changes any file: the unit stays where it is and the report says why.
+`sort` makes them in this order, and the first one a unit fails decides where it is listed.
+
+1. **Duplicate** (`core/duplicates.py`). A *file* unit whose bytes (SHA-256) match a file already in the library,
+   in any group or category, or a file already being filed earlier in the same run, goes to `SortReport.duplicates`
+   — not to `needs_review`, because it is not a classification question. It is classified first, so the reason can say
+   where it would have gone: "already filed where this would go", "in the folder this would be filed to", or "this would
+   be filed in X/Y" when the copy is somewhere else. A duplicate that is unconfident or unresolved is listed once, here.
+   Only new files are checked, in one direction: the inbox against the library. A project often keeps the same reference
+   document in several places, so duplicates already inside the library are never looked for or reported, and the check
+   has no setting. A folder unit kept whole is not checked (its files are checked individually when `keep_folders` is
+   off). `DuplicateIndex` is built lazily on the first file: one library walk reading only sizes (skipping the inbox, the
+   state folder and exclusions), and a file is hashed only when another file of the same size is in play. Empty files are
+   never duplicates.
+2. **Collision** (`filer.py::DestinationClaims`). If the destination name — after the naming rules — already exists, or
+   another unit in the same run is already going there (the first in scan order wins), the unit goes to `needs_review`
+   with the collision appended to its reason. The group and category it was given are kept. `reclassify` uses the same
+   claims for its `conflict` action. `file_batch` still refuses to overwrite, as the last line of defence for a path that
+   is taken between planning and moving.
+
+A held duplicate does not claim its destination, so it cannot block a different file.
+
+**Decision — emptied inbox folders.** With `keep_folders` off, once every unit is filed, `file_batch` removes each inbox
+folder the units came from if nothing at all is left inside it (only empty directories), deepest first, with
+`Path.rmdir`, which refuses a directory that has anything in it. A folder that still holds a file stays, and the report
+names the file and why it stayed: not a document, still needs review, or a duplicate. Each removal is a `remove_folder`
+event in the job, and `rollback` recreates the folder (`restore_folder`) before putting its files back. This is the only
+thing microfiche ever removes: no file is deleted, and the folder is empty when it goes.
 
 ## 5. Exclusions
 
@@ -282,8 +314,8 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   whole number). `[ai]` holds the AI score. They reach `RulesEngine` and `LLMClassifier` by constructor, and the shipped
   values reproduce the calibrated behaviour.
 * **`[sorting] keep_folders`** defaults to `true`. `sort --keep-folders` and `--keep-folders-off` override it for one run,
-  and passing both is an error. With it off, folders in the inbox are left alone (§4). Stage 4.2 changes that: their
-  documents are filed one by one, and the emptied folder is removed and recorded in the job so `rollback` can recreate it.
+  and passing both is an error. With it off, a folder's documents are filed one by one, and the emptied folder is
+  removed and recorded in the job so `rollback` can recreate it (§4).
 * **`[ai]`** picks the provider (`ollama` or `openai`), model, host, timeout, the name of the environment variable that
   holds the OpenAI key (`api_key_env`; the key is never in the file), the AI score, and `max_document_chars` (how much of a
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when

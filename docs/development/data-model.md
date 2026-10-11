@@ -58,15 +58,20 @@ count of a vault. Existing sidecars from earlier builds are not migrated or read
 class AuditEvent(BaseModel):
     original_path: Path
     new_path: Path | None = None
-    action: AuditAction  # "move" | "rename" | "classify" | "override" | "rollback"
+    action: AuditAction  # "move" | "rename" | "classify" | "override" | "rollback" | "remove_folder" | "restore_folder"
     timestamp: datetime
 ```
 
-Of the five `AuditAction` values, only two are actually emitted today: `"move"` (from
-`filer.py::file_batch`) and `"rollback"` (from `filer.py::rollback_job`). `"rename"`,
-`"classify"`, and `"override"` are defined for future use — a rename-rules event, a
-classification-decision event, and a user-override event from the (not yet implemented)
-review flow — but nothing produces them yet.
+Of the seven `AuditAction` values, four are emitted today: `"move"` (from
+`filer.py::file_batch`), `"rollback"` (from `filer.py::rollback_job`), and the pair
+`"remove_folder"` and `"restore_folder"`. `"rename"`, `"classify"`, and `"override"` are defined for
+future use — a rename-rules event, a classification-decision event, and a user-override event from the
+(not yet implemented) review flow — but nothing produces them yet.
+
+`"remove_folder"` records an inbox folder that was removed because all of its files were filed and it was
+left completely empty (`original_path` is the folder, `new_path` is `None`). It is only emitted when
+`keep_folders` is off, since a folder kept whole moves as one unit. `"restore_folder"` is what
+`rollback_job` writes when it recreates that folder. No file is deleted: only a folder with nothing in it.
 
 ## `Job`
 
@@ -76,7 +81,7 @@ review flow — but nothing produces them yet.
 class Job(BaseModel):
     job_id: str                          # e.g. "20261004-153012-a1b2c3"
     created_at: datetime
-    moves: list[AuditEvent]              # absolute paths
+    moves: list[AuditEvent]              # absolute paths; the moves, then any folder removals
     rolled_back_at: datetime | None      # set once rolled back; a job can't be rolled back twice
 ```
 
@@ -89,16 +94,23 @@ class Job(BaseModel):
   saves the `Job`. The whole batch is checked for unresolved classifications before anything
   moves. If a move fails part-way (for example the destination already exists), the moves
   already made are still saved as the job so they can be rolled back, and the error is
-  re-raised. Returns `None`, writing nothing, if there is nothing to file.
-- `rollback_job(library_root, job_id)` — reverses the job's moves newest-first, appends
-  `rolled_back` ledger records and `rollback` audit lines, and sets `rolled_back_at`. It is safe
+  re-raised. Returns `None`, writing nothing, if there is nothing to file. After the last move, an
+  inbox folder that the filed units came from (`SortableUnit.origin_folder`) is removed, with its
+  empty sub-folders, if nothing at all is left in it; each removal is a `remove_folder` event in the
+  job and the audit log. A removal is not a filed unit, so it has no ledger record.
+- `DestinationClaims(library).claim(destination)` — used by `sort` and `reclassify` to plan a batch:
+  it refuses a path that already exists or that another unit in the run has claimed, and says why.
+  `file_batch` still refuses to overwrite as the last line of defence.
+- `rollback_job(library_root, job_id)` — reverses the job's moves newest-first, recreating a removed
+  folder (a `restore_folder` audit line) before the files that were in it go back,
+  appends `rolled_back` ledger records and `rollback` audit lines, and sets `rolled_back_at`. It is safe
   to retry: if an earlier attempt stopped part-way, units already back at their original
   location are skipped. Raises `JobNotFoundError`, `JobAlreadyRolledBackError`,
   `JobMoveMissingError` (a unit is at neither location) or `FileExistsError` (something now
   occupies the original location). Job ids are restricted to letters, digits, `-` and `_`.
 - `load_job` / `save_job` — read and write the job file.
 
-Rollback only ever moves things back; it deletes nothing.
+Rollback only ever moves things back and recreates folders; it deletes nothing.
 
 ## `audit.log`
 
@@ -107,6 +119,8 @@ appended per `AuditEvent`, with library-relative paths:
 
 ```text
 2026-10-04T15:30:12 job=20261004-153012-a1b2c3 move _sorting/architecture_notes.md -> Project Phoenix/02 Architecture/architecture_notes.md
+2026-10-04T15:30:12 job=20261004-153012-a1b2c3 remove_folder _sorting/weekly-pack -> -
+2026-10-04T15:41:03 job=20261004-153012-a1b2c3 restore_folder _sorting/weekly-pack -> -
 2026-10-04T15:41:03 job=20261004-153012-a1b2c3 rollback Project Phoenix/02 Architecture/architecture_notes.md -> _sorting/architecture_notes.md
 ```
 

@@ -295,7 +295,7 @@ Drop files (`.docx`, `.pdf`, `.md`, `.txt`, `.eml`, `.msg`) into the inbox (`_so
 
 Anything classified with enough confidence is filed; the rest is listed under **Needs review**
 and left in the inbox. Each run that files something is recorded as one *job*, and `sort` prints
-its id (`Job: <id>`) — keep it if you might want to undo the run. Nothing is deleted.
+its id (`Job: <id>`) — keep it if you might want to undo the run. No file is ever deleted.
 
 A file microfiche can't open (corrupt or truncated, say) doesn't stop the run: it is listed under
 **Needs review** as `Could not read '<file>': <reason>`, left in the inbox, and everything else is sorted
@@ -306,8 +306,8 @@ of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and on
 per job. No extra files are written next to your documents.
 
 A folder dropped in the inbox is kept together and filed whole, under the category most of its
-documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To leave
-folders in the inbox alone for one run, add `--keep-folders-off`:
+documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To file the
+documents inside folders one by one instead, for one run, add `--keep-folders-off`:
 
 === "Bash"
 
@@ -325,6 +325,35 @@ folders in the inbox alone for one run, add `--keep-folders-off`:
 both is an error. To change it for good, set `keep_folders = false` under `[sorting]` in the library's
 `.microfiche/microfiche-config.toml`. A flag beats that file, and the file beats microfiche's built-in
 default (`true`), which is what a library with no `[sorting]` section gets.
+
+With folders off, every supported document in an inbox folder, including those in sub-folders, is
+classified and filed on its own, so one folder can end up in several categories. When all of a folder's
+documents have been filed and nothing at all is left in it, the empty folder is removed (and its empty
+sub-folders). This is the only thing microfiche ever removes, and `rollback` puts it back. If anything
+is left in the folder — a file that isn't a document, a document that needs review, a duplicate — the
+folder stays, and the `sort` summary says which file kept it there.
+
+### Name clashes and duplicates
+
+`sort` never overwrites, renames or deletes a file. Two situations leave a file where it is:
+
+- **A name clash.** The file would be filed under a name that is already taken, either by a different file
+  already in that category folder or by another document in the same run (the first one is filed, the
+  next is held). It is listed under **Needs review** with the reason, for example
+  `... but 'notes.md' already exists in Project Phoenix/02 Architecture`. Rename it, or the file that is
+  already there, and sort again.
+- **A duplicate.** The file is an exact copy (same content, whatever the name) of a file already
+  anywhere in the library, or of another file in the inbox that is being filed in the same run. It is still
+  classified, then listed under **Duplicates (left in the inbox)** with where the copy is. When the copy is in
+  a different place from where microfiche would file this one, the line says both, for example
+  `identical to Project Phoenix/03 Research/spec.md; this would be filed in Project Phoenix/02 Architecture`.
+  That is worth a look: either the filed copy is in the wrong place or the classifier is. Delete the duplicate
+  from the inbox yourself, or move it by hand if you did mean to keep a second copy.
+
+Only the new files in the inbox are checked, against the library. Copies already inside the library, such as a
+reference document kept in two projects, are normal and are never reported. An empty file is never counted as a
+duplicate, and a folder kept whole is not checked as a duplicate (turn `keep_folders` off to check its files one
+by one).
 
 Use the Ollama fallback for low-confidence documents (requires the `ai` extra and a running
 Ollama server):
@@ -491,6 +520,9 @@ microfiche is pre-release. At the moment:
 - If you re-file a document with `reclassify --apply` after a `sort`, undo the newer job first —
   rolling back the older one will stop with an error because the file is no longer where it
   was filed.
+- Duplicates are found by exact content only: a copy saved again by another program, so that its bytes
+  differ, is not recognised. A folder kept whole is not checked as a duplicate, and nothing moves a duplicate
+  out of the inbox for you.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 
 Every command and option is listed in the [CLI reference](cli-reference.md), or run

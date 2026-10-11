@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `microfiche` scans a "library" folder (e.g. an Obsidian vault of `group/category` subfolders) for
 loose documents dropped into a `_sorting/` inbox, classifies each one (group, then category),
-and files it — recording every move so it can be rolled back. Nothing is ever deleted. Full
+and files it — recording every move so it can be rolled back. No file is ever deleted. Full
 design rationale: [docs/development/architecture.md](docs/development/architecture.md)
 (supersedes the earlier concept docs archived under `docs/development/archive/` where they conflict).
 Domain language (library, group, category, unit, job, ledger, ...) is defined in
@@ -73,7 +73,9 @@ workspace `.venv`.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
    files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
-   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit.
+   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit. With `keep_folders` off, each
+   supported file in a folder is its own unit, with `origin_folder` set so `file_batch` can remove the folder
+   once it is empty (recorded in the job, so rollback recreates it).
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
    the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
    (`ai/llm_classifier.py::LLMClassifier`). It owns the flow, the confidence threshold and the
@@ -105,8 +107,16 @@ workspace `.venv`.
      `(group, category)` pair got the most votes across its documents (dominant-category rule),
      represented by that pair's most confident document. A tie for the most votes is not guessed:
      the folder goes to review with the disagreement as its reason.
-4. Anything `confident` is filed as one job (`filer.py::file_batch`: move, ledger record,
-   audit line, rollback job); everything else goes to
+4. Before filing, two checks can hold a classified unit in the inbox (`organizer.py::run_sort`), in this order:
+   - **Duplicate** (`duplicates.py::DuplicateIndex`): a file unit whose content already exists in the library, or
+     is being filed earlier in the run, goes to `SortReport.duplicates` with a reason that also says where the
+     classifier would have filed it. Only new files are checked, never copies already in the library, so there is
+     no setting. The index walks the library once, reading sizes only, and hashes only same-size files.
+   - **Collision** (`filer.py::DestinationClaims`, shared with `reclassify`): the destination name is taken, so the
+     unit goes to `needs_review` with the reason.
+   Nothing is renamed, overwritten or deleted; `file_batch` still refuses to overwrite as the last line of defence.
+5. Anything `confident` that passed both is filed as one job (`filer.py::file_batch`: move, ledger record,
+   audit line, rollback job, and removal of an inbox folder left empty); everything else goes to
    `SortReport.needs_review` for the `review` command instead of being moved.
 
 ### Everything else keys off that same taxonomy/classification core

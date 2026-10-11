@@ -10,7 +10,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 | Command | Status | Notes |
 |---|---|---|
-| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. |
+| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. |
 | `review` | Stub | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
@@ -87,10 +87,18 @@ hints and filing rules moved to `.microfiche/microfiche-library.json`; the unuse
 Not part of it: the library file is written by hand until
 [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) creates it from the folders and keeps it in step.
 
-Three further steps follow it, from [operations-review.md](operations-review.md); none is built:
-[Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) (a name collision sends the unit to
-review instead of crashing `sort`; `keep_folders = false` files a folder's documents one by one and handles the
-emptied folder), [Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) (`sort --dry-run`, a run
+[Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) is built, from
+[operations-review.md](operations-review.md). A name collision no longer crashes `sort`: the unit stays in the inbox
+for review with the reason (`core.filer.DestinationClaims`, shared with `reclassify`). An inbox file whose content is
+identical to a file already in the library, or to one filed earlier in the same run, is classified but held in the
+inbox and listed under Duplicates, with the reason saying where the copy is and where this one would have gone
+(`core/duplicates.py`). Only new files are checked, so copies already in the library are never reported and the check
+has no setting. `keep_folders = false` descends into inbox folders, files each document on its own, and removes a
+folder once it is empty, recorded as a `remove_folder` event so `rollback` recreates it. Still open: duplicates
+are not checked for folders kept whole, and a duplicate is not moved out of the inbox for you.
+
+Three further steps follow it; none is built:
+[Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) (`sort --dry-run`, a run
 lock, per-unit failure isolation, symlink and size limits) and
 [Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) (logging, `--verbose`/`--quiet`, progress) and
 [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as
@@ -152,7 +160,7 @@ RAG, and knowledge-graph work are future-roadmap items, not MVP scope.
 Also postponed, after the review in [operations-review.md](operations-review.md):
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
-- **Duplicate detection.** The ledger already hashes content and has a `same_content` lookup, so this should be a small follow-up.
+- **Moving duplicates** to a `_sorting/duplicates/` folder to leave the inbox tidier, checking folders kept whole for duplicates, and a persistent hash cache. Content-duplicate detection itself is built (Stage 4.2).
 - **Renaming on collision** (a suffix setting). Collisions go to review instead.
 - **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche.
 - **Watch mode**, a daemon that sorts as files arrive.

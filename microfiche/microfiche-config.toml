@@ -41,7 +41,8 @@ ai_confidence = 0.70
 max_document_chars = 4000
 
 # Whether a folder dropped in the inbox is filed whole, under the category most of its documents
-# belong to (true), or left alone (false). `sort --keep-folders` and `sort --keep-folders-off`
+# belong to (true), or its documents are filed one by one and the folder is removed once it is empty
+# (false). `sort --keep-folders` and `sort --keep-folders-off`
 # override this for a single run: a flag beats this file, which beats the built-in default (true).
 [sorting]
 keep_folders = true

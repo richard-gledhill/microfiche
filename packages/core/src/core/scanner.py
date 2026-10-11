@@ -19,13 +19,19 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
     Files that can't be read (corrupt, say) don't stop the scan: they are recorded on their unit's
     ``unreadable`` list, so the unit is left for review rather than the whole run failing.
 
-    Loose supported files become single-document units. Sub-folders are only descended into
-    (and kept whole as one unit) when keeping folders is on and they contain at least one
-    file with a supported extension; otherwise they're left alone for the user to handle manually.
+    Loose supported files become single-document units. A sub-folder with at least one supported file
+    is descended into either way:
+
+    - keeping folders whole (the default): the folder is one unit, filed under its dominant category;
+    - not keeping them: every supported file in it, including those in nested sub-folders, is a
+      single-document unit of its own, with ``origin_folder`` set to the folder so that it can be removed
+      once it is empty.
+
+    A folder with no supported file is left alone for the user to handle manually.
 
     Args:
         library: The library whose inbox to scan.
-        keep_folders: Whether to include folders with supported files as sortable units. ``None``
+        keep_folders: Whether to keep each folder with supported files whole as one unit. ``None``
             (the default) uses the library's ``[sorting] keep_folders`` setting.
 
     Returns:
@@ -34,7 +40,6 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
 
     Todo:
         - Raise warning for handle empty sorting inbox directory.
-        - Recursive inbox folders.
     """
 
     inbox = library.inbox
@@ -50,11 +55,28 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
             units.append(
                 SortableUnit(source_path=entry, kind="file", documents=read.documents, unreadable=read.unreadable)
             )
-        elif entry.is_dir() and keep_folders:
-            read = read_documents(path for path in sorted(entry.rglob("*")) if path.is_file())
-            if read.documents or read.unreadable:
-                units.append(
-                    SortableUnit(source_path=entry, kind="folder", documents=read.documents, unreadable=read.unreadable)
-                )
+        elif entry.is_dir():
+            inside = [path for path in sorted(entry.rglob("*")) if path.is_file()]
+            if keep_folders:
+                read = read_documents(inside)
+                if read.documents or read.unreadable:
+                    units.append(
+                        SortableUnit(
+                            source_path=entry, kind="folder", documents=read.documents, unreadable=read.unreadable
+                        )
+                    )
+            else:
+                for path in inside:
+                    if is_supported(path):
+                        read = read_documents([path])
+                        units.append(
+                            SortableUnit(
+                                source_path=path,
+                                kind="file",
+                                documents=read.documents,
+                                unreadable=read.unreadable,
+                                origin_folder=entry,
+                            )
+                        )
 
     return units

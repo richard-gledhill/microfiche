@@ -26,7 +26,12 @@ the same exercise is in [config-review.md](config-review.md).
 
 - **Collision policy:** a unit whose destination is taken stays in the inbox for review, with the reason.
   Nothing is renamed, suffixed or overwritten, which matches `reclassify`'s `conflict`. Renaming on collision
-  and recognising an exact duplicate are deferred.
+  is deferred.
+- **Duplicate policy:** an inbox file whose content matches a file already in the library, or one filed earlier in
+  the same run, is classified as usual and then held in the inbox with the reason, which names the existing copy
+  and, if the classifier would file it elsewhere, where. Only new files are checked: duplicates already inside the
+  library are normal in a project (reference documents) and are never reported, so there is no setting. Moving
+  duplicates into a `_sorting/duplicates/` folder is deferred.
 - **Audit log versus diagnostic log:** `audit.log` and the ledger are product data that `rollback` reads and
   must stay stable. The diagnostic log is for people and can change. `core` uses the standard `logging` module
   and installs no handlers; only the CLI configures them.
@@ -38,6 +43,6 @@ the same exercise is in [config-review.md](config-review.md).
 
 ## Deferred beyond the MVP
 
-Listed in the roadmap with the rest of the deferred work: OCR for scanned PDFs, duplicate detection,
+Listed in the roadmap with the rest of the deferred work: OCR for scanned PDFs,
 a `doctor`/`verify` command, watch mode, `--json` output, ledger and `audit.log` rotation, dependency and
 security scanning, and a statement that there is no telemetry.

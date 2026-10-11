@@ -240,19 +240,43 @@ commands from a config inside a shared library); per-group hint overrides.
 **Testable version:** A name already taken at the destination no longer crashes `sort`: that unit stays in the
 inbox for review, with the reason, and everything else is filed. With `keep_folders` on, the mock library's
 inbox folder files whole under its dominant category; with it off, the files inside are filed one by one and
-the emptied folder is removed, recorded so `rollback` recreates it.
+the emptied folder is removed, recorded so `rollback` recreates it. An inbox file whose content is identical to a
+file already in the library (or to another inbox file filed in the same run) is classified as usual but not
+filed: it stays in the inbox and the summary lists it under Duplicates, naming the existing copy and, when the
+existing copy is somewhere else, where this one would have been filed.
 
 Why now: today `file_batch` raises `FileExistsError` part-way through a batch and `commands.sort` does not
 catch it, so a collision gives a traceback and a half-finished job. `keep_folders = false` also has to start
-descending into folders, which makes same-name collisions between sub-folders likely. The reasoning is in
-[operations-review.md](operations-review.md).
+descending into folders, which makes same-name collisions between sub-folders likely. A name check says nothing
+about content, so the commonest collision, dropping a file that is already filed, is better recognised as a
+duplicate than reported as a name clash. The reasoning is in [operations-review.md](operations-review.md).
 
 **Plan**
 - Decide what `keep_folders = false` means. Today it ignores inbox folders (the scanner only descends into them when it is on), so their contents are never filed. The intended meaning is: descend, and file each document on its own. That changes today's behaviour and `architecture.md` §4.
 - Decide the collision policy: a unit whose destination is taken stays in the inbox for review, with the reason. Nothing is renamed, suffixed or overwritten, matching what `reclassify` already does with its `conflict` action.
+- Decide what a duplicate is: an inbox file whose bytes (SHA-256) match a file already in the library, in any group or category, or a file already being filed in this run. The name does not matter; the same name with different content is a collision, not a duplicate.
+- Decide the principle: the check looks at **new files only**, comparing each inbox file against the library. It never examines or reports duplicates already inside the library, because a project often holds the same document in more than one place (reference documents, for example). For the same reason it is always on and has no setting: it has no effect on what is already filed.
+- Decide the policy: a duplicate is classified like any other file, then held in the inbox with the reason. Nothing is renamed, moved or deleted; the user decides what to do with it. This is the collision policy applied to content.
+- Decide the scope: file units only. With `keep_folders` off every file inside an inbox folder is its own unit, so each is checked; with it on, a folder unit is not checked (a duplicate bundle files as before). Checking a folder is deferred.
 
 **Design**
 - Design one destination check shared by `sort` and `reclassify`, applied after the naming rules, covering both a file that already exists and two units in the same run headed for the same destination (the first files, the second goes to review). `file_batch`'s `FileExistsError` stays as the last line of defence against a race.
+- Design the order of checks for each inbox unit: classify, then the duplicate check, then the destination check. The unit is classified first so the duplicate message can say where it would have been filed. The duplicate check comes before the destination check so that a file already filed under the same name is reported as a duplicate, which is more informative, and so a held duplicate never claims a destination that a different file needs.
+- Design `DuplicateIndex(library)` (in `core/duplicates.py`) as a lazy index of the library: nothing is read until the first inbox file needs checking. `find(path)` returns the existing copy or `None`, and `add(destination)` registers a unit that is about to be filed, so a second identical inbox file is caught as a duplicate of the first. It is cheap by checking size first:
+  - Walk the library once and `stat` every file, pruning the inbox, `.microfiche/` and excluded folders so `.git` and `.obsidian` are never entered. Group the paths by size.
+  - Hash an inbox file only if a library file has the same size, and hash a library file only if it is the same size as an inbox file being checked. Most runs hash a handful of files out of thousands, and a cloud-only OneDrive placeholder is never downloaded unless it is a real candidate.
+  - Check the inbox against the library in one direction only; the library is never compared with itself.
+- Design the reason for a duplicate from the unit's classification and the existing copy's place:
+  - the copy is at the destination: "identical to `<path>`, already filed where this would go";
+  - the copy is in the destination category folder, under another name or in a sub-folder: "identical to `<path>`, in the folder this would be filed to";
+  - the copy is in a different category or group: "identical to `<path>`; this would be filed in `<group>/<category>`";
+  - the classification is not confident but names a group and category: "identical to `<path>`; the classifier suggests `<group>/<category>` but is not confident";
+  - the classification is unresolved: "identical to `<path>`; could not be classified";
+  - the copy is another inbox file being filed in this run: "identical to `<name>`, which is being filed this run to `<group>/<category>`".
+- Design `SortReport.duplicates`: a list of a small record holding the unit, its full `ClassificationResult`, the existing path and the reason. A duplicate is listed here only, not also in `needs_review`, because it is not a classification question and the user should not be asked to pick a category for a file they will probably discard. Name collisions stay in `needs_review`.
+- Design `Library.filed_under(path, group, category)`, true when the path is in that category folder or below it. `reclassify` already applies this rule inline for its `keep` action, so move it here and have both use it.
+- Design `reclassify` as unaffected by duplicates: it moves documents within the library and never imports from the inbox.
+- Design the interaction with emptied folders: a duplicate left in an inbox folder stops that folder being removed, and the report says why.
 - Design how an inbox folder is handled when `keep_folders` is off:
   - Its documents, including those in nested sub-folders, become single-document units.
   - Two files with the same name from different sub-folders are a collision, handled as above.
@@ -263,7 +287,9 @@ descending into folders, which makes same-name collisions between sub-folders li
 - Add the shared destination check, and route a collision to `SortReport.needs_review` with a reason such as "a file named X already exists in Project Phoenix/02 Architecture".
 - Make `scan_sorting_inbox` descend into inbox folders when `keep_folders` is off, returning one single-document unit per supported file (with the folder it came from recorded on the unit, so the emptied folder can be found).
 - Add empty-folder handling to `file_batch` (or a step in `run_sort` after it): remove a folder left empty by the `no` option, record the removal in the job, and make `rollback_job` recreate it; leave a non-empty folder and report it.
-- Show collision and kept-folder reasons in the `sort` summary.
+- Add `core/duplicates.py` with `DuplicateIndex`, and `Library.filed_under` (used by `reclassify` as well).
+- Call the duplicate check from `run_sort` between classification and the destination check, and fill `SortReport.duplicates`.
+- Show collision and kept-folder reasons in the `sort` summary, and list duplicates in their own Duplicates section with the filed and needs-review counts.
 
 **Test**
 - Write collision tests: an existing file at the destination sends only that unit to review with the reason, the rest are filed, nothing is overwritten and there is no traceback; two units headed for the same destination file one and review the other.
@@ -274,12 +300,28 @@ descending into folders, which makes same-name collisions between sub-folders li
   - `keep_folders` off, emptied folder: the folder is gone after the sort, and `rollback` restores it and all three files exactly.
   - `keep_folders` off, folder not emptied (add an unsupported file such as a `.png`, or a sub-folder name clash): the folder stays and the report names why.
 - Update the existing tests that copy `tests/mock_library` (`tests/cli/test_app.py`, `tests/core/test_organizer.py`, `tests/core/test_reclassify.py`) for the new folder, and check any that assert counts of filed or review items.
+- Write duplicate tests, building the duplicates inside each test rather than in `tests/mock_library` so the shared fixture does not change again:
+  - a copy already at the destination is held with "already filed where this would go";
+  - a copy under another name in the destination folder, and one in a sub-folder of it, are held with the "in the folder this would be filed to" reason;
+  - a copy in a different category, and one in a different group, are held and the reason names both places;
+  - a duplicate that classifies with low confidence, and one that is unresolved, are each listed once under duplicates and not in `needs_review`;
+  - two identical inbox files file the first and hold the second, with the "being filed this run" reason;
+  - a held duplicate does not claim its destination: a different-content file that would take the same destination name (two inbox sub-folders with `keep_folders` off, or a naming rule) still files;
+  - the same name with different content is a collision in `needs_review`, not a duplicate; the same size with different content is neither;
+  - identical files that are both already in the library are never reported;
+  - with `keep_folders` off a duplicate inside an inbox folder is held and the folder stays, with the reason; with it on, a folder unit is not checked;
+  - the index hashes only same-size candidates (count the hash calls through a fake), prunes excluded folders, and reads nothing when the inbox is empty;
+  - `Library.filed_under` accepts the category folder and its sub-folders and rejects a sibling category, and `reclassify`'s `keep` still behaves as before.
 
 **Deploy**
-- Update `docs/how-to-use.md` and the README (collisions, and what `keep_folders = false` does), `architecture.md` §4 and the "nothing is ever deleted" wording.
+- Update `docs/how-to-use.md` and the README (collisions, duplicates and how to resolve one, and what `keep_folders = false` does), `architecture.md` §4 and the "nothing is ever deleted" wording.
+- Add "duplicate" to [CONTEXT.md](../../CONTEXT.md), update `mvp-roadmap.md` (move duplicate detection out of "Deferred beyond MVP"), and update the Decisions in [operations-review.md](operations-review.md), which still lists recognising an exact duplicate as deferred.
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
-**Deferred:** renaming on collision (a suffix setting); detecting that the colliding file is an exact duplicate.
+**Deferred:** renaming on collision (a suffix setting); moving duplicates to a `_sorting/duplicates/` folder to
+leave the inbox tidier (a `[sorting] duplicates = "leave" | "quarantine"` setting, which needs a scanner skip rule and
+its own collision handling); duplicate checking of folder units; a persistent hash cache keyed by path, size and
+modification time; a hash of the parsed text, to catch a re-saved copy whose bytes differ.
 
 ---
 

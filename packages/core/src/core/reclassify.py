@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Literal
 
 from core.classifier import Classifier
-from core.filer import destination_for, file_batch
+from core.filer import DestinationClaims, destination_for, file_batch
 from core.library.library import Library
 from core.models.classification import ClassificationResult
 from core.models.job import Job
@@ -82,7 +82,7 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
     taxonomy = library.taxonomy()
     classifier = Classifier.from_library(library)
 
-    claimed: set[Path] = set()
+    claims = DestinationClaims(library)
     proposals: list[ReclassifyProposal] = []
     for file_path in library.files(scope):
         if not is_supported(file_path):
@@ -91,7 +91,7 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
         read = read_documents([file_path])
         unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
         classification = classifier.classify_unit(unit, taxonomy)
-        proposals.append(_plan(unit, classification, library, claimed))
+        proposals.append(_plan(unit, classification, library, claims))
 
     return proposals
 
@@ -119,9 +119,9 @@ def _plan(
     unit: SortableUnit,
     classification: ClassificationResult,
     library: Library,
-    claimed: set[Path],
+    claims: DestinationClaims,
 ) -> ReclassifyProposal:
-    """Decide what to do with one classified document; ``claimed`` holds destinations already planned."""
+    """Decide what to do with one classified document; ``claims`` holds destinations already planned."""
 
     group, category = classification.group.name, classification.category.name
     if group is None or category is None or not classification.confident:
@@ -129,10 +129,9 @@ def _plan(
 
     destination = destination_for(library, group, category, unit.source_path.name)
     current = unit.source_path
-    if destination.parent == current.parent or destination.parent in current.parents:
+    if library.filed_under(current, group, category):
         return ReclassifyProposal(unit, classification, "keep")
-    if destination.exists() or destination in claimed:
+    if claims.claim(destination) is not None:
         return ReclassifyProposal(unit, classification, "conflict", destination)
 
-    claimed.add(destination)
     return ReclassifyProposal(unit, classification, "move", destination)

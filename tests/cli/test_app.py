@@ -17,12 +17,17 @@ runner = CliRunner()
 
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
 _PHOENIX_NOTE = "PhoenixArchitectureNotes.md"
+_PACK = "phoenix-weekly-pack"  # an inbox folder in the mock library, for the folder tests
 _JOB_LINE = re.compile(r"^Job: (\S+)$", re.MULTILINE)
 
 
-def _library(tmp_path: Path) -> Path:
+def _library(tmp_path: Path, *, with_pack: bool = False) -> Path:
+    """A copy of the mock library; most tests are about its two loose notes, so ``_PACK`` is left out."""
+
     library = tmp_path / "library"
     shutil.copytree(_MOCK_LIBRARY, library)
+    if not with_pack:
+        shutil.rmtree(library / "_sorting" / _PACK)
     return library
 
 
@@ -207,7 +212,7 @@ def test_sort_inbox_folder_filed_whole_by_default(tmp_path: Path) -> None:
     assert not bundle.exists()
 
 
-def test_sort_keep_folders_off_in_config_leaves_inbox_folder(tmp_path: Path) -> None:
+def test_sort_keep_folders_off_in_config_files_documents_one_by_one(tmp_path: Path) -> None:
     library = _library(tmp_path)
     bundle = _bundle_in_inbox(library)
     _set_keep_folders(library, False)
@@ -215,7 +220,9 @@ def test_sort_keep_folders_off_in_config_leaves_inbox_folder(tmp_path: Path) -> 
     result = runner.invoke(app, ["sort", "--library", str(library)])
 
     assert result.exit_code == 0, result.stdout
-    assert (bundle / _PHOENIX_NOTE).exists()
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+    assert not bundle.exists()  # emptied, so removed
+    assert "Removed the emptied inbox folder" in result.stdout
 
 
 def test_sort_keep_folders_flag_overrides_config_off(tmp_path: Path) -> None:
@@ -229,14 +236,36 @@ def test_sort_keep_folders_flag_overrides_config_off(tmp_path: Path) -> None:
     assert not bundle.exists()
 
 
+def test_rollback_after_emptied_folder_removal_recreates_folder(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+    before = _tree(library)
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders-off"])
+    assert result.exit_code == 0, result.stdout
+    assert not bundle.exists()
+    match = _JOB_LINE.search(result.stdout)
+    assert match is not None, result.stdout
+    job_id = match.group(1)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Reverted 1 move(s) and recreated 1 emptied folder(s)" in " ".join(result.stdout.split())
+    assert bundle.is_dir()
+    assert _tree(library) == before
+
+
 def test_sort_keep_folders_off_flag_overrides_default(tmp_path: Path) -> None:
     library = _library(tmp_path)
     bundle = _bundle_in_inbox(library)
+    (bundle / "photo.png").write_bytes(b"not a document")
 
     result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders-off"])
 
     assert result.exit_code == 0, result.stdout
-    assert (bundle / _PHOENIX_NOTE).exists()
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+    assert (bundle / "photo.png").exists()  # not a document, so the folder stays
+    assert "bundle stays in the inbox: it still holds photo.png (not sorted)" in " ".join(result.stdout.split())
 
 
 def test_sort_both_keep_folders_flags_fail_without_sorting(tmp_path: Path) -> None:
@@ -251,15 +280,16 @@ def test_sort_both_keep_folders_flags_fail_without_sorting(tmp_path: Path) -> No
     assert _tree(library) == before
 
 
-def test_propose_categories_uses_keep_folders_setting(tmp_path: Path) -> None:
+@pytest.mark.parametrize("keep_folders", [True, False])
+def test_propose_categories_reads_folder_documents_either_way(tmp_path: Path, keep_folders: bool) -> None:
     library = _library(tmp_path)
     _bundle_in_inbox(library)
-    _set_keep_folders(library, False)
+    _set_keep_folders(library, keep_folders)
 
     result = runner.invoke(app, ["propose-categories", "--library", str(library)])
 
     assert result.exit_code == 0, result.stdout
-    assert "PhoenixArchitectureNotes" not in result.stdout  # the folder's document is not read
+    assert "PhoenixArchitectureNotes" in result.stdout  # the folder's document is read whether or not it is kept whole
 
 
 # endregion
@@ -481,7 +511,7 @@ def test_sort_library_under_dot_folder(tmp_path: Path) -> None:
     result = runner.invoke(app, ["sort", "--library", str(library)])
 
     assert result.exit_code == 0, result.stdout
-    assert "Filed: 1" in result.stdout
+    assert "Filed: 2" in result.stdout  # the Phoenix note and the mock library's inbox folder
     assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
 
 
@@ -658,6 +688,34 @@ def test_rollback_and_audit_work_with_invalid_config(tmp_path: Path) -> None:
     assert audit.exit_code == 0
     assert rollback.exit_code == 0
     assert "Reverted 1 move(s)" in rollback.stdout
+
+
+# endregion
+
+
+# region Duplicates
+
+
+def test_sort_lists_duplicates_with_reason_and_leaves_them_in_inbox(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    filed_copy = library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE
+    shutil.copyfile(library / "_sorting" / _PHOENIX_NOTE, filed_copy)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Duplicates (left in the inbox): 1" in output
+    assert f"{_PHOENIX_NOTE} — identical to Project Phoenix/02 Architecture/{_PHOENIX_NOTE}, already filed" in output
+    assert (library / "_sorting" / _PHOENIX_NOTE).exists()
+    assert "Job:" not in result.stdout  # nothing was filed, so there is nothing to undo
+
+
+def test_sort_without_duplicates_prints_zero(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Duplicates (left in the inbox): 0" in result.stdout
 
 
 # endregion
