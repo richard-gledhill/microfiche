@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - layer packaged defaults under the library config [`f054737`](https://github.com/richard-gledhill/microfiche/commit/f054737)
 
 ### Documentation
+- point the docs at make module-diagram [`02fb118`](https://github.com/richard-gledhill/microfiche/commit/02fb118)
+- :robot: changelog file generated [`2425f64`](https://github.com/richard-gledhill/microfiche/commit/2425f64)
 - describe the configuration layout as built (Stage 4.1) [`56edb1f`](https://github.com/richard-gledhill/microfiche/commit/56edb1f)
 - regenerate the module diagram from the current imports [`0f64865`](https://github.com/richard-gledhill/microfiche/commit/0f64865)
 - record the rapidfuzz switch and the accent decision for Stage 5 [`ac55f32`](https://github.com/richard-gledhill/microfiche/commit/ac55f32)
@@ -40,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - check that the shipped template and packaged defaults agree [`f437bd3`](https://github.com/richard-gledhill/microfiche/commit/f437bd3)
 
 ### Build
+- add make module-diagram to regenerate the import graph [`279c6f2`](https://github.com/richard-gledhill/microfiche/commit/279c6f2)
 - add make library-schema to regenerate the library file schema [`587c8cd`](https://github.com/richard-gledhill/microfiche/commit/587c8cd)
 
 ### Refactor
@@ -48,6 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #46 from richard-gledhill/chore/module-diagram-target [`c7a642d`](https://github.com/richard-gledhill/microfiche/commit/c7a642d)
 - Merge pull request #45 from richard-gledhill/feature/config-consolidation [`d8f0df0`](https://github.com/richard-gledhill/microfiche/commit/d8f0df0)
 - Merge pull request #44 from richard-gledhill/docs/keep-folders-switch [`b5711fe`](https://github.com/richard-gledhill/microfiche/commit/b5711fe)
 - Merge pull request #43 from richard-gledhill/docs/scratch-tdd-note [`827be89`](https://github.com/richard-gledhill/microfiche/commit/827be89)
