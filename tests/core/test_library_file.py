@@ -499,7 +499,7 @@ def test_library_file_too_deep_error_names_both_numbers() -> None:
 
 
 def test_json_schema_matches_committed_schema_file() -> None:
-    """Regenerate ``microfiche/microfiche-library.schema.json`` from ``json_schema()`` if the model changes."""
+    """If the model changes, run ``make library-schema`` to regenerate ``microfiche-library.schema.json``."""
 
     committed = json.loads((_TEMPLATE_DIR / "microfiche-library.schema.json").read_text(encoding="utf-8"))
 

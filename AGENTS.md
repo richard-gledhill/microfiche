@@ -26,6 +26,7 @@ make install    # uv sync across the workspace + install pre-commit hooks
 make check      # uv lock --locked, pre-commit run -a, mypy, deptry (core, then cli)
 make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 make docs       # mkdocs serve
+make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
 ```
 
 Single test / narrower run:
@@ -216,6 +217,9 @@ it becomes a unit (or proposal) left for review, with the reason.
   option `help=` text): run `make docs-cli` after changing either. `make docs`/`make docs-test` do it for you,
   and a test fails if the file is stale. Write command docstrings for users, not as API docs - Typer
   prints them as `--help`.
+- `microfiche/microfiche-library.schema.json` is generated from the library file model (`json_schema()` in
+  `core/library/library_file.py`): run `make library-schema` after changing a field or its description. A test
+  fails if the committed file is stale.
 - `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
   by GitHub URL.
 - After a rename or behaviour change, grep the docs for the old name or number.
