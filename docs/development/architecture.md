@@ -81,7 +81,7 @@ ai/llm_classifier.py         # Resolver adapter 2: the AI fallback
 
 **Stage 1 — group resolution** (`rules/group_rules.py`, new):
 * Match against known group names in the document text (groups have no keyword hints).
-* Fuzzy match (via `thefuzz`, already a dependency — this is what it's for) to catch near-misses like
+* Fuzzy match (via `rapidfuzz`, a direct dependency — this is what it's for) to catch near-misses like
   "Phoenix Project" vs "Project Phoenix".
 * AI fallback (`ai/llm_classifier.py`) only if the rules' answer is missing or below the confidence threshold:
   given the document text and the list of known group names, ask the model to pick one or say "none". A

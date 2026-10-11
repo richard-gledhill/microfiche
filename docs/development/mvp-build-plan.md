@@ -651,6 +651,7 @@ queue interactively via `microfiche review` — completing the CLI surface
 - If a decision model is configured (Stage 4.5), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
 - Design the `index.md` folder-note format (wikilinks for `.md` files, relative links for other formats).
 - Design the `TagIndex.md` parser and the `## Proposed` section convention for ungoverned tags.
+- Decide how tags with accents match. `tag_mapper` now compares accents as written, so `munchen` does not match `münchen`; folding accents before matching would make it match, and `ber` still would not match `über` ([fuzzy-matching-options.md](fuzzy-matching-options.md)).
 
 **Build**
 - Implement folder-note generation that regenerates a touched folder's `index.md` after every sort/reclassify/rollback.

@@ -76,7 +76,7 @@ workspace `.venv`.
    the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
    (`ai/llm_classifier.py::LLMClassifier`). It owns the flow, the confidence threshold and the
    taxonomy check; the resolvers only propose:
-   - **Group** (`rules/group_rules.py`): keyword + fuzzy match (`thefuzz`) against known group
+   - **Group** (`rules/group_rules.py`): keyword + fuzzy match (`rapidfuzz`) against known group
      names.
    - **Category** (`rules/keyword_rules.py`, `rules/metadata_rules.py`): filename-glob rules
      checked first, then keyword hints — scoped to the resolved group's existing category

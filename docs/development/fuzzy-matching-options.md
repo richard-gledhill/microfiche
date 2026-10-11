@@ -2,7 +2,8 @@
 
 microfiche uses fuzzy string matching in two places. This page records what `thefuzz` actually is, how it
 compares with RapidFuzz and the other options, what was measured, and when in the build plan to switch. It feeds
-[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation) of the build plan. Nothing is switched yet.
+[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation) of the build plan. The switch was made as the last Build step of Stage 4.1; the "Outcome" section at the end
+records what was done and what it showed.
 
 ## Where it is used
 
@@ -36,7 +37,7 @@ elsewhere; the ratios are the point.
 | `partial_ratio`, 30 groups against a 4,000-character document | 0.65 ms | 0.61 ms |
 | the same against 20,000 characters | 2.38 ms | 2.37 ms |
 | the same against 200,000 characters | 30.5 ms | 30.0 ms |
-| the same, 20,000 characters, with `score_cutoff=85` | not available | 1.19 ms (4.38 ms without it, 3.7 times faster) |
+| the same, 20,000 characters, with `score_cutoff=85` (a simplified loop) | not available | 1.19 ms (4.38 ms without it) |
 | tag matching: 20 queries against 500 tags (`extractOne`) | 9.5 ms | 5.6 ms |
 
 - **Switching the function alone gains nothing**: the wrapper's overhead for `partial_ratio` is within noise.
@@ -54,9 +55,12 @@ elsewhere; the ratios are the point.
    and strips punctuation before comparing (its `full_process`). `rapidfuzz.process.extractOne` does nothing by
    default, so `Python` and `python` would stop matching. Pass `processor=rapidfuzz.utils.default_process`. This is
    the one place a plain import swap changes behaviour, and `tag_mapper` needs a test that pins it.
-2. **Scores become floats.** `84.6` used to round to `85` and pass a threshold of 85; now it does not. The
-   calibration corpus is unaffected, but the boundary moves by under one point. Either keep the rounding or accept
-   and document the exact comparison.
+   **It also deletes accented letters.** For its default scorer `thefuzz` forces the text to ASCII, which removes
+   Latin-1 letters such as `é` and `ü` (`café` becomes `caf`) but not other scripts. That gives false matches
+   (`ber` matches `über`, `nave` matches `naïve`, both at 100) and some accidental good ones (`munchen` matches
+   `münchen` at 92). RapidFuzz's `default_process` keeps accents.
+2. **Scores become floats.** `84.6` used to round to `85` and pass a threshold of 85. Round the score before the
+   comparison to keep that exactly.
 3. **`rapidfuzz` must be declared.** Once code imports it, `deptry` expects it in `core`'s dependencies, and
    `thefuzz` (and its mypy override in the root `pyproject.toml`) can go.
 
@@ -81,6 +85,20 @@ These are from general knowledge and were **not** benchmarked here; none gives a
 | `jellyfish` | Edit distances and phonetic matching (Soundex, Metaphone). Phonetics is not what group names need. |
 | `textdistance` | Many algorithms in pure Python: slower, with no substring score. |
 | `regex` (approximate matching) | Fuzzy substring matching with `{e<=2}`, but hard to score, tune and explain, and slower. |
+
+## Outcome
+
+The switch was made with the rounding kept, so a raw score of 84.6 still counts as 85. RapidFuzz is also given a
+`score_cutoff` of the threshold less one, which can only skip scores that could not have rounded up to the threshold.
+
+- **Accuracy:** the calibration report is unchanged at the default (113 filed, 89 right, 24 wrong). On 6,000
+  random group-match cases and 6,000 random ASCII tag-mapping cases, the old `thefuzz` code and the new code gave
+  identical results.
+- **Speed:** the real group match, 30 groups against a 20,000-character document, went from 2.81 ms to 1.55 ms
+  (1.8 times faster). The 3.7 times in the table above was a simplified loop, not this function.
+- **One deliberate behaviour change:** tag matching now keeps accents, as above. `tag_mapper` is not called from
+  `sort` until Stage 5, so no user has seen either behaviour. Whether to fold accents on purpose (so `munchen`
+  matches `münchen`) is a decision for the Stage 5 tag design; it is listed in the build plan.
 
 ## Recommendation and timing
 
