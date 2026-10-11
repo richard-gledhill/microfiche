@@ -10,7 +10,7 @@ from core.library.library_file import LibraryFile
 from core.models.category import Taxonomy
 from core.models.document import Document
 from core.rules.rules_engine import RulesEngine
-from thefuzz import fuzz
+from rapidfuzz import fuzz
 
 
 def _settings(**overrides: Any) -> ClassificationConfig:
@@ -130,7 +130,7 @@ def test_rules_engine_filename_match_scored_by_setting() -> None:
 def test_rules_engine_fuzzy_group_threshold_boundary_inclusive() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements"]})
     text = "Notes for Projct Phoeniix"  # a near miss, not the group's name
-    score = fuzz.partial_ratio("project phoenix", text.lower())
+    score = round(fuzz.partial_ratio("project phoenix", text.lower()))
     assert 0 < score < 100
 
     at_score = RulesEngine(_library_file(), _settings(fuzzy_group_threshold=score))
@@ -220,3 +220,16 @@ def test_rules_engine_entry_for_missing_folder_never_proposed() -> None:
     match = engine.resolve_category(_document("text", "launch-plan.md"), "Project Phoenix", taxonomy)
 
     assert match.name is None
+
+
+def test_rules_engine_fuzzy_group_score_rounded_before_threshold() -> None:
+    # The raw score is 84.6; it is rounded to 85 before it is compared with the threshold, so it is accepted.
+    name = "zedlxgoutuhhg"
+    text = "notes about zedoxgoutuhig for the team"
+    assert 84.5 < fuzz.partial_ratio(name, text) < 85
+    taxonomy = Taxonomy(groups={name: ["01 Requirements"]})
+    engine = RulesEngine(_library_file(), _settings(fuzzy_group_threshold=85))
+
+    match = engine.resolve_group(_document(text), taxonomy)
+
+    assert (match.name, match.confidence) == (name, 0.85)

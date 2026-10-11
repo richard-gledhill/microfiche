@@ -130,7 +130,7 @@ class ClassificationConfig(_ConfigSection):
         hint_match_confidence (float): From 0 to 1. How sure a match is when one of a category's
             keyword hints appears in the document text.
         fuzzy_group_threshold (int): From 0 to 100. How close a near-miss must be to a group's name
-            (a ``thefuzz`` partial-ratio score) to count as that group.
+            (a RapidFuzz partial-ratio score, rounded to a whole number) to count as that group.
     """
 
     confidence_threshold: float = Field(ge=0.0, le=1.0)

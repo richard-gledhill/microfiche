@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from thefuzz import fuzz
+from rapidfuzz import fuzz
 
 from core.models.classification import GroupMatch
 
@@ -33,12 +33,15 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> G
     lowered = text.lower()
     best_name: str | None = None
     best_score = 0
+    # Scores are rounded to a whole number before they are compared with the threshold, so 84.6 counts as 85.
+    # A raw score below the threshold less one cannot round up to it, so RapidFuzz may stop early on those.
+    cutoff = max(0, fuzzy_threshold - 1)
 
     for group_name in group_names:
         if group_name.lower() in lowered:
             return GroupMatch(name=group_name, confidence=1.0, reason=f"Exact match on group name '{group_name}'")
 
-        score = fuzz.partial_ratio(group_name.lower(), lowered)
+        score = round(fuzz.partial_ratio(group_name.lower(), lowered, score_cutoff=cutoff))
         if score > best_score:
             best_name, best_score = group_name, score
 

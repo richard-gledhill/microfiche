@@ -385,7 +385,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pymupdf" },
     { name = "python-docx" },
-    { name = "thefuzz" },
+    { name = "rapidfuzz" },
 ]
 
 [package.optional-dependencies]
@@ -402,7 +402,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2" },
     { name = "pymupdf" },
     { name = "python-docx" },
-    { name = "thefuzz", specifier = "==0.22.1" },
+    { name = "rapidfuzz", specifier = ">=3.0,<4" },
 ]
 provides-extras = ["ai"]
 
@@ -2110,18 +2110,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/69/99/a6ca3beb3ccacb41fb3321d8a60e5566f9e6467601ef8eba6a17e1b89778/soupsieve-2.9.2.tar.gz", hash = "sha256:4a55d8cf158a9c2e587fa4922f1bbb91d68ac829e2d6f25403a85747c71daf74", size = 122445, upload-time = "2026-08-07T00:57:24.801Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/dc/ad025c1ee131eba60c69f4dd5779b18fcf1e6b21a343e2162a84d5d133c7/soupsieve-2.9.2-py3-none-any.whl", hash = "sha256:8089a26fd974ca7a1f30276d3d8492ab266ab15af581642dfe8aa162e0c1c823", size = 37370, upload-time = "2026-08-07T00:57:23.524Z" },
-]
-
-[[package]]
-name = "thefuzz"
-version = "0.22.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "rapidfuzz" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/81/4b/d3eb25831590d6d7d38c2f2e3561d3ba41d490dc89cd91d9e65e7c812508/thefuzz-0.22.1.tar.gz", hash = "sha256:7138039a7ecf540da323792d8592ef9902b1d79eb78c147d4f20664de79f3680", size = 19993, upload-time = "2024-01-19T19:18:23.135Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/4f/1695e70ceb3604f19eda9908e289c687ea81c4fecef4d90a9d1d0f2f7ae9/thefuzz-0.22.1-py3-none-any.whl", hash = "sha256:59729b33556850b90e1093c4cf9e618af6f2e4c985df193fdf3c5b5cf02ca481", size = 8245, upload-time = "2024-01-19T19:18:20.362Z" },
 ]
 
 [[package]]

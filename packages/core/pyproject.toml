@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11, <4.0"
 dependencies = [
     "pydantic>=2",
-    "thefuzz==0.22.1",
+    "rapidfuzz>=3.0,<4",
     "pymupdf",
     "python-docx",
     "extract-msg",

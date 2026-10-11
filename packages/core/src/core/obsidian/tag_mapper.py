@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from thefuzz import process
+from rapidfuzz import fuzz, process, utils
 
 from core.obsidian.tag_index import TagIndex
 
@@ -37,8 +37,20 @@ def map_tags(candidate_tags: list[str], tag_index: TagIndex, mode: TagMode) -> l
     resolved: list[str] = []
     canonical = sorted(tag_index.canonical_tags)
     for candidate in candidate_tags:
-        match = process.extractOne(candidate, canonical) if canonical else None
-        if match is not None and match[1] >= _FUZZY_MATCH_THRESHOLD:
+        # default_process lowercases and strips punctuation on both sides, and keeps accents and non-Latin letters.
+        # Scores are rounded before the threshold test; below the threshold less one cannot round up to it.
+        match = (
+            process.extractOne(
+                candidate,
+                canonical,
+                scorer=fuzz.WRatio,
+                processor=utils.default_process,
+                score_cutoff=_FUZZY_MATCH_THRESHOLD - 1,
+            )
+            if canonical
+            else None
+        )
+        if match is not None and round(match[1]) >= _FUZZY_MATCH_THRESHOLD:
             resolved.append(match[0])
         elif mode == "suggest":
             tag_index.add_proposed(candidate)

@@ -32,3 +32,28 @@ def test_map_tags_strict_mode_drops_unmatched_tags(tmp_path: Path) -> None:
     resolved = map_tags(["requirement", "totally-unrelated"], index, mode="strict")
 
     assert resolved == ["requirements"]
+
+
+def test_map_tags_candidate_matched_ignoring_case(tmp_path: Path) -> None:
+    index = TagIndex(path=tmp_path / "TagIndex.md", canonical_tags={"python"})
+
+    assert map_tags(["Python"], index, mode="strict") == ["python"]
+
+
+def test_map_tags_candidate_matched_ignoring_punctuation(tmp_path: Path) -> None:
+    index = TagIndex(path=tmp_path / "TagIndex.md", canonical_tags={"machine-learning"})
+
+    assert map_tags(["Machine_Learning"], index, mode="strict") == ["machine-learning"]
+
+
+def test_map_tags_accented_tag_matched_to_itself_ignoring_case(tmp_path: Path) -> None:
+    index = TagIndex(path=tmp_path / "TagIndex.md", canonical_tags={"café"})
+
+    assert map_tags(["Café"], index, mode="strict") == ["café"]
+
+
+def test_map_tags_unrelated_word_not_mapped_by_stripping_accents(tmp_path: Path) -> None:
+    # Accents are part of the tag: "ber" must not be read as "über" by deleting the umlaut from one side.
+    index = TagIndex(path=tmp_path / "TagIndex.md", canonical_tags={"über"})
+
+    assert map_tags(["ber"], index, mode="strict") == []
