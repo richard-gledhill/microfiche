@@ -27,6 +27,10 @@ _Avoid_: Subfolder, tag, label
 The hidden folder inside a library where microfiche keeps its config and its own records.
 _Avoid_: Data directory, config folder, logs folder
 
+**Library file**:
+The file in the state folder (`microfiche-library.json`) that describes the library's folders with the hints and filing rules that help match them. It describes folders; it never decides which exist.
+_Avoid_: Library config, taxonomy file, template
+
 **Taxonomy**:
 The library's groups and, within each, its categories, read from the folders that already exist.
 _Avoid_: Schema, category list
@@ -44,6 +48,14 @@ _Avoid_: Prediction, label
 **Resolver**:
 Something that proposes a group, or a category within a group, for a document.
 _Avoid_: Classifier (the classifier combines resolvers), matcher
+
+**Hint**:
+A keyword whose appearance in a document suggests a category.
+_Avoid_: Tag, keyword list
+
+**Filing rule**:
+A filename pattern that sends a matching file to a category before hints are tried.
+_Avoid_: Naming rule (that one renames files), route
 
 **Unreadable document**:
 A supported file that can't be opened — corrupt, say — so it can't be classified; it is left for review and never stops the rest of a run.

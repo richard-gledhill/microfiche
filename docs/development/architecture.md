@@ -250,41 +250,47 @@ No database, no vector store, no semantic search in this MVP — `ai/` is a fall
 resolution and for `propose-categories --use-ai`, not a always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
 
-## 10. Configuration layout (planned, Stage 4.1)
+## 10. Configuration layout
 
-**Not built yet.** §1-§9 describe what exists; this section is the target for
-[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation). The reasoning for each point is in
+Built in [Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation). The reasoning for each point is in
 [config-review.md](config-review.md).
 
 ```
 core/defaults/microfiche-config.toml   # packaged defaults, the only source of default values
 <library>/.microfiche/microfiche-config.toml   # the library's overrides, deep-merged over the defaults
-<library>/.microfiche/microfiche-library.json  # this library's folder tree with hints and filing rules (data, not settings); created from the folders by Stage 4.10
+<library>/.microfiche/microfiche-library.json  # this library's folder tree with hints and filing rules (data, not settings)
 ```
 
-* **Defaults live in one packaged file.** The loader reads it, deep-merges the library's file over it (tables
-  merge key by key, lists replace), then validates. The pydantic models no longer carry default values. This
-  replaces today's two sources (the models and the repo-root `microfiche/` template), which already disagree.
-* **Settings and data are separate.** `microfiche-config.toml` holds behaviour only. `category_hints` and
-  `filing_rules` move to `microfiche-library.json`, a recursive `{name, hints, rules, children}` node format
-  with a generated JSON Schema. Hints still only match folders that already exist (§1); they never define
-  the taxonomy. `naming_rules` stays in the TOML.
-* **Depth is the only structural setting in the config.** `[library_structure] depth` stays and is validated
-  against the supported range (2 today; 1–2 from Stage 4.6, and 3 from Stage 4.7 if it goes ahead); `levels` and `file_target_level` are dropped (`levels` moves to the JSON if it is kept at all).
-  `library_templates` is dropped until an `init` command exists; a template catalog would reuse the library
-  file's node schema.
-* **Scores and thresholds are config.** `[classification]` gains the signal strengths (name, filename rule,
-  keyword hint) and the group fuzzy-match threshold, and `[ai]` gains the AI score; each is passed into `RulesEngine`
-  or `LLMClassifier` by constructor. `confidence_threshold` keeps its meaning; the shipped values reproduce today's behaviour.
-* **`[sorting] keep_folders`** defaults to `true` (§4 then reads "on by default"); `--keep-folders` stays a
-  boolean switch and `--keep-folders-off` is its counterpart (passing both is an error); whichever is passed
-  overrides the config. With it off (Stage 4.2), an inbox folder is no
-  longer ignored (as §4 describes today): its documents are filed one by one, and the emptied folder is
-  removed and recorded in the job so `rollback` can recreate it. A folder that isn't empty afterwards stays,
-  and the report says why.
-* **`[ai]`** names the kind of classifier (a chat model, or from Stage 4.5 a decision model that returns a bounded choice with a probability; see [ai-classifier-options.md](ai-classifier-options.md)), the provider (`ollama` or `openai`), model, host, timeout, score and `max_document_chars` (how much of a document is sent; `0` means unlimited and prints a warning once per run about token usage, processing time and the model's context window); `core.ai` builds the
-  provider from it. A `command` provider (the config names a program to run) is deferred behind a security
-  decision.
+* **Defaults live in one packaged file.** `load_config` reads `core/defaults/microfiche-config.toml`, deep-merges the
+  library's file over it (tables merge key by key, lists replace), then validates. The pydantic models carry no default
+  values, so a key missing from the packaged file fails loudly. The template in `microfiche/` lists the same settings, and
+  tests keep the two in step.
+* **Settings and data are separate.** `microfiche-config.toml` holds behaviour only. The category hints and filing rules
+  are in `microfiche-library.json` (`core/library/library_file.py`): a recursive tree of folder nodes
+  `{name, description, hints, rules, children}` whose top level is the groups. A node named `*` stands for any folder at
+  its level, so hints can be shared by every group, and a named group adds its own; the most specific entry comes first.
+  `Library.library_file` loads it lazily, checked against `depth`. A missing file means no hints, and an invalid one stops
+  `sort` and `reclassify` before anything moves. Its JSON Schema is generated (`make library-schema`) so editors can
+  validate it. Hints and rules only match folders that already exist (§1). `naming_rules` stays in the TOML. Creating and
+  syncing the file from the folders is [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync); until then it is
+  written by hand or copied from the template.
+* **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (2 today;
+  1 from Stage 4.6, and 3 from Stage 4.7 if it goes ahead). `levels`, `file_target_level` and `library_templates` are
+  gone; a template catalog would reuse the library file's node shape.
+* **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
+  name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
+  whole number). `[ai]` holds the AI score. They reach `RulesEngine` and `LLMClassifier` by constructor, and the shipped
+  values reproduce the calibrated behaviour.
+* **`[sorting] keep_folders`** defaults to `true`. `sort --keep-folders` and `--keep-folders-off` override it for one run,
+  and passing both is an error. With it off, folders in the inbox are left alone (§4). Stage 4.2 changes that: their
+  documents are filed one by one, and the emptied folder is removed and recorded in the job so `rollback` can recreate it.
+* **`[ai]`** picks the provider (`ollama` or `openai`), model, host, timeout, the name of the environment variable that
+  holds the OpenAI key (`api_key_env`; the key is never in the file), the AI score, and `max_document_chars` (how much of a
+  document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when
+  document text goes to OpenAI, and warns once if the length is unlimited. A second kind of classifier, a decision model
+  that returns a bounded choice with a probability, is
+  [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
+  a `command` provider is deferred behind a security decision.
 
 ## See also
 

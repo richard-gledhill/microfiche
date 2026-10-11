@@ -159,7 +159,7 @@ behavior for anything the rules engine already handles.
 - Implement the Ollama provider against a local Ollama server.
 - Implement the OpenAI provider as a second, equally-supported option.
 - Wire the classifier to fall back to the AI path only when rules-based confidence is below threshold.
-- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `reclassify`. *(Not built: `sort --use-ai` is Ollama-only and `OpenAIProvider` is unreachable from the CLI; see [mvp-roadmap.md](mvp-roadmap.md). Stage 4.1 closes this through an `[ai]` config section instead of a CLI option.)*
+- Add a `--ai-provider ollama|openai` CLI option (defaulting to Ollama) to `sort` and `reclassify`. *(Closed by Stage 4.1: `sort --use-ai` builds its provider from an `[ai]` config section, so `OpenAIProvider` is reachable, instead of through a CLI option.)*
 
 **Test**
 - Write unit tests for the AI-fallback trigger condition (below-threshold vs. above-threshold rules results).
@@ -184,7 +184,7 @@ calibration corpus, except that whole folders are now filed intact by default.
 Why before Stage 5: `review` and `index` add settings of their own (`[obsidian]`, a review section), and
 should be built against the layered loader rather than adding to the hard-coded constants. Stages 4.2 to 4.4
 also add settings, so they build on it too. The reasoning is in [config-review.md](config-review.md); the
-target design is [architecture.md §10](architecture.md#10-configuration-layout-planned-stage-41).
+target design is [architecture.md §10](architecture.md#10-configuration-layout).
 
 **Plan**
 - Decide which constants become settings and which stay fixed (file names, chunk sizes, display styles), per [config-review.md](config-review.md) point 1.

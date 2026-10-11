@@ -95,7 +95,7 @@ workspace `.venv`.
      existing folder counts as unresolved, so nothing is ever filed into an invented folder.
    - A result is `confident` when both stages resolved and the overall confidence reaches the
      threshold: `[classification] confidence_threshold` in the library's config, defaulting to
-     `DEFAULT_CONFIDENCE_THRESHOLD` (0.75, in `rules/confidence.py`, chosen by measurement — see
+     0.75 (in the packaged `core/defaults/microfiche-config.toml`, chosen by measurement — see
      `docs/development/calibration.md`). At the default, keyword-hint matches (0.75) file but AI-only
      answers (0.70) go to review; a higher threshold files less without filing more accurately.
      `classified_by` names which resolver(s) decided: `rules_engine`, `ai_fallback` or
@@ -140,8 +140,11 @@ workspace `.venv`.
 
 Each library has its own `.microfiche/` — its *state folder* (dot-prefixed to stay out of Obsidian's file
 explorer); `microfiche/` at the repo root is the template copied into a new library.
-`core/config.py::MicroficheConfig` loads and validates all of it. See the table in
-[README.md](README.md#configuration) for what each section governs.
+`core/config.py::load_config` deep-merges the library's `microfiche-config.toml` over the packaged defaults
+(`core/defaults/microfiche-config.toml`, the only place a default lives) and validates the result into
+`MicroficheConfig`. The library's hints and filename rules are a separate file, `microfiche-library.json`
+(`core/library/library_file.py`, reached through `Library.library_file`). See the table in
+[README.md](README.md#configuration) for what each config section governs.
 
 ### Parsers (`core/parsers/`)
 
