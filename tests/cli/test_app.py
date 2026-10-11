@@ -604,6 +604,45 @@ def test_commands_invalid_config_stops_with_clear_message(tmp_path: Path, comman
     assert isinstance(result.exception, SystemExit)  # a clean exit, not an uncaught ConfigError
 
 
+def _break_library_file(library: Path) -> None:
+    (library / ".microfiche" / "microfiche-library.json").write_text(
+        '{"groups": [{"name": "A", "hint": []}]}', encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize("command", ["sort", "reclassify"])
+def test_commands_using_hints_invalid_library_file_stops_with_clear_message(tmp_path: Path, command: str) -> None:
+    library = _library(tmp_path)
+    _break_library_file(library)
+    before = _tree(library)
+
+    result = runner.invoke(app, [command, "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert "groups[0].hint: unknown key" in result.stdout
+    assert isinstance(result.exception, SystemExit)  # a clean exit, not an uncaught ConfigError
+    assert _tree(library) == before
+
+
+@pytest.mark.parametrize("command", ["propose-categories", "config", "audit"])
+def test_commands_not_using_hints_work_with_invalid_library_file(tmp_path: Path, command: str) -> None:
+    library = _library(tmp_path)
+    _break_library_file(library)
+
+    result = runner.invoke(app, [command, "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+
+
+def test_sort_files_by_hints_from_the_library_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+
+
 def test_rollback_and_audit_work_with_invalid_config(tmp_path: Path) -> None:
     library = _library(tmp_path)
     job_id = _sort(library)

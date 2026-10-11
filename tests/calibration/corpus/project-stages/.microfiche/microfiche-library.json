@@ -1,0 +1,46 @@
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        {
+          "name": "01 Discovery",
+          "hints": [
+            "interview",
+            "problem statement",
+            "user research"
+          ]
+        },
+        {
+          "name": "02 Design",
+          "hints": [
+            "wireframe",
+            "mockup",
+            "design decision"
+          ]
+        },
+        {
+          "name": "03 Build",
+          "hints": [
+            "implementation",
+            "pull request",
+            "release notes"
+          ]
+        },
+        {
+          "name": "04 Launch",
+          "hints": [
+            "go-live",
+            "rollout",
+            "launch plan"
+          ],
+          "rules": [
+            {
+              "pattern": "launch-plan*"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

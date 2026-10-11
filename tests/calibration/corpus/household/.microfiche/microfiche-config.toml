@@ -1,8 +1,3 @@
 # Household admin: short, everyday group names.
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
-
-[category_hints.categories]
-"Bills" = ["invoice", "amount due", "statement"]
-"Documents" = ["certificate", "passport", "deed"]
-"Insurance" = ["policy", "premium", "claim"]

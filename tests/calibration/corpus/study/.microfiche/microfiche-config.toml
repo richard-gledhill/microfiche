@@ -1,9 +1,3 @@
 # Course > kind of material.
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
-
-[category_hints.categories]
-"01 Lectures" = ["lecture", "slides"]
-"02 Assignments" = ["assignment", "homework", "due"]
-"03 Readings" = ["chapter", "paper", "reading"]
-"04 Exams" = ["exam", "midterm", "practice problems"]

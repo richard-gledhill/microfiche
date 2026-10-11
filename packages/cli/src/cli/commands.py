@@ -64,7 +64,7 @@ def sort(
 
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
-    opened = _open_library(library)
+    opened = _open_library(library, uses_hints=True)
     ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
     report = run_sort(
         opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
@@ -114,7 +114,7 @@ def reclassify(
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
-    lib = _open_library(library)
+    lib = _open_library(library, uses_hints=True)
     try:
         proposals = run_reclassify(lib, scope=folder)
     except ScopeOutsideLibraryError as err:
@@ -172,12 +172,18 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
 # region Helpers
 
 
-def _open_library(path: Path) -> Library:
-    """Open the library at ``path``, loading its config now so an invalid one stops the command up front."""
+def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
+    """Open the library at ``path``, loading its config now so an invalid one stops the command up front.
+
+    A command that classifies also loads the library file (the hints and filename rules), so a bad one
+    stops it before anything is moved. Commands that never match on hints leave it unread.
+    """
 
     library = Library(path)
     try:
         _ = library.config
+        if uses_hints:
+            _ = library.library_file
     except ConfigError as err:
         _fail(str(err))
     return library

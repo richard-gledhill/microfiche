@@ -1,0 +1,40 @@
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        {
+          "name": "01 Lectures",
+          "hints": [
+            "lecture",
+            "slides"
+          ]
+        },
+        {
+          "name": "02 Assignments",
+          "hints": [
+            "assignment",
+            "homework",
+            "due"
+          ]
+        },
+        {
+          "name": "03 Readings",
+          "hints": [
+            "chapter",
+            "paper",
+            "reading"
+          ]
+        },
+        {
+          "name": "04 Exams",
+          "hints": [
+            "exam",
+            "midterm",
+            "practice problems"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        {
+          "name": "01 Requirements",
+          "hints": [
+            "requirement",
+            "user story",
+            "acceptance criteria"
+          ],
+          "rules": [
+            {
+              "pattern": "requirements*.docx"
+            }
+          ]
+        },
+        {
+          "name": "02 Architecture",
+          "hints": [
+            "architecture",
+            "design decision",
+            "system diagram"
+          ],
+          "rules": [
+            {
+              "pattern": "architecture*.pdf"
+            }
+          ]
+        },
+        {
+          "name": "03 Research",
+          "hints": [
+            "research",
+            "article",
+            "whitepaper"
+          ]
+        },
+        {
+          "name": "04 Meeting Notes",
+          "hints": [
+            "meeting",
+            "sprint review",
+            "retrospective"
+          ],
+          "rules": [
+            {
+              "pattern": "meeting-notes*"
+            }
+          ]
+        },
+        {
+          "name": "05 Correspondence",
+          "hints": [
+            "email",
+            "correspondence"
+          ]
+        }
+      ]
+    }
+  ]
+}

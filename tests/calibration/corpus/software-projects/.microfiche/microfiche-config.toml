@@ -31,29 +31,6 @@ confidence_threshold = 0.75
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
 
-# Keyword hints that help the rules engine match content to a category that already exists
-# as a folder in the library. These are hints, not the category list itself - the category
-# list is discovered from the library's existing folders (see core.library.taxonomy).
-# todo: review how this is included in confg. might be better to move into separate library-specific file.
-[category_hints.categories]
-"01 Requirements" = ["requirement", "user story", "acceptance criteria"]
-"02 Architecture" = ["architecture", "design decision", "system diagram"]
-"03 Research" = ["research", "article", "whitepaper"]
-"04 Meeting Notes" = ["meeting", "sprint review", "retrospective"]
-"05 Correspondence" = ["email", "correspondence"]
-
-# Filename-pattern rules, checked before keyword hints. `pattern` is a glob matched against
-# the lowercased filename; `category` must be a category name that exists in the target group.
-# todo: review with category_hints
-[filing_rules]
-rules = [
-  { pattern = "requirements*.docx", category = "01 Requirements" },
-  { pattern = "architecture*.pdf", category = "02 Architecture" },
-  { pattern = "meeting-notes*", category = "04 Meeting Notes" },
-]
-
-# Regex pattern -> replacement, applied to filenames before filing (see core.library.naming).
-# Empty by default: the MVP leaves filenames untouched
 [naming_rules]
 rules = {}
 

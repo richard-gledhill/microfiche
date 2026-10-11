@@ -56,7 +56,7 @@ def run_sort(
     """
 
     taxonomy = library.taxonomy()
-    classifier = Classifier.from_config(library.config, ai_classifier)
+    classifier = Classifier.from_library(library, ai_classifier)
 
     report = SortReport()
     for unit in scan_sorting_inbox(library, keep_folders=keep_folders):

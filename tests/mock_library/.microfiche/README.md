@@ -13,8 +13,7 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 |---|---|
 | `library_structure` | Depth of the group/category hierarchy (default: 2 levels). |
 | `exclusions` | Folders never treated as a category and never scanned into. |
-| `categories` | Keyword hints per *existing* category name — not the category list itself. |
-| `filing_rules` | Filename-glob rules, checked before keyword hints. |
+| `microfiche-library.json` | Keyword hints and filename rules per folder, in a separate file — not the category list itself. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |

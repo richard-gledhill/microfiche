@@ -1,0 +1,45 @@
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        {
+          "name": "Contracts",
+          "hints": [
+            "agreement",
+            "terms and conditions",
+            "statement of work"
+          ]
+        },
+        {
+          "name": "Correspondence",
+          "hints": [
+            "email",
+            "letter"
+          ]
+        },
+        {
+          "name": "Invoices",
+          "hints": [
+            "invoice",
+            "amount due",
+            "remittance"
+          ],
+          "rules": [
+            {
+              "pattern": "invoice-*"
+            }
+          ]
+        },
+        {
+          "name": "Reports",
+          "hints": [
+            "quarterly",
+            "summary",
+            "findings"
+          ]
+        }
+      ]
+    }
+  ]
+}

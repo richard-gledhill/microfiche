@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from core.config import MICROFICHE_DIRNAME, MicroficheConfig, load_config
+from core.library.library_file import LibraryFile, load_library_file
 from core.models.category import Taxonomy
 from core.utils.filesystem import is_excluded
 
@@ -26,9 +27,9 @@ class ScopeOutsideLibraryError(ValueError):
 class Library:
     """A library folder, its config, and its layout.
 
-    Constructing one does no I/O. The config is read from ``<root>/.microfiche`` the first time
-    something needs it (a missing file means defaults), so operations that only need paths - such
-    as undoing a job - work even if the config file is broken.
+    Constructing one does no I/O. The config and the library file are read from ``<root>/.microfiche``
+    the first time something needs them (a missing file means defaults, or no hints), so operations that
+    only need paths - such as undoing a job - work even if either file is broken.
 
     Args:
         root: The library's root folder.
@@ -41,6 +42,7 @@ class Library:
     def __init__(self, root: Path, config: MicroficheConfig | None = None) -> None:
         self.root = root
         self._config = config
+        self._library_file: LibraryFile | None = None
 
     @property
     def config(self) -> MicroficheConfig:
@@ -49,6 +51,17 @@ class Library:
         if self._config is None:
             self._config = load_config(self.state_dir)
         return self._config
+
+    @property
+    def library_file(self) -> LibraryFile:
+        """The library's hints and filename rules, loaded on first use and then kept.
+
+        Checked against the config's ``[library_structure] depth``, so loading it also loads the config.
+        """
+
+        if self._library_file is None:
+            self._library_file = load_library_file(self.state_dir, self.config.library_structure.depth)
+        return self._library_file
 
     @property
     def state_dir(self) -> Path:

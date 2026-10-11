@@ -1,0 +1,33 @@
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        {
+          "name": "Bills",
+          "hints": [
+            "invoice",
+            "amount due",
+            "statement"
+          ]
+        },
+        {
+          "name": "Documents",
+          "hints": [
+            "certificate",
+            "passport",
+            "deed"
+          ]
+        },
+        {
+          "name": "Insurance",
+          "hints": [
+            "policy",
+            "premium",
+            "claim"
+          ]
+        }
+      ]
+    }
+  ]
+}
