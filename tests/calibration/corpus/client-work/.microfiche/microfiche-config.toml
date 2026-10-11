@@ -1,14 +1,3 @@
 # Client > document type.
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
-
-[category_hints.categories]
-"Contracts" = ["agreement", "terms and conditions", "statement of work"]
-"Correspondence" = ["email", "letter"]
-"Invoices" = ["invoice", "amount due", "remittance"]
-"Reports" = ["quarterly", "summary", "findings"]
-
-[filing_rules]
-rules = [
-  { pattern = "invoice-*", category = "Invoices" },
-]

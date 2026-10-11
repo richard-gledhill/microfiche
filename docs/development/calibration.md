@@ -43,7 +43,7 @@ today:
 | Group name appears in the text | 1.00 |
 | Filename matches a filing rule (category) | 0.95 |
 | Category name appears in the text | 0.90 |
-| Group fuzzy match (≥ 85 on `thefuzz`'s partial ratio) | 0.85–0.99 |
+| Group fuzzy match (≥ 85 on RapidFuzz's partial ratio) | 0.85–0.99 |
 | Category keyword hint appears in the text | 0.75 |
 | Answer from the AI fallback (either stage) | 0.70 |
 

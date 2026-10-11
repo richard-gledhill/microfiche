@@ -35,7 +35,7 @@ class SortReport:
 def run_sort(
     library: Library,
     *,
-    keep_folders: bool = False,
+    keep_folders: bool | None = None,
     ai_classifier: LLMClassifier | None = None,
 ) -> SortReport:
     """Scan the library's inbox, classify each unit, and file the confident ones as one job.
@@ -46,7 +46,8 @@ def run_sort(
 
     Args:
         library: The library whose inbox to sort.
-        keep_folders: Whether to treat each inbox folder as one unit rather than sorting its files.
+        keep_folders: Whether to treat each inbox folder as one unit rather than leaving it alone.
+            ``None`` (the default) uses the library's ``[sorting] keep_folders`` setting.
         ai_classifier: An optional AI fallback for stages the rules can't answer confidently.
 
     Returns:
@@ -55,7 +56,7 @@ def run_sort(
     """
 
     taxonomy = library.taxonomy()
-    classifier = Classifier.from_config(library.config, ai_classifier)
+    classifier = Classifier.from_library(library, ai_classifier)
 
     report = SortReport()
     for unit in scan_sorting_inbox(library, keep_folders=keep_folders):

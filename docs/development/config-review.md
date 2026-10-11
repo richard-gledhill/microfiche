@@ -3,7 +3,7 @@
 A review of what `microfiche-config.toml` holds today, what should move out of the code into it, and what
 should move out of it. The outcome is planned as
 [Stage 4.1 of the build plan](mvp-build-plan.md#stage-41--configuration-consolidation); the resulting
-design is in [architecture.md §10](architecture.md#10-configuration-layout-planned-stage-41). This page keeps
+design is in [architecture.md §10](architecture.md#10-configuration-layout). This page keeps
 the reasoning, so those two can stay short. Nothing here is built yet.
 
 The repo is private and unpublished, so there are no existing libraries to migrate: the changes below
@@ -52,7 +52,7 @@ Cautions:
   constructors, so `Classifier` still owns the decision and resolvers only propose.
 - **Calibration must still hold.** The defaults must reproduce today's numbers, so `tests/calibration/`
   keeps passing unchanged.
-- Validate ranges: scores 0-1, fuzzy thresholds 0-100, `max_document_chars` at least 1.
+- Validate ranges: scores 0-1, fuzzy thresholds 0-100, `[ai] max_document_chars` at least 0, where 0 means unlimited and warns once per run.
 
 ## 2. `keep_folders` on by default, and in config
 
@@ -90,8 +90,8 @@ Nothing reads AI config today: `commands.py` hard-codes `LLMClassifier(OllamaPro
 `OpenAIProvider` is unreachable. A TOML entry does nothing without an `AIConfig` model, a
 `build_provider(config)` factory in `core/ai`, and the CLI calling it.
 
-**Tier 1, for the MVP.** `[ai]` with `provider = "ollama" | "openai"`, `model`, `host`, `timeout` and the AI
-score from point 1. This replaces the unbuilt `--ai-provider` task in build-plan Stage 4. API keys never
+**Tier 1, for the MVP.** `[ai]` with `provider = "ollama" | "openai"`, `model`, `host`, `timeout`, the AI
+score from point 1 and `max_document_chars` (0 means unlimited, with a one-per-run warning about token usage, time and the context window). This replaces the unbuilt `--ai-provider` task in build-plan Stage 4. API keys never
 go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a per-run switch or becomes
 `[ai] enabled` is open.
 
@@ -173,14 +173,15 @@ clear error until the engine supports more.
   mentions in `templates.py` and `metadata_rules.py` at the same time.
 - **Combine the schema, not the location or meaning.** A category node is `{name, hints, rules}` in one
   format. A template says what to create; a library's hints file says what to match against existing
-  folders. Hints must never define which categories exist, or the config-defined taxonomy that
-  architecture §1 removed comes back. A library gets its own copy at creation and edits it from then on; if
+  folders. The folders stay the authority on what exists: an entry with no folder is never filed into, and the
+  file never creates or removes a folder. The file is created from the folders and kept in step (Stage 4.10). A library gets its own copy at creation and edits it from then on; if
   it merely referenced a shared template, a template change would silently alter its sorting.
 - **`filing_rules` moves with the hints.** The rules point at category names, and the template's own TODO
   already says "review with category_hints". `naming_rules` stays in the TOML: those are regexes, not
   category data.
-- **Hint scope.** Start global by category name, which is today's behaviour. Per-group overrides can come
-  later, for example `groups: {"Project Phoenix": {...}}`.
+- **Hint scope.** A recursive tree of folders, so any depth fits. A `*` node applies to any folder at its level,
+  which is today's behaviour (global by category name) without repeating hints; a node named for a group overrides
+  or adds to it for that group only.
 - **`levels` and `file_target_level`.** `levels` (the names "group" and "category") belongs with the shape,
   so it goes in the JSON or is deleted. `file_target_level` is derived and goes.
 

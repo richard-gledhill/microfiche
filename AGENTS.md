@@ -26,6 +26,7 @@ make install    # uv sync across the workspace + install pre-commit hooks
 make check      # uv lock --locked, pre-commit run -a, mypy, deptry (core, then cli)
 make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 make docs       # mkdocs serve
+make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
 ```
 
 Single test / narrower run:
@@ -66,17 +67,17 @@ workspace `.venv`.
    `[exclusions]` table — matched against the path *inside* the library, never its parent folders) and builds
    `{group_name: [category_name]}` fresh on every call. Public functions take a `Library` (`Library(path)`;
    its config loads lazily from `.microfiche/`). **The library's own folder structure is the taxonomy — nothing is
-   persisted or configured separately.** `microfiche-config.toml`'s `[category_hints.categories]` table only supplies
-   keyword *hints* for matching against categories that already exist as folders.
+   persisted or configured separately.** `.microfiche/microfiche-library.json` (`library/library_file.py`) only supplies
+   keyword *hints* and filename rules for matching against categories that already exist as folders.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
    files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
-   or (with `--keep-folders`) a whole folder treated as one unit.
+   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit.
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
    the rules (`rules/rules_engine.py::RulesEngine`) first, then an optional AI fallback
    (`ai/llm_classifier.py::LLMClassifier`). It owns the flow, the confidence threshold and the
    taxonomy check; the resolvers only propose:
-   - **Group** (`rules/group_rules.py`): keyword + fuzzy match (`thefuzz`) against known group
+   - **Group** (`rules/group_rules.py`): keyword + fuzzy match (`rapidfuzz`) against known group
      names.
    - **Category** (`rules/keyword_rules.py`, `rules/metadata_rules.py`): filename-glob rules
      checked first, then keyword hints — scoped to the resolved group's existing category
@@ -94,7 +95,7 @@ workspace `.venv`.
      existing folder counts as unresolved, so nothing is ever filed into an invented folder.
    - A result is `confident` when both stages resolved and the overall confidence reaches the
      threshold: `[classification] confidence_threshold` in the library's config, defaulting to
-     `DEFAULT_CONFIDENCE_THRESHOLD` (0.75, in `rules/confidence.py`, chosen by measurement — see
+     0.75 (in the packaged `core/defaults/microfiche-config.toml`, chosen by measurement — see
      `docs/development/calibration.md`). At the default, keyword-hint matches (0.75) file but AI-only
      answers (0.70) go to review; a higher threshold files less without filing more accurately.
      `classified_by` names which resolver(s) decided: `rules_engine`, `ai_fallback` or
@@ -139,8 +140,11 @@ workspace `.venv`.
 
 Each library has its own `.microfiche/` — its *state folder* (dot-prefixed to stay out of Obsidian's file
 explorer); `microfiche/` at the repo root is the template copied into a new library.
-`core/config.py::MicroficheConfig` loads and validates all of it. See the table in
-[README.md](README.md#configuration) for what each section governs.
+`core/config.py::load_config` deep-merges the library's `microfiche-config.toml` over the packaged defaults
+(`core/defaults/microfiche-config.toml`, the only place a default lives) and validates the result into
+`MicroficheConfig`. The library's hints and filename rules are a separate file, `microfiche-library.json`
+(`core/library/library_file.py`, reached through `Library.library_file`). See the table in
+[README.md](README.md#configuration) for what each config section governs.
 
 ### Parsers (`core/parsers/`)
 
@@ -216,6 +220,9 @@ it becomes a unit (or proposal) left for review, with the reason.
   option `help=` text): run `make docs-cli` after changing either. `make docs`/`make docs-test` do it for you,
   and a test fails if the file is stale. Write command docstrings for users, not as API docs - Typer
   prints them as `--help`.
+- `microfiche/microfiche-library.schema.json` is generated from the library file model (`json_schema()` in
+  `core/library/library_file.py`): run `make library-schema` after changing a field or its description. A test
+  fails if the committed file is stale.
 - `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
   by GitHub URL.
 - After a rename or behaviour change, grep the docs for the old name or number.

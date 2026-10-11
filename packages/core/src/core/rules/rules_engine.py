@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from core.config import ClassificationConfig
+from core.library.library_file import LibraryFile
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
@@ -14,14 +16,16 @@ class RulesEngine:
     """Resolver backed by rules only.
 
     Proposes a group by name match, and a category by filename rule first, then category name
-    or keyword hint - all scoped to the group's existing categories.
+    or keyword hint - all scoped to the group's existing categories. The hints and rules come from
+    the library file, so a group can have its own on top of the ones every group shares.
 
     It only proposes: ``core.classifier.Classifier`` runs the two stages, decides what is
     confident, and enforces the taxonomy.
 
     Args:
-        category_hints: Keywords per category name.
-        filing_rules: Filename-pattern rules, each naming a pattern and a category.
+        library_file: The library's hints and filename rules.
+        settings: The ``[classification]`` settings: how sure each kind of match is, and how close a
+            near-miss to a group name must be.
 
     Attributes:
         name: Identifies the resolver in ``ClassificationResult.classified_by``.
@@ -29,9 +33,9 @@ class RulesEngine:
 
     name: str = "rules_engine"
 
-    def __init__(self, category_hints: dict[str, list[str]], filing_rules: list[dict[str, str]]) -> None:
-        self._category_hints = category_hints
-        self._filing_rules = filing_rules
+    def __init__(self, library_file: LibraryFile, settings: ClassificationConfig) -> None:
+        self._library_file = library_file
+        self._settings = settings
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Propose a group by matching the document's text against the taxonomy's group names.
@@ -44,7 +48,7 @@ class RulesEngine:
             The proposed group, with ``name=None`` if none matched.
         """
 
-        return match_group(document.content, taxonomy.group_names)
+        return match_group(document.content, taxonomy.group_names, fuzzy_threshold=self._settings.fuzzy_group_threshold)
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Propose a category of ``group``: by filename rule first, then by name or keyword hint.
@@ -59,10 +63,19 @@ class RulesEngine:
         """
 
         categories = taxonomy.categories_for(group)
-        # A filing rule is global but categories belong to a group: a rule naming a category this
-        # group doesn't have simply doesn't apply here, and the keyword rules get their turn.
-        applicable_rules = [rule for rule in self._filing_rules if rule.get("category") in categories]
-        by_filename = match_by_filename(document.file_name, applicable_rules)
+        # The folders decide which categories exist: an entry for a category this group has no folder
+        # for is never asked about, and the keyword rules get their turn.
+        applicable_rules = self._library_file.rules_for(group, categories)
+        by_filename = match_by_filename(
+            document.file_name, applicable_rules, confidence=self._settings.filename_match_confidence
+        )
         if by_filename.name is not None:
             return by_filename
-        return match_category(document.content, categories, self._category_hints)
+        hints = {category: self._library_file.hints_for(group, category) for category in categories}
+        return match_category(
+            document.content,
+            categories,
+            hints,
+            name_confidence=self._settings.name_match_confidence,
+            hint_confidence=self._settings.hint_match_confidence,
+        )

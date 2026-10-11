@@ -21,14 +21,12 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 ## Cross-cutting feature status
 
-- **AI fallback** — Ollama is wired via `--use-ai` (`cli/commands.py`), applied per stage by
-  `Classifier`. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
+- **AI fallback** — wired via `--use-ai` (`cli/commands.py`), applied per stage by `Classifier`. The `[ai]`
+  section picks the provider (`ollama` or `openai`), model, host, timeout and the OpenAI key variable;
+  `core.ai.factory.build_provider` builds it, and `sort` says when document text goes to OpenAI. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
   review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file. Measured at
   98% precision on one local model (see [calibration.md](calibration.md)), but only consulted where
   the rules are unsure, so it adds little as built.
-  `OpenAIProvider`
-  (`core/ai/openai_provider.py`) is fully implemented but never imported anywhere else —
-  unreachable from the CLI despite `core`'s `ai` extra advertising `openai` support.
 - **Obsidian tag governance** (`tag_index.py`, `tag_mapper.py`) — implemented, unit-tested,
   not called from the sort pipeline.
 - **Naming rules** (`library/naming.py`) — wired; `filer.py` applies them before filing.
@@ -46,7 +44,8 @@ changes here, update the "Current limitations" list and usage steps in the user-
 - **Config validation** (`core/config.py`) — wired. `load_config` validates the whole file in one pass: an
   unknown section or setting, a value of the wrong type, or a section that isn't a table raises `ConfigError`,
   whose message names the file and every problem. `sort`, `reclassify`, `propose-categories` and `config` check
-  it up front and exit 1 (`cli/commands.py::_open_library`); `audit` and `rollback` never read it, so a job can
+  it up front and exit 1 (`cli/commands.py::_open_library`); `sort` and `reclassify` also check the library file
+  (`microfiche-library.json`) the same way. `audit` and `rollback` never read either, so a job can
   still be undone while the config is broken. A missing file or section still means defaults, silently;
   asking first is under Future work ("Ask before running on defaults").
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
@@ -75,15 +74,18 @@ Ranked by how central they are to the product's core promise, not by ease of imp
    rather than shipping as a stub that exits 1? This doc surfaces the question; the
    maintainer decides.
 
-## Planned: configuration consolidation (Stage 4.1)
+## Configuration consolidation (Stage 4.1)
 
-Reviewed in [config-review.md](config-review.md), scheduled as
-[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation), not built. In short: one packaged
-defaults file; the confidence scores, fuzzy thresholds and `max_document_chars` as `[classification]`
-settings; `[sorting] keep_folders` (default on); an `[ai]` section that makes `OpenAIProvider` reachable;
-and category hints and filing rules moved to `.microfiche/microfiche-library.json`. `library_templates`,
-`levels` and `file_target_level` are unused today and are dropped. Until it lands, the "Future work" items
-below that mention making scores configurable still apply.
+Built. Reviewed in [config-review.md](config-review.md) and described in
+[architecture.md §10](architecture.md#10-configuration-layout). In short: one packaged defaults file with a layered
+loader; the match strengths and group fuzzy threshold as `[classification]` settings, and the AI score and
+`max_document_chars` as `[ai]` settings; `[sorting] keep_folders` (default on) with `--keep-folders` and
+`--keep-folders-off`; an `[ai]` provider section that makes `OpenAIProvider` reachable from `sort --use-ai`; category
+hints and filing rules moved to `.microfiche/microfiche-library.json`; the unused `library_templates`, `levels` and
+`file_target_level` removed and `depth` validated; and `thefuzz` replaced by `rapidfuzz`.
+
+Not part of it: the library file is written by hand until
+[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) creates it from the folders and keeps it in step.
 
 Three further steps follow it, from [operations-review.md](operations-review.md); none is built:
 [Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) (a name collision sends the unit to
@@ -103,6 +105,10 @@ provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-pl
 them) and [Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
 setting: `leaf_only` or `best_level`).
 
+[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) follows Stage 4.1's library file: it creates the file from the
+folders on the first run, finds folders the user adds on later runs, reports folders that disappear, and adds
+`microfiche config --sync`. The folders stay the authority on what exists. It is built after Stage 4.3.
+
 ## Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
@@ -116,14 +122,16 @@ setting: `leaf_only` or `best_level`).
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
 - **Match group names on word boundaries.** `Car` matches `carrier` and `card`; short or common group
-  names file with full confidence on a substring (0 of 2 right on the corpus).
-- **Use the AI where the rules are ambiguous or hint-level, and make its score configurable.** Today it is
-  asked only when the rules are unsure, never about their confident mistakes, and always scores 0.70
-  whatever model is behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call
+  names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
+  regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
+  the same boundary test to fuzzy matches (see [fuzzy-matching-options.md](fuzzy-matching-options.md)).
+- **Use the AI where the rules are ambiguous or hint-level.** Today it is asked only when the rules are unsure,
+  never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is
+  behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call
   took about 5 s against about 2 s with it off on the model measured; its default model (`llama3`) may
   not be installed.
-- **Review the other signal strengths** (hint 0.75, AI 0.70, and the other "move to config" constants in
-  `rules/`), now that there is a harness to check them against.
+- **Review the signal strengths' values** (hint 0.75, AI 0.70 and the others). They are `[classification]` and `[ai]`
+  settings now; what is left is checking the values against the calibration harness.
 - **Ask before running on defaults.** A missing `.microfiche/microfiche-config.toml`, or one that leaves out
   sections, silently falls back to the defaults (pinned by `test_load_config_missing_files_fall_back_to_defaults`
   and the CLI test for a library with no config folder). A misnamed config file or the wrong `--library` path

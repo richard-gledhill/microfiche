@@ -5,7 +5,7 @@ Requires an API key in the environment and the optional `openai` dependency (``u
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -14,6 +14,8 @@ class OpenAIProvider:
     """Talks to the OpenAI API."""
 
     model: str = "gpt-4o-mini"
+    api_key: str | None = field(default=None, repr=False)
+    timeout: float | None = None
 
     def complete(self, prompt: str) -> str:
         """Send ``prompt`` to the model and return its reply.
@@ -27,7 +29,12 @@ class OpenAIProvider:
 
         from openai import OpenAI  # optional dependency, only needed when this provider is actually used
 
-        client: Any = OpenAI()
+        options: dict[str, Any] = {}
+        if self.api_key:
+            options["api_key"] = self.api_key
+        if self.timeout is not None:
+            options["timeout"] = self.timeout
+        client: Any = OpenAI(**options)
         response: Any = client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],

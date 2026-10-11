@@ -12,7 +12,7 @@ from collections import Counter
 from collections.abc import Callable, Sequence
 from typing import Protocol, TypeVar
 
-from core.config import MicroficheConfig
+from core.library.library import Library
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from core.models.document import Document
@@ -82,22 +82,23 @@ class Classifier:
         self._threshold = threshold
 
     @classmethod
-    def from_config(cls, config: MicroficheConfig, fallback: Resolver | None = None) -> Classifier:
+    def from_library(cls, library: Library, fallback: Resolver | None = None) -> Classifier:
         """Build the default classifier for a library.
 
-        Wires the rules engine from the library's category hints and filing rules, an optional
-        fallback resolver, and the library's confidence threshold.
+        Wires the rules engine from the library file's hints and filing rules and the config's
+        signal strengths, an optional fallback resolver, and the library's confidence threshold.
 
         Args:
-            config: The library's configuration.
+            library: The library to classify for.
             fallback: An optional second resolver, such as the AI classifier.
 
         Returns:
             A ``Classifier`` configured for the library.
         """
 
+        config = library.config
         return cls(
-            RulesEngine(config.category_hints.categories, config.filing_rules.rules),
+            RulesEngine(library.library_file, config.classification),
             fallback,
             threshold=config.classification.confidence_threshold,
         )

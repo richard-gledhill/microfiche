@@ -142,7 +142,7 @@ def load_corpus(
         taxonomy = library.taxonomy()
         if threshold is not None:
             library.config.classification.confidence_threshold = threshold
-        classifier = Classifier.from_config(library.config, fallback)
+        classifier = Classifier.from_library(library, fallback)
         kinds_file = library_dir / "kinds.json"
         kinds: dict[str, str] = json.loads(kinds_file.read_text(encoding="utf-8")) if kinds_file.exists() else {}
         for path in sorted(p for p in library_dir.rglob("*") if p.is_file()):

@@ -1,0 +1,80 @@
+{
+  "$schema": "./microfiche-library.schema.json",
+  "groups": [
+    {
+      "name": "*",
+      "description": "Applies to every group in the library.",
+      "children": [
+        {
+          "name": "01 Requirements",
+          "description": "Specs and user stories that say what the system must do.",
+          "hints": [
+            "requirement",
+            "user story",
+            "acceptance criteria"
+          ],
+          "rules": [
+            {
+              "pattern": "requirements*.docx"
+            }
+          ]
+        },
+        {
+          "name": "02 Architecture",
+          "description": "Design decisions, diagrams and technical overviews.",
+          "hints": [
+            "architecture",
+            "design decision",
+            "system diagram"
+          ],
+          "rules": [
+            {
+              "pattern": "architecture*.pdf"
+            }
+          ]
+        },
+        {
+          "name": "03 Research",
+          "hints": [
+            "research",
+            "article",
+            "whitepaper"
+          ]
+        },
+        {
+          "name": "04 Meeting Notes",
+          "hints": [
+            "meeting",
+            "sprint review",
+            "retrospective"
+          ],
+          "rules": [
+            {
+              "pattern": "meeting-notes*"
+            }
+          ]
+        },
+        {
+          "name": "05 Correspondence",
+          "hints": [
+            "email",
+            "correspondence"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Project Phoenix",
+      "description": "An example of hints for one group only, added to the shared ones above.",
+      "children": [
+        {
+          "name": "02 Architecture",
+          "hints": [
+            "adr",
+            "component diagram"
+          ]
+        }
+      ]
+    }
+  ]
+}

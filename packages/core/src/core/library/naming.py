@@ -9,7 +9,7 @@ def apply_naming_rules(filename: str, rules: dict[str, str]) -> str:
     """Apply simple find/replace naming rules (regex pattern -> replacement) to a filename.
 
     ``rules`` maps a regex pattern to its replacement, applied in iteration order. An empty
-    ``rules`` mapping (the MVP default, see microfiche-config/naming_rules.yaml) leaves the filename
+    ``rules`` mapping (the MVP default, the ``[naming_rules]`` table in the config) leaves the filename
     untouched.
 
     Args:

@@ -7,8 +7,6 @@
 [library_structure]
 library_inbox = "_sorting"
 depth = 2
-levels = ["group", "category"]
-file_target_level = 2
 
 # How confident microfiche must be (0 to 1) before it files a document without asking. Anything
 # below this is left in _sorting/ for review. How sure each kind of match is today: exact group or
@@ -31,40 +29,9 @@ confidence_threshold = 0.75
 [exclusions]
 exclude = ["sorting*", "_sorting*", ".*", "_*"]
 
-# Keyword hints that help the rules engine match content to a category that already exists
-# as a folder in the library. These are hints, not the category list itself - the category
-# list is discovered from the library's existing folders (see core.library.taxonomy).
-# todo: review how this is included in confg. might be better to move into separate library-specific file.
-[category_hints.categories]
-"01 Requirements" = ["requirement", "user story", "acceptance criteria"]
-"02 Architecture" = ["architecture", "design decision", "system diagram"]
-"03 Research" = ["research", "article", "whitepaper"]
-"04 Meeting Notes" = ["meeting", "sprint review", "retrospective"]
-"05 Correspondence" = ["email", "correspondence"]
-
-# Filename-pattern rules, checked before keyword hints. `pattern` is a glob matched against
-# the lowercased filename; `category` must be a category name that exists in the target group.
-# todo: review with category_hints
-[filing_rules]
-rules = [
-  { pattern = "requirements*.docx", category = "01 Requirements" },
-  { pattern = "architecture*.pdf", category = "02 Architecture" },
-  { pattern = "meeting-notes*", category = "04 Meeting Notes" },
-]
-
-# Regex pattern -> replacement, applied to filenames before filing (see core.library.naming).
-# Empty by default: the MVP leaves filenames untouched
 [naming_rules]
 rules = {}
 
-# Category sets for a future `create-library`/`init` command (core.library.templates).
-# todo: is this required
-[library_templates]
-software_project = ["01 Requirements", "02 Architecture", "03 Research", "04 Meeting Notes", "05 Correspondence", "06 Reference Material", "99 Archive"]
-personal_project = ["01 Ideas", "02 Research", "03 Notes", "99 Archive"]
-
-# suggest: apply + propose new tags for review | strict: only apply tags already in TagIndex.md
-# | off: tag freely, don't consult TagIndex.md at all
 [obsidian]
 enabled = false
 tag_index_path = "TagIndex.md"

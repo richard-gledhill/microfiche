@@ -35,6 +35,10 @@ clean-build: ## Clean build artifacts
 docs-cli: ## Regenerate docs/cli-reference.md from the Typer app
 	@uv run typer cli.app utils docs --name microfiche --title "CLI reference" --output docs/cli-reference.md
 
+.PHONY: library-schema
+library-schema: ## Regenerate microfiche/microfiche-library.schema.json from the library file model
+	@uv run python -c "import json, pathlib; from core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
+
 .PHONY: docs-test
 docs-test: docs-cli ## Test if documentation can be built without warnings or errors
 	@uv run mkdocs build -s

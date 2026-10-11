@@ -16,6 +16,7 @@ class OllamaProvider:
 
     model: str = "llama3"
     host: str | None = None
+    timeout: float | None = None
 
     def complete(self, prompt: str) -> str:
         """Send ``prompt`` to the model and return its reply.
@@ -29,6 +30,11 @@ class OllamaProvider:
 
         import ollama  # optional dependency, only needed when this provider is actually used
 
-        client: Any = ollama.Client(host=self.host) if self.host else ollama.Client()
+        options: dict[str, Any] = {}
+        if self.host:
+            options["host"] = self.host
+        if self.timeout is not None:
+            options["timeout"] = self.timeout
+        client: Any = ollama.Client(**options)
         response: Any = client.chat(model=self.model, messages=[{"role": "user", "content": prompt}])
         return str(response["message"]["content"])

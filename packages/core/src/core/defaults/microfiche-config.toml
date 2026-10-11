@@ -1,0 +1,51 @@
+# Packaged defaults for microfiche-config.toml.
+#
+# Every setting microfiche reads has its default here, and only here. A library's own
+# .microfiche/microfiche-config.toml is merged over this file: tables merge key by key, and a list
+# replaces the default list outright. Keep this file in step with the template in microfiche/.
+
+[library_structure]
+library_inbox = "_sorting"
+depth = 2
+
+[classification]
+# A document files without asking only if its confidence reaches this (see docs/development/calibration.md).
+confidence_threshold = 0.75
+# How sure each kind of match is. The threshold above decides which of them file on their own.
+name_match_confidence = 0.9
+filename_match_confidence = 0.95
+hint_match_confidence = 0.75
+# How close (0 to 100) a near-miss must be to a group's name to count as that group.
+fuzzy_group_threshold = 85
+
+[ai]
+# Who answers: "ollama" (on your machine) or "openai" (sends the text of each document it is asked about
+# to OpenAI).
+provider = "ollama"
+# The model to ask. Empty means the provider's own default.
+model = ""
+# Where the Ollama server is. Empty means Ollama's default address. Ollama only.
+host = ""
+# Seconds to wait for one answer.
+timeout = 120
+# The NAME of the environment variable holding the OpenAI key. The key itself never goes in this file.
+api_key_env = "OPENAI_API_KEY"
+# How sure any AI answer is. Below [classification] confidence_threshold, an AI-only answer goes to review.
+ai_confidence = 0.70
+# How much of a document's text is sent to the AI. 0 sends all of it, which costs more tokens and time.
+max_document_chars = 4000
+
+[sorting]
+# File a folder dropped in the inbox whole, under its dominant category. Off leaves folders alone.
+keep_folders = true
+
+[exclusions]
+exclude = []
+
+[naming_rules]
+rules = {}
+
+[obsidian]
+enabled = false
+tag_index_path = "TagIndex.md"
+tag_mode = "suggest"

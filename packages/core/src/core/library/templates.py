@@ -1,9 +1,9 @@
 """Creates a new group folder (e.g. a project) with its category subfolders from a named template.
 
 Not yet wired to a CLI command (the current CLI surface assumes the library and its groups
-already exist - see docs/development/architecture.md, section 8) but kept here since
-microfiche-config/library_templates.yaml already ships default templates for a future `create-library`/
-`init` command.
+already exist - see docs/development/architecture.md, section 8). No templates ship with microfiche
+yet; a future `init` command would bring a catalog, using the same folder-tree shape as
+``core.library.library_file``.
 """
 
 from __future__ import annotations

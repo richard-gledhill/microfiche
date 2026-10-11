@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import NoReturn
 
 import typer
+from core.ai.factory import build_provider
 from core.ai.llm_classifier import LLMClassifier
-from core.ai.ollama_provider import OllamaProvider
-from core.config import ConfigError
+from core.config import AIConfig, ConfigError
 from core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -44,16 +44,31 @@ _SCOPE_OPTION = typer.Option(None, "--scope")
 def sort(
     library: Path = _LIBRARY_OPTION,
     keep_folders: bool = typer.Option(
-        False, "--keep-folders", help="Sort whole folders from the inbox intact, filed by dominant category."
+        False,
+        "--keep-folders",
+        help="Sort whole folders from the inbox intact, filed by dominant category, for this run.",
+    ),
+    keep_folders_off: bool = typer.Option(
+        False,
+        "--keep-folders-off",
+        help="Leave folders in the inbox alone for this run, whatever the library's keep_folders setting says.",
     ),
     use_ai: bool = typer.Option(
-        False, "--use-ai", help="Fall back to a local Ollama model for classifications the rules engine can't resolve."
+        False,
+        "--use-ai",
+        help="Fall back to the AI named in the library's config (Ollama unless it says otherwise) for "
+        "classifications the rules engine can't resolve.",
     ),
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
-    ai_classifier = LLMClassifier(OllamaProvider()) if use_ai else None
-    report = run_sort(_open_library(library), keep_folders=keep_folders, ai_classifier=ai_classifier)
+    if keep_folders and keep_folders_off:
+        _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
+    opened = _open_library(library, uses_hints=True)
+    ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
+    report = run_sort(
+        opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
+    )
     render_sort_report(console, report)
 
 
@@ -70,7 +85,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
     Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-    units = scan_sorting_inbox(_open_library(library), keep_folders=True)
+    units = scan_sorting_inbox(_open_library(library))
     documents = [document for unit in units for document in unit.documents]
     suggestions = suggest_categories(documents)
     if not suggestions:
@@ -99,7 +114,7 @@ def reclassify(
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
-    lib = _open_library(library)
+    lib = _open_library(library, uses_hints=True)
     try:
         proposals = run_reclassify(lib, scope=folder)
     except ScopeOutsideLibraryError as err:
@@ -157,15 +172,56 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
 # region Helpers
 
 
-def _open_library(path: Path) -> Library:
-    """Open the library at ``path``, loading its config now so an invalid one stops the command up front."""
+def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
+    """Open the library at ``path``, loading its config now so an invalid one stops the command up front.
+
+    A command that classifies also loads the library file (the hints and filename rules), so a bad one
+    stops it before anything is moved. Commands that never match on hints leave it unread.
+    """
 
     library = Library(path)
     try:
         _ = library.config
+        if uses_hints:
+            _ = library.library_file
     except ConfigError as err:
         _fail(str(err))
     return library
+
+
+def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
+    """Build the AI fallback from the library's ``[ai]`` settings, telling the user what it will do.
+
+    Prints, once and before any document is classified, what the user would not otherwise know: that a
+    hosted provider is sent the text of documents, and that an unlimited length costs tokens and time.
+    """
+
+    try:
+        provider = build_provider(settings)
+    except ConfigError as err:
+        _fail(str(err))
+    if settings.provider == "openai":
+        console.print(
+            "[yellow]AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI.[/yellow]",
+            soft_wrap=True,
+        )
+    if settings.max_document_chars == 0:
+        billing = " OpenAI bills for the tokens used." if settings.provider == "openai" else ""
+        console.print(
+            "[yellow]max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
+            "This uses more tokens and takes longer, and a document longer than the model's context window "
+            f"may fail or be cut off.{billing}[/yellow]",
+            soft_wrap=True,
+        )
+    return LLMClassifier(provider, settings)
+
+
+def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool | None:
+    """What the keep-folders options say for this run: on, off, or ``None`` to use the library's setting."""
+
+    if keep_folders:
+        return True
+    return False if keep_folders_off else None
 
 
 def _fail(message: str) -> NoReturn:

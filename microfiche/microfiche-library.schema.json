@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "FilingRule": {
+      "additionalProperties": false,
+      "description": "A filename rule: a file whose name matches ``pattern`` belongs in the folder that holds the rule.",
+      "properties": {
+        "pattern": {
+          "description": "A glob matched against the file name only (never the folder path), ignoring case. 'requirements*.docx' matches one kind of file; 'meeting-notes*' matches any extension.",
+          "minLength": 1,
+          "title": "Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "title": "FilingRule",
+      "type": "object"
+    },
+    "FolderNode": {
+      "additionalProperties": false,
+      "description": "One folder in the library, and what helps match it.\n\nA top-level node is a group; its children are that group's categories, and so on down to the library's\ndepth. A node named ``*`` stands for any folder at its level and only holds children.",
+      "properties": {
+        "name": {
+          "description": "The folder's name exactly as it is on disk, including any number prefix, such as 'Project Phoenix' or '01 Requirements'. Case is ignored when matching. '*' means any folder at this level, so what it holds applies to all of them.",
+          "minLength": 1,
+          "pattern": "^[^/\\\\]+$",
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A note about what belongs in this folder, for people reading the file. It is not used for matching and is not sent to any AI.",
+          "title": "Description"
+        },
+        "hints": {
+          "description": "Keywords whose appearance in a document (any case) suggests this folder. Hints are not inherited by the folders below.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Hints",
+          "type": "array"
+        },
+        "rules": {
+          "description": "Filename rules for this folder, checked before the keyword hints.",
+          "items": {
+            "$ref": "#/$defs/FilingRule"
+          },
+          "title": "Rules",
+          "type": "array"
+        },
+        "children": {
+          "description": "The folders one level down.",
+          "items": {
+            "$ref": "#/$defs/FolderNode"
+          },
+          "title": "Children",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "FolderNode",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The contents of ``microfiche-library.json``.\n\nA missing file means no hints and no rules: documents are then matched on folder names alone.",
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The JSON Schema for this file, so an editor can validate and complete it.",
+      "title": "$Schema"
+    },
+    "groups": {
+      "description": "The library's top-level folders. Their children are the categories, and so on.",
+      "items": {
+        "$ref": "#/$defs/FolderNode"
+      },
+      "title": "Groups",
+      "type": "array"
+    }
+  },
+  "title": "microfiche library file",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

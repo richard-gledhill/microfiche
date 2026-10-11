@@ -90,9 +90,10 @@ library_inbox = "Incoming"
 
 The inbox and the hidden `.microfiche/` folder are never treated as groups, whatever else you exclude.
 
-Then edit `.microfiche/microfiche-config.toml` in the library to add keyword hints and filename
-rules for your categories. See the [configuration table](https://github.com/richard-gledhill/microfiche#configuration)
-for what each section does.
+Then edit `.microfiche/microfiche-library.json` in the library to add keyword hints and filename
+rules for your categories (see below), and `.microfiche/microfiche-config.toml` for settings. See the
+[configuration table](https://github.com/richard-gledhill/microfiche#configuration) for what each
+config section does.
 
 Confirm the config loads:
 
@@ -143,26 +144,45 @@ Library/
 ```
 
 Stage names rarely appear word for word in a document, so give each one keyword hints in
-`.microfiche/microfiche-config.toml`. The keys must match the category folder names exactly,
-including any leading number:
+`.microfiche/microfiche-library.json`. Each `name` must match the category folder name exactly,
+including any leading number (the case is ignored). The `"*"` entry means every group, so you describe
+the stages once:
 
-```toml
-[category_hints.categories]
-"01 Discovery" = ["interview", "problem statement", "user research"]
-"02 Design" = ["wireframe", "mockup", "design decision"]
-"03 Build" = ["implementation", "pull request", "release notes"]
-"04 Launch" = ["go-live", "rollout", "launch plan"]
+```json
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        { "name": "01 Discovery", "hints": ["interview", "problem statement", "user research"] },
+        { "name": "02 Design", "hints": ["wireframe", "mockup", "design decision"] },
+        { "name": "03 Build", "hints": ["implementation", "pull request", "release notes"] },
+        { "name": "04 Launch", "hints": ["go-live", "rollout", "launch plan"] }
+      ]
+    }
+  ]
+}
 ```
 
-If some documents are recognisable from their filename, add a filing rule too. Rules are checked
-before keyword hints, and `category` must exist in the group the document is filed under:
+If some documents are recognisable from their filename, add a filing rule to the category. A rule is a
+pattern matched against the file name only (never the folder), ignoring case, and rules are checked
+before keyword hints. `launch-plan*` matches `Launch-Plan.docx` and `launch-plan v2.pdf`:
 
-```toml
-[filing_rules]
-rules = [
-  { pattern = "launch-plan*", category = "04 Launch" },
-]
+```json
+{ "name": "04 Launch", "hints": ["go-live", "rollout"], "rules": [{ "pattern": "launch-plan*" }] }
 ```
+
+To give one group its own hints on top of the shared ones, add an entry for that group. Hints are
+never inherited by the folders below, and an entry only helps match a folder that exists: the
+library's folders decide what exists.
+
+```json
+{ "name": "Project Phoenix", "children": [{ "name": "02 Design", "hints": ["storyboard"] }] }
+```
+
+A library with no `microfiche-library.json` still works: documents are matched on group and
+category names alone. A mistake in the file (a misspelt key, say) stops `sort` and `reclassify`
+with a message saying where in the file the mistake is, and nothing is moved.
 
 **Other taxonomies.** The same shape works for other kinds of library:
 
@@ -214,6 +234,27 @@ confidence_threshold = 0.75
 | `0.8` – `0.9` | the same, but keyword-hint matches are held for review |
 | `0.95` | filename rules only |
 
+The scores in the first table are settings too, and these are their defaults. You rarely need to
+change them: moving the threshold gives the same effect, and the defaults were
+[measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
+Change one if a kind of evidence is more or less trustworthy in your library, for example if you
+want keyword hints to count for less:
+
+```toml
+[classification]
+name_match_confidence = 0.9       # a category's name found in the text
+filename_match_confidence = 0.95  # a filename rule
+hint_match_confidence = 0.75      # a keyword hint
+fuzzy_group_threshold = 85        # how close (0-100) a near-miss must be to a group's name
+
+[ai]
+ai_confidence = 0.70              # any answer from the AI fallback
+max_document_chars = 4000         # how much of a document's text is sent to the AI
+```
+
+Each score is from 0 to 1 and `fuzzy_group_threshold` from 0 to 100; `max_document_chars` must be at
+least 1. Setting a score at or above the threshold lets that kind of evidence file on its own.
+
 **Raising the threshold files less; it doesn't file more accurately.** The score says what *kind* of
 evidence was found, not how reliable it is, so a stray word in the text can score higher than a
 correct hint. In testing, the share of automatically filed documents that were wrong was about the
@@ -264,19 +305,26 @@ microfiche's own records live in the hidden `.microfiche/` folder inside your li
 of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
 per job. No extra files are written next to your documents.
 
-Keep dropped folders together (filed by their dominant category):
+A folder dropped in the inbox is kept together and filed whole, under the category most of its
+documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To leave
+folders in the inbox alone for one run, add `--keep-folders-off`:
 
 === "Bash"
 
     ```bash
-    uv run microfiche sort --library ~/Documents/Library --keep-folders
+    uv run microfiche sort --library ~/Documents/Library --keep-folders-off
     ```
 
 === "PowerShell"
 
     ```powershell
-    uv run microfiche sort --library "$HOME\Documents\Library" --keep-folders
+    uv run microfiche sort --library "$HOME\Documents\Library" --keep-folders-off
     ```
+
+`--keep-folders` does the opposite for one run, for a library whose config turns folders off. Passing
+both is an error. To change it for good, set `keep_folders = false` under `[sorting]` in the library's
+`.microfiche/microfiche-config.toml`. A flag beats that file, and the file beats microfiche's built-in
+default (`true`), which is what a library with no `[sorting]` section gets.
 
 Use the Ollama fallback for low-confidence documents (requires the `ai` extra and a running
 Ollama server):
@@ -292,6 +340,43 @@ Ollama server):
     ```powershell
     uv run microfiche sort --library "$HOME\Documents\Library" --use-ai
     ```
+
+`--use-ai` asks the AI named in the `[ai]` section of the library's config. The default is a local
+Ollama model; nothing leaves your machine. These are the settings, with their defaults:
+
+```toml
+[ai]
+provider = "ollama"               # "ollama" or "openai"
+model = ""                        # empty = the provider's own default model
+host = ""                         # Ollama only; empty = Ollama's default address
+timeout = 120                     # seconds to wait for one answer
+api_key_env = "OPENAI_API_KEY"    # the NAME of the variable holding your OpenAI key
+ai_confidence = 0.70              # how sure any AI answer is
+max_document_chars = 4000         # how much of each document is sent; 0 = all of it
+```
+
+**Using OpenAI instead.** Set `provider = "openai"` and put your key in the environment variable named
+by `api_key_env`, not in the file (microfiche refuses a value that looks like a key). This sends the
+text of every document the AI is asked about to OpenAI, so `sort` says so each time it runs. If the
+variable is not set, `sort` stops with a message naming it before anything is moved.
+
+=== "Bash"
+
+    ```bash
+    export OPENAI_API_KEY="your key"
+    uv run microfiche sort --library ~/Documents/Library --use-ai
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    $env:OPENAI_API_KEY = "your key"
+    uv run microfiche sort --library "$HOME\Documents\Library" --use-ai
+    ```
+
+**Sending whole documents.** `max_document_chars = 0` removes the limit. That uses more tokens
+(and with OpenAI, costs more) and takes longer, and a document longer than the model's context window
+may fail or be cut off, so `sort` prints a warning once before it starts.
 
 ## 4. Maintain the library
 
@@ -397,7 +482,7 @@ same command again):
 
 microfiche is pre-release. At the moment:
 
-- `reclassify` doesn't use the Ollama fallback; it only applies the rule-based classifier.
+- `reclassify` doesn't use the AI fallback; it only applies the rule-based classifier.
 - At the default confidence threshold, documents matched only by the AI fallback are left for
   review, so `--use-ai` only suggests until you lower the threshold to `0.7`. See
   [How sure microfiche has to be](#how-sure-microfiche-has-to-be).

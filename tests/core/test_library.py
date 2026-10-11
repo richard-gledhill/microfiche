@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from core.config import MicroficheConfig, TomlConfigParseError, load_config
+from core.config import ConfigError, MicroficheConfig, TomlConfigParseError, load_config
 from core.library.library import Library, ScopeOutsideLibraryError
 
 # region Test helpers
@@ -287,6 +287,59 @@ def test_paths_need_no_readable_config(tmp_path: Path) -> None:
     assert library.relative(tmp_path / "G" / "a.md") == "G/a.md"
     with pytest.raises(TomlConfigParseError):
         _ = library.config
+
+
+# endregion
+
+
+# region Library file
+
+
+def _write_library_file(root: Path, text: str) -> None:
+    (root / ".microfiche").mkdir(exist_ok=True)
+    (root / ".microfiche" / "microfiche-library.json").write_text(text, encoding="utf-8")
+
+
+def test_library_file_loaded_from_state_folder(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": [{"name": "*", "children": [{"name": "Notes", "hints": ["note"]}]}]}')
+
+    assert Library(tmp_path).library_file.hints_for("Any", "Notes") == ["note"]
+
+
+def test_library_file_missing_file_is_empty(tmp_path: Path) -> None:
+    assert Library(tmp_path).library_file.groups == []
+
+
+def test_library_file_loaded_once(tmp_path: Path) -> None:
+    library = Library(tmp_path)
+
+    assert library.library_file is library.library_file
+
+
+def test_library_file_checked_against_config_depth(tmp_path: Path) -> None:
+    (tmp_path / ".microfiche").mkdir()
+    (tmp_path / ".microfiche" / "microfiche-config.toml").write_text(
+        "[library_structure]\ndepth = 1\n", encoding="utf-8"
+    )
+    _write_library_file(tmp_path, '{"groups": [{"name": "A", "children": [{"name": "Notes"}]}]}')
+
+    with pytest.raises(ConfigError, match="depth"):
+        _ = Library(tmp_path).library_file
+
+
+def test_library_file_invalid_file_raises_config_error(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, '{"groups": [')
+
+    with pytest.raises(ConfigError, match="Invalid JSON"):
+        _ = Library(tmp_path).library_file
+
+
+def test_paths_need_no_readable_library_file(tmp_path: Path) -> None:
+    _write_library_file(tmp_path, "this is not json")
+    library = Library(tmp_path)
+
+    assert library.state_dir == tmp_path / ".microfiche"
+    assert library.target_dir("G", "C") == tmp_path / "G" / "C"
 
 
 # endregion

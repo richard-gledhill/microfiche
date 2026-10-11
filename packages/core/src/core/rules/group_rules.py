@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-from thefuzz import fuzz
+from rapidfuzz import fuzz
 
 from core.models.classification import GroupMatch
 
-_FUZZY_MATCH_THRESHOLD = 85
-# Todo: Move to config
 
-
-def match_group(text: str, group_names: list[str]) -> GroupMatch:
+def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> GroupMatch:
     """Match ``text`` against known group names by substring, then fuzzy match.
 
     A group name found in the lowercased text is an exact match. Otherwise the best fuzzy match
@@ -23,29 +20,32 @@ def match_group(text: str, group_names: list[str]) -> GroupMatch:
     Args:
         text: The text to be analyzed for matching.
         group_names: The group names to match against the text.
+        fuzzy_threshold: The lowest fuzzy score (0 to 100) that counts as a match.
 
     Returns:
         The best matching group with its confidence and the reason for it, or a match with
         ``name=None`` when nothing clears the confidence threshold.
 
     Todo:
-        - Review hard coded numbers.
         - Need to review the group_name match. Consider as config option to sort by extracted title and keywords.
     """
 
     lowered = text.lower()
     best_name: str | None = None
     best_score = 0
+    # Scores are rounded to a whole number before they are compared with the threshold, so 84.6 counts as 85.
+    # A raw score below the threshold less one cannot round up to it, so RapidFuzz may stop early on those.
+    cutoff = max(0, fuzzy_threshold - 1)
 
     for group_name in group_names:
         if group_name.lower() in lowered:
             return GroupMatch(name=group_name, confidence=1.0, reason=f"Exact match on group name '{group_name}'")
 
-        score = fuzz.partial_ratio(group_name.lower(), lowered)
+        score = round(fuzz.partial_ratio(group_name.lower(), lowered, score_cutoff=cutoff))
         if score > best_score:
             best_name, best_score = group_name, score
 
-    if best_name is not None and best_score >= _FUZZY_MATCH_THRESHOLD:
+    if best_name is not None and best_score >= fuzzy_threshold:
         return GroupMatch(
             name=best_name,
             confidence=best_score / 100,

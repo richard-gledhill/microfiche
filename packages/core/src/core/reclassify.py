@@ -80,7 +80,7 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
     """
 
     taxonomy = library.taxonomy()
-    classifier = Classifier.from_config(library.config)
+    classifier = Classifier.from_library(library)
 
     claimed: set[Path] = set()
     proposals: list[ReclassifyProposal] = []
