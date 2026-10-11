@@ -110,6 +110,21 @@ class Library:
 
         return self.root / group / category
 
+    def filed_under(self, path: Path, group: str, category: str) -> bool:
+        """Whether ``path`` is in the ``group``/``category`` folder, or in a folder below it.
+
+        Args:
+            path: A file or folder inside the library.
+            group: The unit's group.
+            category: The unit's category within ``group``.
+
+        Returns:
+            ``True`` if the path is directly in the category folder or anywhere beneath it.
+        """
+
+        target = self.target_dir(group, category)
+        return path.parent == target or target in path.parents
+
     def is_excluded(self, path: Path) -> bool:
         """Whether ``path`` (inside the library) is not part of the library's content.
 

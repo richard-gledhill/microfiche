@@ -61,6 +61,14 @@ _Avoid_: Naming rule (that one renames files), route
 A supported file that can't be opened — corrupt, say — so it can't be classified; it is left for review and never stops the rest of a run.
 _Avoid_: Failed file, bad file
 
+**Collision**:
+A unit's destination name is already taken by a different file, so the unit is left in the inbox for review with the reason; nothing is renamed or overwritten.
+_Avoid_: Conflict (that is `reclassify`'s name for the same clash), clash
+
+**Duplicate**:
+An inbox file whose content is identical to a file already in the library, or to another inbox file being filed in the same run. It is classified like any other, then left in the inbox with a note of where the copy is and, if the classifier would file it elsewhere, where. Only new files are checked: copies already inside the library are normal and never reported.
+_Avoid_: Copy, clone, collision (a collision is a clash of names, not of content)
+
 **Confidence**:
 How sure a classification is, from 0 to 1; a classification is only as confident as its weaker stage.
 _Avoid_: Score, probability

@@ -7,7 +7,9 @@ the library's ``.microfiche/`` folder:
 - ``ledger.jsonl`` - what each unit is, where it went, and why (see ``core.ledger``);
 - ``audit.log`` - one human-readable line per move, shown by ``microfiche audit``.
 
-Nothing is ever deleted: rollback moves units back, and the ledger and audit log only grow.
+Nothing is ever deleted: rollback moves units back, and the ledger and audit log only grow. The one
+thing removed is an inbox folder that is left completely empty once its files are filed; the removal is
+recorded in the job so rollback recreates it.
 """
 
 from __future__ import annotations
@@ -91,6 +93,10 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
 
     Each unit's name is rewritten by the library's naming rules as it is filed.
 
+    A unit taken out of an inbox folder (``SortableUnit.origin_folder``) may leave that folder empty.
+    Once every unit is filed, such a folder is removed - with its empty sub-folders - if nothing at all
+    is left inside it, and each removal is recorded in the job. A folder that still holds a file stays.
+
     Args:
         library: The library to file into.
         items: Pairs of a unit and its (resolved) classification.
@@ -118,6 +124,7 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
             job.moves.append(event)
             ledger.append([record])
             _append_audit_lines(library, job.job_id, [event])
+        _remove_emptied_folders(library, job, [unit for unit, _ in items])
     finally:
         if job.moves:
             save_job(state_dir, job)
@@ -126,6 +133,8 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
 
 def rollback_job(library: Library, job_id: str) -> Job:
     """Reverse every move of a job, newest first, and mark the job as rolled back.
+
+    A folder the job removed once it was empty is recreated first, so the units that were in it can go back.
 
     Safe to retry: if an earlier attempt stopped part-way, moves that were already reversed are
     recognised (the unit is back at its original location) and skipped.
@@ -153,6 +162,11 @@ def rollback_job(library: Library, job_id: str) -> Job:
     records: list[LedgerRecord] = []
     try:
         for event in reversed(job.moves):
+            if event.action == "remove_folder":
+                if not event.original_path.exists():  # already recreated by an earlier, interrupted rollback
+                    event.original_path.mkdir(parents=True)
+                    reversed_events.append(AuditEvent(original_path=event.original_path, action="restore_folder"))
+                continue
             if event.action != "move" or event.new_path is None:
                 continue
             if not event.new_path.exists():
@@ -182,6 +196,42 @@ def rollback_job(library: Library, job_id: str) -> Job:
     job.rolled_back_at = datetime.now()
     save_job(state_dir, job)
     return job
+
+
+class DestinationClaims:
+    """Reserves destinations during one run, so no two units are planned for the same path.
+
+    ``sort`` and ``reclassify`` both plan a whole batch before moving anything. Each asks this
+    for every destination in turn: the first unit to claim a free path gets it, and a later unit
+    headed for the same path (or for a path something already occupies) is told why it can't.
+    ``file_batch`` still refuses to overwrite as the last line of defence, for a path taken
+    between planning and moving.
+
+    Args:
+        library: The library being filed into; used to word the reasons relative to its root.
+    """
+
+    def __init__(self, library: Library) -> None:
+        self._library = library
+        self._claimed: set[Path] = set()
+
+    def claim(self, destination: Path) -> str | None:
+        """Reserve ``destination`` for a unit, unless it is already taken.
+
+        Args:
+            destination: Where a unit would be filed (see ``destination_for``).
+
+        Returns:
+            ``None`` if the path was free and is now reserved; otherwise the reason it can't be
+            used, which names the path relative to the library. Nothing is reserved then.
+        """
+
+        if destination.exists():
+            return f"'{destination.name}' already exists in {self._library.relative(destination.parent)}"
+        if destination in self._claimed:
+            return f"another unit in this run is already going to {self._library.relative(destination)}"
+        self._claimed.add(destination)
+        return None
 
 
 def destination_for(library: Library, group: str, category: str, source_name: str) -> Path:
@@ -292,6 +342,39 @@ def _file_unit(
         classified_by=classification.classified_by,
     )
     return event, record
+
+
+def _remove_emptied_folders(library: Library, job: Job, units: list[SortableUnit]) -> None:
+    """Remove each inbox folder the units came from that now holds no file, recording every removal.
+
+    A folder is removed only if its whole tree is empty directories. The directories go deepest first
+    with ``Path.rmdir``, which refuses a directory that has anything in it, so no file can be lost.
+    A folder that cannot be removed (for example one another program has open) is left as it is.
+
+    Args:
+        library: The library being filed into.
+        job: The job to record the removals in.
+        units: The units that were filed.
+    """
+
+    for origin in sorted({unit.origin_folder for unit in units if unit.origin_folder is not None}):
+        if not origin.is_dir() or _holds_anything(origin):
+            continue
+        directories = sorted((p for p in origin.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True)
+        for directory in [*directories, origin]:
+            try:
+                directory.rmdir()
+            except OSError:
+                break
+            event = AuditEvent(original_path=directory, action="remove_folder")
+            job.moves.append(event)
+            _append_audit_lines(library, job.job_id, [event])
+
+
+def _holds_anything(folder: Path) -> bool:
+    """Whether ``folder`` contains anything other than real (non-link) sub-folders."""
+
+    return any(not path.is_dir() or path.is_symlink() for path in folder.rglob("*"))
 
 
 def _append_audit_lines(library: Library, job_id: str, events: list[AuditEvent]) -> None:

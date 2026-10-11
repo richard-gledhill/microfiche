@@ -29,6 +29,7 @@ flowchart TD
         core_ledger["ledger.py"]
         core_reclassify["reclassify.py"]
         core_config["config.py"]
+        core_duplicates["duplicates.py"]
     end
 
     subgraph MODELS["core/models"]
@@ -120,6 +121,7 @@ flowchart TD
     core_organizer --> m_job
     core_organizer --> m_unit
     core_organizer --> core_scanner
+    core_organizer --> core_duplicates
 
     core_scanner --> m_unit
     core_scanner --> p_init
@@ -228,6 +230,12 @@ flowchart TD
     a_factory --> core_config
 
     l_library_file --> core_config
+
+    core_duplicates --> core_filer
+    core_duplicates --> l_library
+    core_duplicates --> m_classification
+    core_duplicates --> m_unit
+    core_duplicates --> u_hashing
 ```
 
 **Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py`, the `logging.py`
@@ -249,7 +257,7 @@ flowchart TD
     LibraryTree -->|"Library.taxonomy()"| Taxonomy["Taxonomy\n{group: [category, ...]}"]
     ConfigFile -->|"load_config()"| Config["MicroficheConfig"]
     LibraryFileJson -->|"load_library_file()\n(checked against depth)"| LibraryFile["LibraryFile\n(folder tree: hints, rules)"]
-    SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(file, or folder if keep_folders)"]
+    SortingInbox -->|"scan_sorting_inbox()"| Units["SortableUnit(s)\n(a file, or a folder if keep_folders;\nelse each file in a folder, with its origin_folder)"]
     Units -->|"read_documents() via parsers/"| Documents["Document(s)\n(text + metadata)"]
     Units -.->|"a file that can't be read:\nno document, left for review with the reason"| NeedsReview
 
@@ -262,13 +270,19 @@ flowchart TD
     RulesEngine -->|"a stage below threshold and --use-ai\n(asked per stage, group then category)"| LLM["LLMClassifier\n(Ollama or OpenAI, built from [ai]\nby build_provider)"]
     LLM --> Result
 
-    Result -->|">= threshold"| FileUnit["filer.file_batch()\n(one Job per run)"]
-    Result -->|"< threshold"| NeedsReview[["SortReport.needs_review\n(microfiche review is a stub - see mvp-roadmap.md)"]]
+    Result -->|"file unit, same content as a library file\nor one filed earlier in the run"| Duplicates[["SortReport.duplicates\n(left in the inbox, with where the copy is)"]]
+    LibraryTree -.->|"DuplicateIndex: sizes first,\nhash only same-size files"| Duplicates
+    Result -->|">= threshold, not a duplicate"| Claim{"DestinationClaims.claim()\nname taken?"}
+    Claim -->|"free"| FileUnit["filer.file_batch()\n(one Job per run)"]
+    Claim -->|"taken"| NeedsReview[["SortReport.needs_review\n(microfiche review is a stub - see mvp-roadmap.md)"]]
+    Result -->|"< threshold"| NeedsReview
 
     FileUnit --> FiledDoc[("moved into\nresolved group/category folder")]
     FileUnit --> Ledger[(".microfiche/ledger.jsonl\n(what, where, why; keyed by path + hash)")]
     FileUnit --> AuditLog[(".microfiche/audit.log\n(one line per move)")]
     FileUnit --> JobFile[(".microfiche/rollback/job_ID.json")]
+    FileUnit -->|"keep_folders off: inbox folder left empty"| RemoveFolder["rmdir, recorded as remove_folder\n(rollback recreates it)"]
+    RemoveFolder --> JobFile
     JobFile -->|"rollback_job()"| Rollback["replays the Job's moves\nin reverse order"]
     Rollback --> Ledger
     Rollback --> AuditLog

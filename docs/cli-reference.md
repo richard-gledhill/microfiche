@@ -39,7 +39,7 @@ $ microfiche sort [OPTIONS]
 
 * `--library <directory>`: Path to the library root.  [required]
 * `--keep-folders`: Sort whole folders from the inbox intact, filed by dominant category, for this run.
-* `--keep-folders-off`: Leave folders in the inbox alone for this run, whatever the library&#x27;s keep_folders setting says.
+* `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library&#x27;s keep_folders setting says.
 * `--use-ai`: Fall back to the AI named in the library&#x27;s config (Ollama unless it says otherwise) for classifications the rules engine can&#x27;t resolve.
 * `--help`: Show this message and exit.
 

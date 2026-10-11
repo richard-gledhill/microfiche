@@ -36,7 +36,8 @@ ai_confidence = 0.70
 max_document_chars = 4000
 
 [sorting]
-# File a folder dropped in the inbox whole, under its dominant category. Off leaves folders alone.
+# File a folder dropped in the inbox whole, under its dominant category. Off files the documents inside
+# it one by one, and removes the folder once it is empty.
 keep_folders = true
 
 [exclusions]

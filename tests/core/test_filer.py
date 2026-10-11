@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from core.filer import (
     AUDIT_LOG_FILENAME,
+    DestinationClaims,
     JobAlreadyRolledBackError,
     JobMoveMissingError,
     JobNotFoundError,
@@ -50,6 +51,18 @@ def _folder_unit(library: Path, name: str) -> SortableUnit:
     (folder / "nested" / "two.md").write_text("second", encoding="utf-8")
     document = Document(file_path=folder / "one.md", file_name="one.md", extension=".md", content="first")
     return SortableUnit(source_path=folder, kind="folder", documents=[document])
+
+
+def _unit_from_folder(library: Path, relative: str, origin: str = "pack", text: str = "some content") -> SortableUnit:
+    """A file unit taken out of the inbox folder ``origin``; ``relative`` is its path inside the inbox."""
+
+    path = library / "_sorting" / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    document = Document(file_path=path, file_name=path.name, extension=path.suffix, content=text)
+    return SortableUnit(
+        source_path=path, kind="file", documents=[document], origin_folder=library / "_sorting" / origin
+    )
 
 
 def _classified(category: str | None = REQUIREMENTS, group: str | None = GROUP) -> ClassificationResult:
@@ -191,6 +204,82 @@ def test_file_batch_folder_filed_whole_hashed_as_manifest(tmp_path: Path) -> Non
     assert record.content_hash == expected_hash == unit_hash(library / record.path)
 
 
+def test_file_batch_emptied_origin_folder_removed_and_recorded(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    one = _unit_from_folder(library, "pack/one.md")
+    two = _unit_from_folder(library, "pack/sub/two.md")
+
+    job = file_batch(Library(library), [(one, _classified()), (two, _classified())])
+
+    assert job is not None
+    assert not (library / "_sorting" / "pack").exists()
+    removed = [event for event in job.moves if event.action == "remove_folder"]
+    assert [event.original_path for event in removed] == [
+        library / "_sorting" / "pack" / "sub",
+        library / "_sorting" / "pack",
+    ]
+    assert all(event.new_path is None for event in removed)
+    assert load_job(library / ".microfiche", job.job_id) == job  # the removals are in the saved job
+    lines = (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8").splitlines()
+    assert [line.split(" ", 3)[2:] for line in lines if "remove_folder" in line] == [
+        ["remove_folder", "_sorting/pack/sub -> -"],
+        ["remove_folder", "_sorting/pack -> -"],
+    ]
+    assert len(Ledger(library / ".microfiche").current()) == 2  # a folder removal is not a filed unit
+
+
+def test_file_batch_folder_that_cannot_be_removed_left_and_unrecorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    unit = _unit_from_folder(library, "pack/one.md")
+
+    def locked(self: Path, *args: object) -> None:
+        raise PermissionError(self)
+
+    monkeypatch.setattr(Path, "rmdir", locked)
+
+    job = file_batch(Library(library), [(unit, _classified())])
+
+    assert job is not None
+    assert (library / "_sorting" / "pack").is_dir()  # the move still happened, the folder just stays
+    assert (library / GROUP / REQUIREMENTS / "one.md").exists()
+    assert [event.action for event in job.moves] == ["move"]  # a removal that did not happen is not recorded
+
+
+def test_file_batch_origin_folder_with_leftover_file_kept(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    unit = _unit_from_folder(library, "pack/one.md")
+    (library / "_sorting" / "pack" / "photo.png").write_bytes(b"x")
+
+    job = file_batch(Library(library), [(unit, _classified())])
+
+    assert job is not None
+    assert (library / "_sorting" / "pack" / "photo.png").exists()
+    assert [event.action for event in job.moves] == ["move"]
+
+
+def test_file_batch_origin_folder_left_when_a_sibling_unit_not_filed(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    filed = _unit_from_folder(library, "pack/one.md")
+    _unit_from_folder(library, "pack/two.md")  # in the folder, but not part of this batch
+
+    file_batch(Library(library), [(filed, _classified())])
+
+    assert (library / "_sorting" / "pack" / "two.md").exists()
+
+
+def test_file_batch_unit_without_origin_folder_removes_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "elsewhere").mkdir()  # an empty folder that no unit came from
+
+    job = file_batch(Library(library), [(_file_unit(library, "loose.md"), _classified())])
+
+    assert job is not None
+    assert (library / "_sorting" / "elsewhere").is_dir()
+    assert [event.action for event in job.moves] == ["move"]
+
+
 def test_file_batch_collision_keeps_earlier_moves(tmp_path: Path) -> None:
     library = _library(tmp_path)
     first = _file_unit(library, "first.md")
@@ -246,6 +335,43 @@ def test_rollback_job_updates_ledger_and_audit_log(tmp_path: Path) -> None:
     audit_lines = (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8").splitlines()
     assert len(audit_lines) == 2
     assert f"job={job.job_id} rollback {GROUP}/{REQUIREMENTS}/a.md -> _sorting/a.md" in audit_lines[1]
+
+
+def test_rollback_job_recreates_removed_folders_and_files(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    units = [_unit_from_folder(library, "pack/one.md"), _unit_from_folder(library, "pack/sub/two.md")]
+    before_files = _snapshot(library)
+    job = file_batch(Library(library), [(unit, _classified()) for unit in units])
+    assert job is not None
+
+    rollback_job(Library(library), job.job_id)
+
+    assert (library / "_sorting" / "pack" / "sub").is_dir()
+    assert _snapshot(library) == before_files
+    audit = (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8")
+    assert "restore_folder _sorting/pack -> -" in audit
+    assert "restore_folder _sorting/pack/sub -> -" in audit
+
+
+def test_rollback_job_retry_restores_folder_once(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    loose = _file_unit(library, "loose.md")
+    from_folder = _unit_from_folder(library, "pack/one.md")
+    job = file_batch(Library(library), [(loose, _classified()), (from_folder, _classified())])
+    assert job is not None
+    blocker = library / "_sorting" / "loose.md"  # something now sits where loose.md must go back to
+    blocker.write_text("in the way", encoding="utf-8")
+    # Events run newest first: the folder is restored, one.md goes back, then loose.md is refused.
+    with pytest.raises(FileExistsError):
+        rollback_job(Library(library), job.job_id)
+    blocker.unlink()
+
+    rollback_job(Library(library), job.job_id)
+
+    audit = (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8")
+    assert audit.count("restore_folder _sorting/pack -> -") == 1  # not recorded again on the retry
+    assert (library / "_sorting" / "pack" / "one.md").exists()
+    assert (library / "_sorting" / "loose.md").exists()
 
 
 def test_rollback_job_twice_refused(tmp_path: Path) -> None:
@@ -312,6 +438,52 @@ def test_rollback_job_invalid_config_still_works(tmp_path: Path) -> None:
     rollback_job(Library(library), job.job_id)  # needs only paths, so never reads the config
 
     assert (library / "_sorting" / "a.md").exists()
+
+
+# endregion
+
+
+# region DestinationClaims
+
+
+def test_destination_claims_free_path_claimed_once(tmp_path: Path) -> None:
+    library = Library(_library(tmp_path))
+    claims = DestinationClaims(library)
+    destination = library.target_dir(GROUP, ARCHITECTURE) / "note.md"
+
+    assert claims.claim(destination) is None
+
+    reason = claims.claim(destination)
+    assert reason == "another unit in this run is already going to Project Phoenix/02 Architecture/note.md"
+
+
+def test_destination_claims_existing_path_refused_with_reason(tmp_path: Path) -> None:
+    library = Library(_library(tmp_path))
+    destination = library.target_dir(GROUP, ARCHITECTURE) / "note.md"
+    destination.write_text("already here", encoding="utf-8")
+
+    reason = DestinationClaims(library).claim(destination)
+
+    assert reason == "'note.md' already exists in Project Phoenix/02 Architecture"
+
+
+def test_destination_claims_refused_path_stays_unreserved(tmp_path: Path) -> None:
+    library = Library(_library(tmp_path))
+    claims = DestinationClaims(library)
+    destination = library.target_dir(GROUP, ARCHITECTURE) / "note.md"
+    destination.write_text("already here", encoding="utf-8")
+    assert claims.claim(destination) is not None
+    destination.unlink()  # whatever held it has gone
+
+    assert claims.claim(destination) is None
+
+
+def test_destination_claims_existing_folder_refused(tmp_path: Path) -> None:
+    library = Library(_library(tmp_path))
+    destination = library.target_dir(GROUP, ARCHITECTURE) / "bundle"
+    destination.mkdir()
+
+    assert DestinationClaims(library).claim(destination) == "'bundle' already exists in Project Phoenix/02 Architecture"
 
 
 # endregion

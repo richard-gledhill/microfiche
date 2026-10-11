@@ -65,11 +65,13 @@ def test_scan_sorting_inbox_accepts_older_sorting_folder_name(tmp_path: Path) ->
     assert [unit.source_path.name for unit in scan_sorting_inbox(Library(tmp_path))] == ["legacy.md"]
 
 
-def test_scan_sorting_inbox_folders_ignored_unless_kept_whole(tmp_path: Path) -> None:
+def test_scan_sorting_inbox_folder_is_one_unit_only_when_kept_whole(tmp_path: Path) -> None:
     _write(tmp_path / "_sorting" / "bundle" / "one.md")
     _write(tmp_path / "_sorting" / "bundle" / "two.md")
 
-    assert scan_sorting_inbox(Library(tmp_path), keep_folders=False) == []
+    separate = scan_sorting_inbox(Library(tmp_path), keep_folders=False)
+    assert [unit.source_path.name for unit in separate] == ["one.md", "two.md"]
+    assert {unit.kind for unit in separate} == {"file"}
 
     (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
     assert unit.kind == "folder"
@@ -81,6 +83,37 @@ def test_scan_sorting_inbox_unsupported_only_folder_not_unit(tmp_path: Path) -> 
     _write(tmp_path / "_sorting" / "photos" / "a.png")
 
     assert scan_sorting_inbox(Library(tmp_path), keep_folders=True) == []
+    assert scan_sorting_inbox(Library(tmp_path), keep_folders=False) == []
+
+
+def test_scan_sorting_inbox_folders_off_records_origin_folder(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "loose.md")
+    _write(tmp_path / "_sorting" / "bundle" / "top.md")
+    _write(tmp_path / "_sorting" / "bundle" / "nested" / "deep.md")  # still comes from the top-level folder
+
+    units = {unit.source_path.name: unit for unit in scan_sorting_inbox(Library(tmp_path), keep_folders=False)}
+
+    assert set(units) == {"loose.md", "top.md", "deep.md"}
+    assert units["loose.md"].origin_folder is None
+    assert units["top.md"].origin_folder == tmp_path / "_sorting" / "bundle"
+    assert units["deep.md"].origin_folder == tmp_path / "_sorting" / "bundle"
+
+
+def test_scan_sorting_inbox_folders_off_skips_unsupported_files_inside(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+    _write(tmp_path / "_sorting" / "bundle" / "photo.png")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=False)
+
+    assert unit.source_path.name == "good.md"
+
+
+def test_scan_sorting_inbox_folders_kept_whole_have_no_origin_folder(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "one.md")
+
+    (unit,) = scan_sorting_inbox(Library(tmp_path), keep_folders=True)
+
+    assert unit.origin_folder is None
 
 
 # endregion
@@ -126,6 +159,17 @@ def test_scan_sorting_inbox_folder_splits_readable_unreadable(tmp_path: Path) ->
     assert [u.file_path.name for u in unit.unreadable] == ["bad.docx"]
 
 
+def test_scan_sorting_inbox_folders_off_unreadable_file_still_unit(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+    bad = _corrupt(tmp_path / "_sorting" / "bundle" / "bad.docx")
+
+    units = {unit.source_path.name: unit for unit in scan_sorting_inbox(Library(tmp_path), keep_folders=False)}
+
+    assert units["bad.docx"].documents == []
+    assert [u.file_path for u in units["bad.docx"].unreadable] == [bad]
+    assert units["bad.docx"].origin_folder == tmp_path / "_sorting" / "bundle"
+
+
 def test_scan_sorting_inbox_all_unreadable_folder_still_unit(tmp_path: Path) -> None:
     _corrupt(tmp_path / "_sorting" / "bundle" / "bad.docx")
 
@@ -150,11 +194,14 @@ def test_scan_sorting_inbox_keep_folders_defaults_to_library_setting_on(tmp_path
     assert unit.kind == "folder"
 
 
-def test_scan_sorting_inbox_keep_folders_off_in_library_config_leaves_folders(tmp_path: Path) -> None:
+def test_scan_sorting_inbox_keep_folders_off_in_library_config_splits_folders(tmp_path: Path) -> None:
     _set_keep_folders(tmp_path, False)
     _write(tmp_path / "_sorting" / "bundle" / "good.md")
 
-    assert scan_sorting_inbox(Library(tmp_path)) == []
+    (unit,) = scan_sorting_inbox(Library(tmp_path))
+
+    assert unit.kind == "file"
+    assert unit.origin_folder == tmp_path / "_sorting" / "bundle"
 
 
 def test_scan_sorting_inbox_keep_folders_argument_overrides_library_setting(tmp_path: Path) -> None:

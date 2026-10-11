@@ -51,7 +51,8 @@ def sort(
     keep_folders_off: bool = typer.Option(
         False,
         "--keep-folders-off",
-        help="Leave folders in the inbox alone for this run, whatever the library's keep_folders setting says.",
+        help="File the documents inside inbox folders one by one for this run, and remove each folder once it is "
+        "empty, whatever the library's keep_folders setting says.",
     ),
     use_ai: bool = typer.Option(
         False,
@@ -66,9 +67,16 @@ def sort(
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library, uses_hints=True)
     ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
-    report = run_sort(
-        opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
-    )
+    try:
+        report = run_sort(
+            opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
+        )
+    except FileExistsError as err:
+        # Collisions are caught and sent to review beforehand; this is a destination taken mid-run.
+        _fail(
+            f"{err}\nSome files may already have been moved; they are recorded in the job and can be undone "
+            "(see `microfiche audit` for the job id, then `microfiche rollback`)."
+        )
     render_sort_report(console, report)
 
 
@@ -163,7 +171,10 @@ def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "-
             f"{err}\nRollback stopped part-way; the moves already reversed are recorded. "
             "Fix the problem above and re-run the same command to finish."
         )
-    console.print(f"Reverted {len(job.moves)} move(s) from job {job_id}.", soft_wrap=True)
+    moves = sum(1 for event in job.moves if event.action == "move")
+    restored = sum(1 for event in job.moves if event.action == "remove_folder")
+    folders = f" and recreated {restored} emptied folder(s)" if restored else ""
+    console.print(f"Reverted {moves} move(s){folders} from job {job_id}.", soft_wrap=True)
 
 
 # endregion

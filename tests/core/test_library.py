@@ -143,6 +143,30 @@ def test_relative_leaves_outside_path_unchanged(tmp_path: Path) -> None:
     assert library.relative(outside) == outside.as_posix()
 
 
+def test_filed_under_category_folder_and_below(tmp_path: Path) -> None:
+    library = Library(tmp_path)
+    category = tmp_path / "Project Phoenix" / "02 Architecture"
+
+    assert library.filed_under(category / "a.md", "Project Phoenix", "02 Architecture")
+    assert library.filed_under(category / "bundle" / "a.md", "Project Phoenix", "02 Architecture")
+    assert library.filed_under(category / "bundle", "Project Phoenix", "02 Architecture")
+
+
+def test_filed_under_other_category_group_or_inbox_false(tmp_path: Path) -> None:
+    library = Library(tmp_path)
+
+    assert not library.filed_under(
+        tmp_path / "Project Phoenix" / "01 Requirements" / "a.md", "Project Phoenix", "02 Architecture"
+    )
+    assert not library.filed_under(
+        tmp_path / "Other" / "02 Architecture" / "a.md", "Project Phoenix", "02 Architecture"
+    )
+    assert not library.filed_under(tmp_path / "_sorting" / "a.md", "Project Phoenix", "02 Architecture")
+    assert not library.filed_under(
+        tmp_path / "Project Phoenix" / "02 Architecture", "Project Phoenix", "02 Architecture"
+    )
+
+
 # endregion
 
 
