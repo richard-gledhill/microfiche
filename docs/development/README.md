@@ -8,7 +8,7 @@ Internal planning/design docs — not published to the user-facing docs site (se
 - **[mvp-roadmap.md](mvp-roadmap.md)** — current. What's done/partial/stub per CLI command and
   feature, and the prioritized list of what's actually blocking MVP.
 - **[mvp-build-plan.md](mvp-build-plan.md)** — current. A staged, from-scratch process for
-  building to MVP (six stages plus interim stages 4.1 to 4.9, each Plan/Design/Build/Test/Deploy), written to be dropped
+  building to MVP (six stages plus interim stages 4.1 to 4.10, each Plan/Design/Build/Test/Deploy), written to be dropped
   into a GitHub Project. A different lens than `mvp-roadmap.md`: process/sequencing rather
   than status.
 - **[config-review.md](config-review.md)** — planned work. A review of the configuration: which hard-coded

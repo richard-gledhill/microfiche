@@ -104,6 +104,10 @@ provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-pl
 them) and [Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
 setting: `leaf_only` or `best_level`).
 
+[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) follows Stage 4.1's library file: it creates the file from the
+folders on the first run, finds folders the user adds on later runs, reports folders that disappear, and adds
+`microfiche config --sync`. The folders stay the authority on what exists. It is built after Stage 4.3.
+
 ## Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**

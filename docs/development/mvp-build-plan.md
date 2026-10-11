@@ -1,7 +1,7 @@
 # MVP build plan
 
-A from-scratch, staged process for building microfiche to MVP, organized as six stages (plus four
-interim stages, 4.1 to 4.9, added after review) that
+A from-scratch, staged process for building microfiche to MVP, organized as six stages (plus the
+interim stages 4.1 to 4.10, added after review) that
 each ship a **testable version** — something you can actually run and demo, not just a set of
 merged PRs. Every stage is internally sequenced Plan → Design → Build → Test → Deploy.
 
@@ -27,7 +27,7 @@ and a structure meant to be dropped directly into a GitHub Project. Read
 - **Versioning.** The whole MVP is the `0.1.x` line, and the repo already has a `v0.1.0` tag as its
   baseline. Each stage's Deploy step tags the next patch version: Stage 1 is `v0.1.1`, Stage 2 `v0.1.2`,
   Stage 3 `v0.1.3`, Stage 4 `v0.1.4`, Stage 5 `v0.1.5` and Stage 6 `v0.1.6`, the MVP release. An interim stage
-  numbered with a decimal (Stages 4.1 to 4.9) is an update to the stage before it and gets no tag of its own;
+  numbered with a decimal (Stages 4.1 to 4.10) is an update to the stage before it and gets no tag of its own;
   its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does.
 - **Definition of done per stage:** every issue in the milestone is closed *and* the stage's
   "Testable version" statement is true when you check it out and run it.
@@ -188,7 +188,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 
 **Plan**
 - Decide which constants become settings and which stay fixed (file names, chunk sizes, display styles), per [config-review.md](config-review.md) point 1.
-- Define the split between settings (`microfiche-config.toml`) and library data (`microfiche-library.json`), and what is dropped: `library_templates`, `levels`, `file_target_level`. `depth` stays, as the one structural setting.
+- Define the split between settings (`microfiche-config.toml`) and library data (`microfiche-library.json`), where the folders stay the authority on what exists and the file describes them (it is created and kept in step by Stage 4.10), and what is dropped: `library_templates`, `levels`, `file_target_level`. `depth` stays, as the one structural setting.
 - Decide whether `--use-ai` stays a per-run switch or becomes `[ai] enabled`, and whether the `init` command and a template catalog are in the MVP (the default is no).
 - Decide whether to keep `thefuzz` or depend on `rapidfuzz` directly. [fuzzy-matching-options.md](fuzzy-matching-options.md) records the comparison: `thefuzz` is a wrapper over RapidFuzz, scores and speed are the same for `partial_ratio`, and the calibration report is identical. The recommendation is to switch, as the last Build step, so `fuzzy_group_threshold` is settled before it ships.
 - Write the stage's exit criteria as a single sentence: with the shipped defaults the calibration report is unchanged, and each new setting changes the behaviour it names.
@@ -199,7 +199,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Design `[sorting] keep_folders` (default on) and the CLI precedence: `--keep-folders` or `--keep-folders-off` (passing both is an error), then library config, then packaged default. What the setting does when off is Stage 4.2.
 - Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, Stage 4.5) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
 - Design `[ai] max_document_chars` (how much of a document is sent to the AI): at least 0, where `0` means no limit. An unlimited run prints one warning before any document is classified, never one per document, about token usage, processing time and the model's context window (a longer document may fail or be cut off). The CLI prints it and `core` stays quiet; Stage 4.4 also logs it at WARNING. With `provider = "openai"` the warning also says the cost is real money.
-- Design the `microfiche-library.json` node schema (`name`, `hints`, `rules`, `children`), with category hints global by category name to start with.
+- Design the `microfiche-library.json` node schema as a recursive tree of folders, `{name, hints, rules, children}`, whose top level is the groups, so it is not tied to two levels and can be created from the folders. A `name` of `*` means any folder at that level, which keeps today's behaviour (hints global by category name) without repeating them in every group. The hints and rules for a group and category are the concrete nodes' first, then the `*` nodes'. The tree may not be deeper than `[library_structure] depth`. The file is reviewed and confirmed before it is built on.
 - Design the fuzzy-library switch: pass `score_cutoff=fuzzy_group_threshold` to the group match, decide whether scores stay rounded integers or become floats (84.6 used to round up to 85 and pass), and give `tag_mapper` an explicit `processor` because RapidFuzz's `extractOne` does not lowercase or strip punctuation by default.
 
 **Build**
@@ -208,7 +208,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout-
 - Add `[sorting] keep_folders = true` and keep `--keep-folders` as a boolean switch, adding a `--keep-folders-off` switch beside it (no `--no-keep-folders`): `--keep-folders` forces folders on for that run, `--keep-folders-off` forces them off, passing both exits with an error, and passing neither defers to the setting; make `propose-categories` use the setting too.
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
 - Add `[ai] max_document_chars` (default 4000) and make `0` mean unlimited: send the whole document, and print the one-per-run warning designed above.
-- Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it.
+- Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it as `*` nodes. A missing file means no hints; the sync that creates it is Stage 4.10.
 - Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
 - Replace `thefuzz` with `rapidfuzz` in `rules/group_rules.py` and `obsidian/tag_mapper.py`, as its own commit after the library file work: declare `rapidfuzz` in `core`'s `pyproject.toml`, remove `thefuzz` and its mypy override, and pass `score_cutoff` and `processor` as designed.
@@ -299,8 +299,8 @@ file held open by Obsidian or Word will fail a move. The reasoning is in [operat
 - Decide the symlink policy: links and junctions in the inbox are skipped and listed, never followed.
 
 **Design**
-- Design `--dry-run`: classification runs as usual, but nothing is moved and no job, ledger record or audit line is written; the output is labelled as a preview.
-- Design the run lock: `.microfiche/lock` holding the process id and start time, stale-lock detection, released on exit, and taken by `sort`, `reclassify --apply` and `rollback` (read-only commands don't take it).
+- Design `--dry-run`: classification runs as usual, but nothing is moved and no job, ledger record or audit line is written, and the library file is not synced (Stage 4.10); the output is labelled as a preview.
+- Design the run lock: `.microfiche/lock` holding the process id and start time, stale-lock detection, released on exit, and taken by `sort`, `reclassify --apply`, `rollback` and `config --sync` (Stage 4.10); read-only commands don't take it.
 - Design per-unit failure isolation in `run_sort` and `file_batch`: a failed move is not recorded as a move, the job keeps the successful ones, and the unit is reported for review.
 - Design the AI-unavailable path: the first connection failure or timeout logs one warning and the rest of the run uses the rules only.
 - Design the new settings and add them to the packaged defaults: `[sorting] ignore` (patterns such as `~$*`, `.DS_Store`, `Thumbs.db`, `*.tmp`) and `[parsing] max_file_mb` (an oversize file goes to review rather than being parsed).
@@ -587,6 +587,54 @@ Alternatives considered (`strict`/`progressive`, `exact`/`partial`, `deepest_onl
 
 ---
 
+## Stage 4.10 — Library File Sync
+
+**Milestone:** `Stage 4.10 — Library File Sync` (an untagged update to `v0.1.4`)
+**Testable version:** A library with no `microfiche-library.json` gets one on its first real `sort`, and from
+`microfiche config --sync`, listing its folders to the configured depth with no hints. A folder the user adds later
+is found on the next run, added to the file and reported once. A folder that disappears is reported on every run
+and never removed from the file. Hints, rules and order the user wrote are never changed, and `sort --dry-run`
+writes nothing.
+
+Why a stage of its own: Stage 4.1 moves hints into a library file that the user writes by hand. This stage makes
+the file follow the folders, so a new library does not send everything to review and a folder added later needs no
+manual entry. It builds after 4.3 because it writes during `sort`, so it needs `--dry-run` (which must not write)
+and the run lock. Stages 4.6 and 4.7 reuse its structure walk for depths 1 and 3. The principle is in
+[architecture.md §1](architecture.md#1-the-library-is-the-taxonomy--categories-are-discovered-not-configured).
+
+**Plan**
+- Confirm the principle: the folders decide which groups and categories exist, and the library file describes them. An entry with no folder is never filed into, and a folder with no entry still files. The file never creates or removes folders.
+- Decide which folders count as library folders: within `[library_structure] depth`; not the inbox, `.microfiche/` or an `[exclusions]` match; not a folder the ledger records as filed content (a bundle); matching the level's `name_pattern` if one is set (Stage 4.8); a real directory, not a symlink. There is no per-entry "ignore": a folder to leave out goes in `[exclusions]`.
+- Decide when the file is written: automatically on the first real `sort` with a one-line notice, on every later real `sort` when a folder has been added, and from `config --sync`. Never under `--dry-run`.
+
+**Design**
+- Design `Library.structure()`: the sorted, exclusion-aware walk to the configured depth, returned as a tree. `Library.taxonomy()` becomes a view of it, so the two cannot disagree.
+- Design the sync as a diff between the structure and the file: `added` (a folder with no entry) and `missing` (an entry with no folder). The merge appends added entries in sorted order, writes atomically (a temporary file, then rename) and only when something was added, and leaves every existing entry, its text and its order alone. A missing and an added folder in the same run are reported as a possible rename, never merged.
+- Design where it runs: at the start of `run_sort`, under the run lock, and from `microfiche config --sync`, which prints what it added and what is missing. `config` without the flag stays read-only.
+- Design failure: a library file that cannot be written (read-only, locked) is a warning and the sort goes on; a file that exists but is invalid stops the command with the error and is never overwritten.
+- Design the report: `SortReport` carries the changes. The summary lists new folders once, when they are added, and missing entries on every run until the user removes them.
+
+**Build**
+- Add `Library.structure()`.
+- Add the sync function and the library file write.
+- Call the sync from `run_sort`, and add `--sync` to `config`.
+- Show added and missing folders in the `sort` summary.
+
+**Test**
+- Write structure tests: the depth limit, exclusions, the inbox and state folder, a filed bundle recorded in the ledger, a symlink, and sorted order.
+- Write sync tests: the first run creates the file with no hints; a second run changes nothing and leaves the file byte-identical; a new folder is added and reported once; hints, rules, wildcard entries and order the user wrote are preserved; a missing entry is reported and kept; a rename is reported as a possible rename.
+- Write tests that `sort --dry-run` writes nothing, that an unwritable `.microfiche/` is a warning and the sort completes, and that an invalid existing file is reported and not overwritten.
+- Write CLI tests: `config --sync` prints what it added and what is missing and exits 0, and plain `config` writes nothing.
+
+**Deploy**
+- Update `docs/how-to-use.md` (what the file is, the first-run notice, `config --sync` in both the Bash and PowerShell tabs, leaving a folder out with `[exclusions]`, and the "Current limitations" list), the Usage section of `README.md` and `docs/cli-reference.md` (`make docs-cli`).
+- Update `architecture.md` (§1, §8 and §10), `mvp-roadmap.md` and `module-diagram.md`, and add "library file" to [CONTEXT.md](../../CONTEXT.md).
+- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
+
+**Deferred:** a description or aliases per entry, and sending them to the AI (a privacy decision); a Markdown way to read and write the same model; rename detection beyond reporting; creating folders from the file.
+
+---
+
 ## Stage 5 — Obsidian Integration & Review Workflow
 
 **Milestone:** `v0.1.5 — Obsidian Integration & Review`
@@ -696,6 +744,10 @@ rather than in isolation:
    after 4.6 or left out.
 
    Suggested build order for the 4.6 to 4.9 group: 4.6, 4.8, 4.9, then 4.7.
+4.10. **Library file sync, after 4.3** — the library file arrives in 4.1 as a hand-written file; this makes it follow
+   the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
+   `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6 and 4.7, which reuse its structure
+   walk for depths 1 and 3.
 5. **Obsidian/review fifth** — polish and completeness features that don't block earlier
    stages from being independently useful.
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs

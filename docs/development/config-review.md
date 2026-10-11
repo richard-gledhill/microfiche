@@ -173,14 +173,15 @@ clear error until the engine supports more.
   mentions in `templates.py` and `metadata_rules.py` at the same time.
 - **Combine the schema, not the location or meaning.** A category node is `{name, hints, rules}` in one
   format. A template says what to create; a library's hints file says what to match against existing
-  folders. Hints must never define which categories exist, or the config-defined taxonomy that
-  architecture §1 removed comes back. A library gets its own copy at creation and edits it from then on; if
+  folders. The folders stay the authority on what exists: an entry with no folder is never filed into, and the
+  file never creates or removes a folder. The file is created from the folders and kept in step (Stage 4.10). A library gets its own copy at creation and edits it from then on; if
   it merely referenced a shared template, a template change would silently alter its sorting.
 - **`filing_rules` moves with the hints.** The rules point at category names, and the template's own TODO
   already says "review with category_hints". `naming_rules` stays in the TOML: those are regexes, not
   category data.
-- **Hint scope.** Start global by category name, which is today's behaviour. Per-group overrides can come
-  later, for example `groups: {"Project Phoenix": {...}}`.
+- **Hint scope.** A recursive tree of folders, so any depth fits. A `*` node applies to any folder at its level,
+  which is today's behaviour (global by category name) without repeating hints; a node named for a group overrides
+  or adds to it for that group only.
 - **`levels` and `file_target_level`.** `levels` (the names "group" and "category") belongs with the shape,
   so it goes in the JSON or is deleted. `file_target_level` is derived and goes.
 

@@ -16,13 +16,16 @@ the design with that reality.
 
 ## 1. The library is the taxonomy — categories are discovered, not configured
 
-`microfiche-config.toml`'s `[category_hints.categories]` table no longer defines *what categories exist*. It only supplies keyword hints that help the
-rules engine match content to a category that **already exists as a folder** in the library.
+The folders decide *what groups and categories exist*. The library file (`.microfiche/microfiche-library.json`, Stage 4.1) holds the keyword hints and
+filename rules that help the rules engine match content to a category that **already exists as a folder**. From Stage 4.10 it is also created from the
+folders, to the configured depth, on the first run, and kept in step: a folder the user adds is found and added on the next run, and an entry whose
+folder has gone is reported but never used or removed. **The folders always win**: filing is checked against the folders that exist, the file never
+creates or removes a folder, and regenerating it never overwrites what the user wrote.
 
 A taxonomy discovery step walks the library tree (excluding the inbox, the `.microfiche/` state folder, and anything in
 `microfiche-config.toml`'s `[exclusions]` table) and builds an in-memory index of `{group_name: [category_name, ...]}` on every run.
-No taxonomy is persisted — the walk is cheap because it only reads directory names at a fixed depth, not file
-contents.
+The taxonomy used for filing is never read from the file — it is computed from the folders on every run, and the walk is cheap because it only reads
+directory names at a fixed depth, not file contents.
 
 ```
 core/library/library.py        # Library: layout (inbox, state folder, target folders), exclusions, and
@@ -256,7 +259,7 @@ resolution and for `propose-categories --use-ai`, not a always-on classification
 ```
 core/defaults/microfiche-config.toml   # packaged defaults, the only source of default values
 <library>/.microfiche/microfiche-config.toml   # the library's overrides, deep-merged over the defaults
-<library>/.microfiche/microfiche-library.json  # this library's category hints and filing rules (data, not settings)
+<library>/.microfiche/microfiche-library.json  # this library's folder tree with hints and filing rules (data, not settings); created from the folders by Stage 4.10
 ```
 
 * **Defaults live in one packaged file.** The loader reads it, deep-merges the library's file over it (tables
