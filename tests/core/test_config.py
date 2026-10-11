@@ -7,17 +7,16 @@ from typing import Any
 import pytest
 from core.config import (
     AIConfig,
-    CategoryHintsConfig,
     ClassificationConfig,
     ConfigError,
     ExclusionsConfig,
-    FilingRulesConfig,
     LibraryStructureConfig,
     MicroficheConfig,
     NamingRulesConfig,
     ObsidianConfig,
     SortingConfig,
     TomlConfigParseError,
+    UnsupportedDepthError,
     load_config,
 )
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
@@ -33,8 +32,6 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("library_structure", LibraryStructureConfig),
     ("exclusions", ExclusionsConfig),
     ("obsidian", ObsidianConfig),
-    ("category_hints", CategoryHintsConfig),
-    ("filing_rules", FilingRulesConfig),
     ("naming_rules", NamingRulesConfig),
     ("classification", ClassificationConfig),
     ("ai", AIConfig),
@@ -107,23 +104,30 @@ def test_load_config_library_value_overrides_default(tmp_path: Path) -> None:
     assert load_config(tmp_path).obsidian.enabled is True
 
 
-def test_load_config_list_replaces_default_list(tmp_path: Path) -> None:
-    # `levels` defaults to two entries; replacing gives exactly the library's list, appending would give five.
-    (tmp_path / "microfiche-config.toml").write_text(
-        '[library_structure]\nlevels = ["a", "b", "c"]\n', encoding="utf-8"
-    )
+def _with_packaged_defaults(monkeypatch: pytest.MonkeyPatch, **sections: dict[str, Any]) -> None:
+    """Make ``load_config`` start from the real packaged defaults with ``sections`` merged in."""
 
-    assert load_config(tmp_path).library_structure.levels == ["a", "b", "c"]
+    defaults = load_config(Path("does-not-exist")).model_dump()
+    for name, values in sections.items():
+        defaults[name] = {**defaults[name], **values}
+    monkeypatch.setattr("core.config._load_packaged_defaults", lambda: defaults)
 
 
-def test_load_config_nested_table_merges_with_default(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text(
-        '[category_hints.categories]\n"01 Requirements" = ["requirement"]\n', encoding="utf-8"
-    )
+def test_load_config_list_replaces_default_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Replacing gives exactly the library's list; appending would give three entries.
+    _with_packaged_defaults(monkeypatch, exclusions={"exclude": ["x", "y"]})
+    (tmp_path / "microfiche-config.toml").write_text('[exclusions]\nexclude = ["z"]\n', encoding="utf-8")
+
+    assert load_config(tmp_path).exclusions.exclude == ["z"]
+
+
+def test_load_config_nested_table_merges_with_default(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _with_packaged_defaults(monkeypatch, naming_rules={"rules": {"a": "1"}})
+    (tmp_path / "microfiche-config.toml").write_text('[naming_rules.rules]\nb = "2"\n', encoding="utf-8")
 
     config = load_config(tmp_path)
 
-    assert config.category_hints.categories == {"01 Requirements": ["requirement"]}
+    assert config.naming_rules.rules == {"a": "1", "b": "2"}
     assert config.obsidian.enabled is False
 
 
@@ -303,12 +307,6 @@ def test_load_config_keep_folders_not_a_boolean_rejected(tmp_path: Path) -> None
         load_config(tmp_path)
 
 
-def test_load_config_shipped_library_templates_loaded() -> None:
-    config = load_config(_REPO_CONFIG_DIR)
-
-    assert "01 Requirements" in config.library_templates["software_project"]
-
-
 # endregion
 
 
@@ -326,12 +324,21 @@ def test_config_section_unknown_key_rejected(name: str, section: type[BaseModel]
     assert error["loc"] == ("not_a_real_key",)
 
 
-def test_load_config_template_not_list_of_names_rejected(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text(
-        '[library_templates]\nsoftware_project = "oops"\n', encoding="utf-8"
-    )
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('[category_hints.categories]\n"A" = ["x"]\n', "category_hints: unknown section"),
+        ("[filing_rules]\nrules = []\n", "filing_rules: unknown section"),
+        ('[library_templates]\nsoftware = ["A"]\n', "library_templates: unknown section"),
+        ('[library_structure]\nlevels = ["group"]\n', "library_structure.levels: unknown setting"),
+        ("[library_structure]\nfile_target_level = 2\n", "library_structure.file_target_level: unknown setting"),
+    ],
+)
+def test_load_config_settings_moved_or_removed_rejected(tmp_path: Path, text: str, expected: str) -> None:
+    # Hints and rules moved to microfiche-library.json; the others had no effect and were dropped.
+    (tmp_path / "microfiche-config.toml").write_text(text, encoding="utf-8")
 
-    with pytest.raises(ConfigError, match="software_project"):
+    with pytest.raises(ConfigError, match=expected):
         load_config(tmp_path)
 
 
@@ -340,8 +347,6 @@ def test_library_structure_unknown_key_rejected() -> None:
         "library_structure": {
             "library_inbox": "_sorting",
             "depth": 2,
-            "levels": ["group", "category"],
-            "file_target_level": 2,
             "invalid_key": "invalid-key",  # The offender
         }
     }
@@ -435,12 +440,38 @@ def test_load_config_plain_value_section_not_called_unknown(tmp_path: Path) -> N
 
 
 def test_load_config_bad_list_value_located_by_index(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text("[filing_rules]\nrules = [{ pattern = 1 }]\n", encoding="utf-8")
+    (tmp_path / "microfiche-config.toml").write_text('[exclusions]\nexclude = ["a", 1]\n', encoding="utf-8")
 
     with pytest.raises(ConfigError) as exc_info:
         load_config(tmp_path)
 
-    assert "filing_rules.rules[0].pattern" in str(exc_info.value)
+    assert "exclusions.exclude[1]" in str(exc_info.value)
+
+
+# region Depth
+
+
+def test_load_config_depth_two_accepted(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[library_structure]\ndepth = 2\n", encoding="utf-8")
+
+    assert load_config(tmp_path).library_structure.depth == 2
+
+
+@pytest.mark.parametrize("depth", [0, 1, 3, 4])
+def test_load_config_depth_not_supported_yet_rejected(tmp_path: Path, depth: int) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(f"[library_structure]\ndepth = {depth}\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=f"library_structure.depth: depth {depth} is not supported") as exc_info:
+        load_config(tmp_path)
+
+    assert "group and category" in str(exc_info.value)
+
+
+def test_unsupported_depth_error_names_the_supported_depths() -> None:
+    assert str(UnsupportedDepthError(1)).endswith("only 2 is supported")
+
+
+# endregion
 
 
 # endregion

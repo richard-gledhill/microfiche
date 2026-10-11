@@ -531,20 +531,24 @@ def test_config_shows_library_inbox(tmp_path: Path) -> None:
     assert "_sorting" in result.stdout
 
 
-def test_config_shows_library_templates(tmp_path: Path) -> None:
+def test_config_shows_depth_and_no_removed_settings(tmp_path: Path) -> None:
     result = runner.invoke(app, ["config", "--library", str(_library(tmp_path))])
 
     assert result.exit_code == 0
-    assert "library_templates" in result.stdout
-    assert "software_project" in result.stdout
-    assert "personal_project" in result.stdout
+    assert "depth" in result.stdout
+    for removed in ("library_templates", "file_target_level", "category_hints", "filing_rules"):
+        assert removed not in result.stdout
 
 
-def test_config_lists_templates_when_library_defines_none(tmp_path: Path) -> None:
-    result = runner.invoke(app, ["config", "--library", str(tmp_path)])
+def test_sort_unsupported_depth_stops_with_clear_message(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8").replace("depth = 2", "depth = 3"), encoding="utf-8")
 
-    assert result.exit_code == 0
-    assert "library_templates" in result.stdout
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert "depth 3 is not supported" in result.stdout
 
 
 # endregion

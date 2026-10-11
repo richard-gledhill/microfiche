@@ -7,8 +7,6 @@
 [library_structure]
 library_inbox = "_sorting"
 depth = 2
-levels = ["group", "category"]
-file_target_level = 2
 
 # How confident microfiche must be (0 to 1) before it files a document without asking. Anything
 # below this is left in _sorting/ for review. How sure each kind of match is today: exact group or
@@ -63,14 +61,6 @@ exclude = ["sorting*", "_sorting*", ".*", "_*"]
 [naming_rules]
 rules = {}
 
-# Category sets for a future `create-library`/`init` command (core.library.templates).
-# todo: is this required
-[library_templates]
-software_project = ["01 Requirements", "02 Architecture", "03 Research", "04 Meeting Notes", "05 Correspondence", "06 Reference Material", "99 Archive"]
-personal_project = ["01 Ideas", "02 Research", "03 Notes", "99 Archive"]
-
-# suggest: apply + propose new tags for review | strict: only apply tags already in TagIndex.md
-# | off: tag freely, don't consult TagIndex.md at all
 [obsidian]
 enabled = false
 tag_index_path = "TagIndex.md"

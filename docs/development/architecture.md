@@ -56,11 +56,11 @@ keyword hints, so the user guides ([README](../../README.md#how-a-library-is-org
 `.microfiche/microfiche-config.toml`'s `[library_structure]` table:
 ```toml
 [library_structure]
+library_inbox = "_sorting"
 depth = 2
-levels = ["group", "category"]
-file_target_level = 2   # loose files (and kept-whole folders) are filed at the leaf
 ```
-Depth is configurable for future flexibility, but 2 is the only depth implemented today. Stage 4.6 plans depth 1
+Depth is configurable for future flexibility, but 2 is the only depth implemented today, and any other
+value is rejected with a message saying so. Loose files and kept-whole folders are filed at the leaf. Stage 4.6 plans depth 1
 (groups only), and Stage 4.7 plans depth 3 (group, category, subcategory), provisionally; see
 [library-depth.md](library-depth.md). The word *group* is used at every depth.
 

@@ -17,7 +17,6 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 | `ai` | `provider` (`"ollama"` or `"openai"`), `model`, `host`, `timeout` and `api_key_env` (the name of the variable holding the OpenAI key). `ai_confidence` (0–1, default 0.70): how sure any AI-fallback answer is. `max_document_chars` (default 4000; `0` = all of it, with a warning): how much of a document's text is sent. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
-| `library_templates` | Category sets for a future `create-library`/`init` command. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 
 Keyword hints and filename rules are not in the config. They live in `microfiche-library.json` beside it,

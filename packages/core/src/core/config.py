@@ -22,6 +22,8 @@ CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
 MICROFICHE_DIRNAME = ".microfiche"
+# The library depths (levels of folders) the code supports. Stage 4.6 adds 1.
+SUPPORTED_DEPTHS = (2,)
 # What an environment variable name looks like. Real API keys contain characters this rejects.
 _ENV_VAR_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -40,15 +42,19 @@ class LibraryStructureConfig(_ConfigSection):
     Attributes:
         library_inbox (str): Name of the inbox folder at the library root (default ``"_sorting"``).
             A plain folder name, not a path, and not the state folder's name.
-        depth (int): Depth of the group/category hierarchy. Only 2 is implemented.
-        levels (list[str]): Names of the levels. Not read by the code yet.
-        file_target_level (int): The level files are filed at. Not read by the code yet.
+        depth (int): How many levels of folders the library has: 2 is group then category, the only depth
+            supported today.
     """
 
     library_inbox: str
     depth: int
-    levels: list[str]
-    file_target_level: int
+
+    @field_validator("depth")
+    @classmethod
+    def _depth_is_supported(cls, value: int) -> int:
+        if value not in SUPPORTED_DEPTHS:
+            raise UnsupportedDepthError(value)
+        return value
 
     @field_validator("library_inbox")
     @classmethod
@@ -90,41 +96,6 @@ class ObsidianConfig(_ConfigSection):
     enabled: bool
     tag_index_path: str
     tag_mode: Literal["suggest", "strict", "off"]
-
-
-class CategoryHintsConfig(_ConfigSection):
-    """Represents the configuration for category hints.
-
-    Keyword hints per *existing* category name, used by the rules engine - not the category
-    list itself, which is discovered from the library's folders (see core.library.taxonomy).
-
-    This class is used to define and manage a mapping between category names and their
-    associated hints. The primary purpose of this configuration is to store and organize
-    categories while allowing easy access to their related hints. It serves as a data
-    structure for categorization-related functionality.
-
-    Attributes:
-        categories (dict[str, list[str]]): A dictionary mapping category names to a list of associated hints.
-    """
-
-    categories: dict[str, list[str]]
-
-
-class FilingRulesConfig(_ConfigSection):
-    """Represents the configuration for filing rules.
-
-    Filename-glob -> category rules, checked before keyword hints.
-
-    This class is used to define the configuration for filing rules, which are
-    represented as a list of dictionaries mapping strings to strings. It provides
-    a structure to easily store and access the filing rules for various applications.
-
-    Attributes:
-        rules (list[dict[str, str]]): List of filing rules, where each rule is represented
-            as a dictionary mapping strings to strings.
-    """
-
-    rules: list[dict[str, str]]
 
 
 class NamingRulesConfig(_ConfigSection):
@@ -227,36 +198,28 @@ class MicroficheConfig(_ConfigSection):
     Represents the configuration settings for the Microfiche system, which
     defines the structure and behavior of file management, organization, and
     categorization. This class holds detailed settings for library structure,
-    file exclusions, integration with Obsidian, category hints, filing rules,
-    and naming conventions.
+    file exclusions, integration with Obsidian, classification, the AI fallback,
+    sorting and naming conventions. The library's category hints and filing rules are not
+    here: they live in ``microfiche-library.json`` (see ``core.library.library_file``).
 
     Attributes:
         library_structure (LibraryStructureConfig): Configuration for the library structure.
         exclusions (ExclusionsConfig): Configuration for file and folder exclusions.
         obsidian (ObsidianConfig): Configuration for Obsidian integration.
-        category_hints (CategoryHintsConfig): Configuration for category hints used in
-            categorizing files or folders.
-        filing_rules (FilingRulesConfig): Configuration for rules dictating how files
-            are organized and filed.
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
         ai (AIConfig): Configuration for the AI fallback.
         sorting (SortingConfig): Configuration for how the inbox is sorted.
-        library_templates (dict[str, list[str]]): Named category sets for a future
-            `create-library`/`init` command, e.g. ``software_project``. Not read by the code yet.
     """
 
     library_structure: LibraryStructureConfig
     exclusions: ExclusionsConfig
     obsidian: ObsidianConfig
-    category_hints: CategoryHintsConfig
-    filing_rules: FilingRulesConfig
     naming_rules: NamingRulesConfig
     classification: ClassificationConfig
     ai: AIConfig
     sorting: SortingConfig
-    library_templates: dict[str, list[str]]
 
 
 # endregion
@@ -271,6 +234,18 @@ class InvalidInboxNameError(ValueError):
     def __init__(self, value: str, reason: str) -> None:
         self.value = value
         super().__init__(f"library_inbox {value!r} is not a valid folder name: {reason}")
+
+
+class UnsupportedDepthError(ValueError):
+    """Raised when ``depth`` is a number of levels this version of microfiche cannot work with."""
+
+    def __init__(self, depth: int) -> None:
+        self.depth = depth
+        supported = " or ".join(str(supported) for supported in SUPPORTED_DEPTHS)
+        super().__init__(
+            f"depth {depth} is not supported yet: libraries are group and category folders, "
+            f"so only {supported} is supported"
+        )
 
 
 class ConfigError(ValueError):
@@ -446,7 +421,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 
 def _loc_to_dot_sep(loc: tuple[str | int, ...]) -> str:
-    """Join an error location into a dotted path, such as ``filing_rules.rules[0].pattern``."""
+    """Join an error location into a dotted path, such as ``exclusions.exclude[1]``."""
     path = ""
     for i, part in enumerate(loc):
         if isinstance(part, int):

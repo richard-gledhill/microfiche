@@ -1,4 +1,4 @@
-"""Filename-pattern based classification rules, loaded from filing_rules.yaml."""
+"""Filename-pattern based classification rules, from the ``rules`` in the library file."""
 
 from __future__ import annotations
 

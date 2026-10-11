@@ -7,9 +7,6 @@
 [library_structure]
 library_inbox = "_sorting"
 depth = 2
-# levels and file_target_level are not read by the code and are removed later in Stage 4.1.
-levels = ["group", "category"]
-file_target_level = 2
 
 [classification]
 # A document files without asking only if its confidence reaches this (see docs/development/calibration.md).
@@ -45,17 +42,8 @@ keep_folders = true
 [exclusions]
 exclude = []
 
-# Category hints and filing rules move to .microfiche/microfiche-library.json later in Stage 4.1.
-[category_hints.categories]
-
-[filing_rules]
-rules = []
-
 [naming_rules]
 rules = {}
-
-# Not read by the code; removed later in Stage 4.1.
-[library_templates]
 
 [obsidian]
 enabled = false

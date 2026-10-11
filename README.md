@@ -187,7 +187,6 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
-| `library_templates` | Category sets for a future `create-library`/`init` command. |
 
 Keyword hints and filename rules are not in the config. They live in `.microfiche/microfiche-library.json`, a tree of
 folder names with `hints` and `rules`; a `"*"` entry applies to every group, and a named group adds to it for that
