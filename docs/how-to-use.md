@@ -90,9 +90,10 @@ library_inbox = "Incoming"
 
 The inbox and the hidden `.microfiche/` folder are never treated as groups, whatever else you exclude.
 
-Then edit `.microfiche/microfiche-config.toml` in the library to add keyword hints and filename
-rules for your categories. See the [configuration table](https://github.com/richard-gledhill/microfiche#configuration)
-for what each section does.
+Then edit `.microfiche/microfiche-library.json` in the library to add keyword hints and filename
+rules for your categories (see below), and `.microfiche/microfiche-config.toml` for settings. See the
+[configuration table](https://github.com/richard-gledhill/microfiche#configuration) for what each
+config section does.
 
 Confirm the config loads:
 
@@ -143,26 +144,45 @@ Library/
 ```
 
 Stage names rarely appear word for word in a document, so give each one keyword hints in
-`.microfiche/microfiche-config.toml`. The keys must match the category folder names exactly,
-including any leading number:
+`.microfiche/microfiche-library.json`. Each `name` must match the category folder name exactly,
+including any leading number (the case is ignored). The `"*"` entry means every group, so you describe
+the stages once:
 
-```toml
-[category_hints.categories]
-"01 Discovery" = ["interview", "problem statement", "user research"]
-"02 Design" = ["wireframe", "mockup", "design decision"]
-"03 Build" = ["implementation", "pull request", "release notes"]
-"04 Launch" = ["go-live", "rollout", "launch plan"]
+```json
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        { "name": "01 Discovery", "hints": ["interview", "problem statement", "user research"] },
+        { "name": "02 Design", "hints": ["wireframe", "mockup", "design decision"] },
+        { "name": "03 Build", "hints": ["implementation", "pull request", "release notes"] },
+        { "name": "04 Launch", "hints": ["go-live", "rollout", "launch plan"] }
+      ]
+    }
+  ]
+}
 ```
 
-If some documents are recognisable from their filename, add a filing rule too. Rules are checked
-before keyword hints, and `category` must exist in the group the document is filed under:
+If some documents are recognisable from their filename, add a filing rule to the category. A rule is a
+pattern matched against the file name only (never the folder), ignoring case, and rules are checked
+before keyword hints. `launch-plan*` matches `Launch-Plan.docx` and `launch-plan v2.pdf`:
 
-```toml
-[filing_rules]
-rules = [
-  { pattern = "launch-plan*", category = "04 Launch" },
-]
+```json
+{ "name": "04 Launch", "hints": ["go-live", "rollout"], "rules": [{ "pattern": "launch-plan*" }] }
 ```
+
+To give one group its own hints on top of the shared ones, add an entry for that group. Hints are
+never inherited by the folders below, and an entry only helps match a folder that exists: the
+library's folders decide what exists.
+
+```json
+{ "name": "Project Phoenix", "children": [{ "name": "02 Design", "hints": ["storyboard"] }] }
+```
+
+A library with no `microfiche-library.json` still works: documents are matched on group and
+category names alone. A mistake in the file (a misspelt key, say) stops `sort` and `reclassify`
+with a message saying where in the file the mistake is, and nothing is moved.
 
 **Other taxonomies.** The same shape works for other kinds of library:
 

@@ -109,13 +109,23 @@ Library/
     └── 04 Launch/
 ```
 
-```toml
-# .microfiche/microfiche-config.toml — keys are the category folder names, exactly as written
-[category_hints.categories]
-"01 Discovery" = ["interview", "problem statement", "user research"]
-"02 Design" = ["wireframe", "mockup", "design decision"]
-"03 Build" = ["implementation", "pull request", "release notes"]
-"04 Launch" = ["go-live", "rollout", "launch plan"]
+Put the keywords in `.microfiche/microfiche-library.json`. Each `name` is a folder name exactly as written, and
+`"*"` means every group, so the same stages can be described once:
+
+```json
+{
+  "groups": [
+    {
+      "name": "*",
+      "children": [
+        { "name": "01 Discovery", "hints": ["interview", "problem statement", "user research"] },
+        { "name": "02 Design", "hints": ["wireframe", "mockup", "design decision"] },
+        { "name": "03 Build", "hints": ["implementation", "pull request", "release notes"] },
+        { "name": "04 Launch", "hints": ["go-live", "rollout", "launch plan"] }
+      ]
+    }
+  ]
+}
 ```
 
 Things to keep in mind when choosing names:
@@ -176,10 +186,13 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` leaves folders alone for one run; `--keep-folders` does the opposite. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
-| `category_hints` | Keyword hints per *existing* category name, under `[category_hints.categories]` — not the category list itself. |
-| `filing_rules` | Filename-glob rules, checked before keyword hints. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 | `library_templates` | Category sets for a future `create-library`/`init` command. |
+
+Keyword hints and filename rules are not in the config. They live in `.microfiche/microfiche-library.json`, a tree of
+folder names with `hints` and `rules`; a `"*"` entry applies to every group, and a named group adds to it for that
+group only. The library's folders decide what exists; the file only helps match them, and a missing file means
+documents are matched on folder names alone.
 
 A section or setting that isn't listed here is an error rather than being ignored, so a typo such as
 `[classifcation]` is caught instead of silently leaving the defaults in place.

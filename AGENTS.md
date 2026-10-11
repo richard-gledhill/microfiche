@@ -66,8 +66,8 @@ workspace `.venv`.
    `[exclusions]` table — matched against the path *inside* the library, never its parent folders) and builds
    `{group_name: [category_name]}` fresh on every call. Public functions take a `Library` (`Library(path)`;
    its config loads lazily from `.microfiche/`). **The library's own folder structure is the taxonomy — nothing is
-   persisted or configured separately.** `microfiche-config.toml`'s `[category_hints.categories]` table only supplies
-   keyword *hints* for matching against categories that already exist as folders.
+   persisted or configured separately.** `.microfiche/microfiche-library.json` (`library/library_file.py`) only supplies
+   keyword *hints* and filename rules for matching against categories that already exist as folders.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
    files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
