@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`551eec9`](https://github.com/richard-gledhill/microfiche/commit/551eec9)
 - :robot: changelog file generated [`6af9f74`](https://github.com/richard-gledhill/microfiche/commit/6af9f74)
 - :robot: changelog file generated [`4593eb2`](https://github.com/richard-gledhill/microfiche/commit/4593eb2)
 - document logging, -v/-q and the progress bar (Stage 4.4) [`e96e663`](https://github.com/richard-gledhill/microfiche/commit/e96e663)
@@ -57,11 +58,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - add make library-schema to regenerate the library file schema [`587c8cd`](https://github.com/richard-gledhill/microfiche/commit/587c8cd)
 
 ### Refactor
+- move the Obsidian integration out of the MVP [`50e0955`](https://github.com/richard-gledhill/microfiche/commit/50e0955)
 - use rapidfuzz directly instead of thefuzz [`f212dc0`](https://github.com/richard-gledhill/microfiche/commit/f212dc0)
 - remove the moved and unused settings and validate depth [`b44d1a4`](https://github.com/richard-gledhill/microfiche/commit/b44d1a4)
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #52 from richard-gledhill/refactor/defer-obsidian-integration [`10cb30d`](https://github.com/richard-gledhill/microfiche/commit/10cb30d)
 - Merge pull request #51 from richard-gledhill/fix/log-cleared-stale-lock [`c8dd46e`](https://github.com/richard-gledhill/microfiche/commit/c8dd46e)
 - Merge pull request #50 from richard-gledhill/fix/logging-follow-ups [`5a9128b`](https://github.com/richard-gledhill/microfiche/commit/5a9128b)
 - Merge pull request #49 from richard-gledhill/feat/add-logging-and-diagnostics [`a93fc5f`](https://github.com/richard-gledhill/microfiche/commit/a93fc5f)
