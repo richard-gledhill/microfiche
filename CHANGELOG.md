@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- document logging, -v/-q and the progress bar (Stage 4.4) [`e96e663`](https://github.com/richard-gledhill/microfiche/commit/e96e663)
+- :robot: changelog file generated [`318160b`](https://github.com/richard-gledhill/microfiche/commit/318160b)
 - :robot: changelog file generated [`f6c0f7a`](https://github.com/richard-gledhill/microfiche/commit/f6c0f7a)
 - :robot: changelog file generated [`fd008c5`](https://github.com/richard-gledhill/microfiche/commit/fd008c5)
 - point the docs at make module-diagram [`02fb118`](https://github.com/richard-gledhill/microfiche/commit/02fb118)
@@ -56,6 +58,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #49 from richard-gledhill/feat/add-logging-and-diagnostics [`a93fc5f`](https://github.com/richard-gledhill/microfiche/commit/a93fc5f)
+- feature: show a progress bar on long runs (Stage 4.4, slice 6) [`a34117a`](https://github.com/richard-gledhill/microfiche/commit/a34117a)
+- feature: show each notice once - file-only records and the AI warning (Stage 4.4, slice 5) [`8bfd93a`](https://github.com/richard-gledhill/microfiche/commit/8bfd93a)
+- feature: log moves, rollback, AI timing and reclassify (Stage 4.4, slice 4b) [`75d52ab`](https://github.com/richard-gledhill/microfiche/commit/75d52ab)
+- feature: log scan, classification and sort decisions (Stage 4.4, slice 4a) [`54f9038`](https://github.com/richard-gledhill/microfiche/commit/54f9038)
+- feature: add logging set-up and -v/-q options (Stage 4.4, slices 1-3b) [`5562fd2`](https://github.com/richard-gledhill/microfiche/commit/5562fd2)
+- `refactor: remove unused logger factory from core.utils.logging` [`6d59b37`](https://github.com/richard-gledhill/microfiche/commit/6d59b37)
 - Merge pull request #48 from richard-gledhill/feature/safe-runs-input-hardening [`2677922`](https://github.com/richard-gledhill/microfiche/commit/2677922)
 - feature: add dry run, run lock and per-unit failure isolation (Stage 4.3) [`62a46c0`](https://github.com/richard-gledhill/microfiche/commit/62a46c0)
 - Merge pull request #47 from richard-gledhill/feature/folder-handling-collisions [`72d5e13`](https://github.com/richard-gledhill/microfiche/commit/72d5e13)
