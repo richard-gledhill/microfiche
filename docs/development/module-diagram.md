@@ -82,12 +82,6 @@ flowchart TD
         l_library_file["library_file.py (LibraryFile)"]
     end
 
-    subgraph OBSIDIAN["core/obsidian (implemented, not yet called from the pipeline)"]
-        o_index_writer["index_writer.py"]
-        o_tag_index["tag_index.py"]
-        o_tag_mapper["tag_mapper.py"]
-    end
-
     subgraph UTILS["core/utils"]
         u_filesystem["filesystem.py"]
         u_hashing["hashing.py"]
@@ -233,8 +227,6 @@ flowchart TD
 
     l_templates --> u_filesystem
 
-    o_tag_mapper --> o_tag_index
-
     a_factory --> a_base
     a_factory --> a_ollama
     a_factory --> a_openai
@@ -258,10 +250,11 @@ flowchart TD
     cli_progress --> cli_logging
 ```
 
-**Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py`, the `logging.py`
-and `validation.py` helpers, and the `core/obsidian` subgraph, which only has an edge inside itself) aren't dead
-code — they're implemented and tested, just not yet called from `organizer.py`/`filer.py`.
-That's the gap this roadmap doc tracks, not a diagramming omission.
+**Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py` and the
+`validation.py` helper) aren't dead code — they're implemented and tested, just not yet called from
+`organizer.py`/`filer.py`. That's the gap this roadmap doc tracks, not a diagramming omission. The Obsidian
+modules that used to sit here were removed from the MVP and are kept in
+[feature-backlog.md](feature-backlog.md#obsidian-integration).
 
 ## 2. Sort pipeline data flow
 
@@ -311,14 +304,12 @@ flowchart TD
     Rollback --> Ledger
     Rollback --> AuditLog
 
-    FiledDoc -.->|"NOT WIRED YET: index_writer/tag_mapper\nare implemented but not called from filer.py"| ObsidianOut[("index.md / TagIndex.md")]
-
     classDef gap fill:#fff3cd,stroke:#c9a227,stroke-width:2px
-    class NeedsReview,ObsidianOut gap
+    class NeedsReview gap
 ```
 
-Solid arrows are wired end to end today; dashed arrows and the highlighted boxes are real code
-paths (`core/obsidian/`, the `review` queue) that nothing in the `sort` pipeline calls yet.
+Solid arrows are wired end to end today; dashed arrows and the highlighted box are the `review` queue,
+which nothing yet works through (Stage 5 builds `microfiche review`).
 `reclassify.py` reuses `Classifier`/`RulesEngine` the same way against already-filed documents
 instead of the `_sorting/` inbox; with `--apply` it files its `move` proposals through the same
 `filer.file_batch`, so a reclassification is a job like any other.

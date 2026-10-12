@@ -85,8 +85,16 @@ def test_app_help_lists_all_commands() -> None:
     result = runner.invoke(app, ["--help"])
 
     assert result.exit_code == 0
-    for command_name in ["sort", "review", "propose-categories", "reclassify", "index", "audit", "rollback", "config"]:
+    for command_name in ["sort", "review", "propose-categories", "reclassify", "audit", "rollback", "config"]:
         assert command_name in result.stdout
+
+
+def test_app_index_command_removed() -> None:
+    # `index` regenerated Obsidian folder notes; it left the MVP with the integration (docs/development/feature-backlog.md).
+    result = runner.invoke(app, ["index", "--help"])
+
+    assert result.exit_code == 2
+    assert "No such command" in result.output
 
 
 def test_config_shows_defaults_for_unconfigured_library(tmp_path: Path) -> None:
@@ -94,7 +102,7 @@ def test_config_shows_defaults_for_unconfigured_library(tmp_path: Path) -> None:
 
     assert result.exit_code == 0
     assert "2" in result.stdout  # library_structure.depth default
-    assert "suggest" in result.stdout  # obsidian.tag_mode default
+    assert "microfiche.log" in result.stdout  # logging.file default
 
 
 # endregion

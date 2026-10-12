@@ -20,7 +20,6 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 * `review`: Not implemented yet: work through the...
 * `propose-categories`: Suggest new category folder names from...
 * `reclassify`: Re-review already-filed documents and...
-* `index`: Not implemented yet: force-regenerate...
 * `audit`: Show the audit log.
 * `rollback`: Undo a filing job by id (the id `sort`...
 * `config`: Library configuration.
@@ -100,22 +99,6 @@ $ microfiche reclassify [OPTIONS]
 * `--apply`: Actually move files; without this it&#x27;s a dry run.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
-* `--help`: Show this message and exit.
-
-## `microfiche index`
-
-Not implemented yet: force-regenerate Obsidian index.md files for a folder (or the whole library).
-
-**Usage**:
-
-```console
-$ microfiche index [OPTIONS]
-```
-
-**Options**:
-
-* `--library <directory>`: Path to the library root.  [required]
-* `--scope <path>`
 * `--help`: Show this message and exit.
 
 ## `microfiche audit`

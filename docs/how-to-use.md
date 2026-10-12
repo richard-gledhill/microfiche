@@ -703,7 +703,10 @@ microfiche is pre-release. At the moment:
 - The inbox settings `[sorting] ignore` and the skipping of links apply to `sort`. `reclassify` honours
   `[parsing] max_file_mb` but not those two.
 - A file open in another program is not retried: close it and run `sort` again.
-- `review` and `index` are placeholders and exit with a "not implemented" message.
+- `review` is a placeholder and exits with a "not implemented" message. Until it is built, a document listed under
+  **Needs review** stays in the inbox for you to file by hand.
+- microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
+  integration after the first release.
 - `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
   again in the summary's **Needs review** list.

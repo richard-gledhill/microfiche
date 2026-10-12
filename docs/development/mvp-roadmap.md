@@ -11,10 +11,9 @@ changes here, update the "Current limitations" list and usage steps in the user-
 | Command | Status | Notes |
 |---|---|---|
 | `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). `-v`/`-q` set how much is shown, and a run is explained in `.microfiche/microfiche.log` (Stage 4.4). |
-| `review` | Stub | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
+| `review` | Stub (in the MVP: [Stage 5](mvp-build-plan.md#stage-5--review-workflow)) | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. Until it is built, a unit left for review is filed by hand. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
-| `index` | Stub | Exits with a "not implemented" message (`cli/commands.py::index`). The Obsidian modules it would call (`index_writer.py`) exist and are unit-tested in isolation — only the wiring is missing. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
 | `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. Also undoes `reclassify --apply` jobs, which go through the same `file_batch` path. |
 | `config` | Done | Prints the library's loaded configuration (`cli/display.py::render_config`). |
@@ -27,8 +26,8 @@ changes here, update the "Current limitations" list and usage steps in the user-
   review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file. Measured at
   98% precision on one local model (see [calibration.md](calibration.md)), but only consulted where
   the rules are unsure, so it adds little as built.
-- **Obsidian tag governance** (`tag_index.py`, `tag_mapper.py`) — implemented, unit-tested,
-  not called from the sort pipeline.
+- **Obsidian integration** — removed from the MVP, along with the `index` command and the `[obsidian]` config section;
+  it was never called from the sort pipeline. See [feature-backlog.md](feature-backlog.md#obsidian-integration).
 - **Naming rules** (`library/naming.py`) — wired; `filer.py` applies them before filing.
 - **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
   sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
@@ -47,7 +46,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
   it up front and exit 1 (`cli/commands.py::_open_library`); `sort` and `reclassify` also check the library file
   (`microfiche-library.json`) the same way. `audit` and `rollback` never read either, so a job can
   still be undone while the config is broken. A missing file or section still means defaults, silently;
-  asking first is under Future work ("Ask before running on defaults").
+  asking first is under [Future work](#future-work) ("Ask before running on defaults").
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
   the confidence threshold (`[classification] confidence_threshold`, default 0.75, calibrated), the per-stage AI
   fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.
@@ -69,10 +68,10 @@ Ranked by how central they are to the product's core promise, not by ease of imp
 3. ~~Wire `reclassify --apply` to the filer.~~ **Done:** `core.reclassify.apply_reclassification`
    files the previewed `move`s via `core.filer.file_batch`, reusing the job/ledger/audit
    persistence from (1).
-4. **Open decision — not resolved here:** are `review` and `index` in MVP scope, or should
-   they be explicitly descoped (removed from `cli/app.py` and marked "planned" in the README)
-   rather than shipping as a stub that exits 1? This doc surfaces the question; the
-   maintainer decides.
+4. ~~**Open decision:** are `review` and `index` in MVP scope?~~ **Decided:** `review` is in the MVP, as
+   [Stage 5](mvp-build-plan.md#stage-5--review-workflow) (the only way out of the inbox for a unit below the
+   confidence threshold), and still to build. `index` is out, with the Obsidian integration, and has been removed
+   from the CLI rather than left as a stub that exits 1.
 
 ## Configuration consolidation (Stage 4.1)
 
@@ -139,7 +138,14 @@ setting: `leaf_only` or `best_level`).
 folders on the first run, finds folders the user adds on later runs, reports folders that disappear, and adds
 `microfiche config --sync`. The folders stay the authority on what exists. It is built after Stage 4.3.
 
-## Future work
+## Future work and deferred beyond MVP
+
+This section holds two kinds of item. **Future work** improves what is already built: calibration, matching and AI
+behaviour, and safer defaults. **Deferred beyond MVP** is left out of the MVP on purpose, listed so it isn't mistaken
+for an unplanned gap. Features with a design to keep, or code removed from the MVP, are in
+[feature-backlog.md](feature-backlog.md) instead, which also says where each kind of item goes.
+
+### Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
   — see [calibration.md](calibration.md). Default changed from 0.8 to 0.75; user guidance is in
@@ -172,14 +178,10 @@ folders on the first run, finds folders the user adds on later runs, reports fol
   only a notice, and how this fits a future `init` command that writes the default config. Today's
   invalid-config behaviour (an error, not a prompt) is unchanged.
 
-## Deferred beyond MVP
+### Deferred beyond MVP
 
-Pulled forward from `architecture.md` §9 so it isn't confused with an unplanned gap: no
-database, no vector store, no semantic search. `ai/` stays a fallback path for group/category
-resolution and `propose-categories --use-ai`, not an always-on classification pass. ChromaDB,
-RAG, and knowledge-graph work are future-roadmap items, not MVP scope.
-
-Also postponed, after the review in [operations-review.md](operations-review.md):
+No database, vector store or semantic search, and `ai/` stays a fallback rather than an always-on pass
+([architecture.md](architecture.md) §9). Postponed after the review in [operations-review.md](operations-review.md):
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
 - **A lock timeout or `--force` override** for the run lock, and nested-library detection.

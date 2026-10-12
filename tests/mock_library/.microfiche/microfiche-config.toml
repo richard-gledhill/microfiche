@@ -35,8 +35,3 @@ exclude = ["sorting*",
 
 [naming_rules]
 rules = {}
-
-[obsidian]
-enabled = false
-tag_index_path = "TagIndex.md"
-tag_mode = "suggest"  # suggest | strict | off

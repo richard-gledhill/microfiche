@@ -15,4 +15,3 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `microfiche-library.json` | Keyword hints and filename rules per folder, in a separate file — not the category list itself. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
-| `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |

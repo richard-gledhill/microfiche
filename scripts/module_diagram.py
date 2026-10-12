@@ -38,7 +38,6 @@ SUBGRAPHS: dict[str, tuple[str, str]] = {
     "core/rules": ("RULES", "r"),
     "core/ai": ("AI", "a"),
     "core/library": ("LIBRARY", "l"),
-    "core/obsidian": ("OBSIDIAN", "o"),
     "core/utils": ("UTILS", "u"),
 }
 SUBGRAPHS_BY_NAME: dict[str, str] = {name: folder for folder, (name, _) in SUBGRAPHS.items()}

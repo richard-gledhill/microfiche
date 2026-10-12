@@ -92,28 +92,6 @@ class ExclusionsConfig(_ConfigSection):
     exclude: list[str]
 
 
-class ObsidianConfig(_ConfigSection):
-    """Handles configuration details for Obsidian-related operations.
-
-    This class is used to manage settings required for integration or operations
-    with Obsidian, such as enabling or disabling functionality, setting paths,
-    and defining modes of operation. It aids in maintaining configurable options
-    to adapt behavior based on user needs or application requirements.
-
-    Attributes:
-        enabled (bool): Indicates whether the Obsidian-related functionality is
-            enabled or disabled.
-        tag_index_path (str): Specifies the file path for the tag index used in
-            Obsidian-related operations.
-        tag_mode (Literal["suggest", "strict", "off"]): Determines the mode of operation
-            for handling tags. The allowed values are "suggest", "strict", or "off".
-    """
-
-    enabled: bool
-    tag_index_path: str
-    tag_mode: Literal["suggest", "strict", "off"]
-
-
 class NamingRulesConfig(_ConfigSection):
     """Represents configuration for naming rules.
 
@@ -283,14 +261,13 @@ class MicroficheConfig(_ConfigSection):
     Represents the configuration settings for the Microfiche system, which
     defines the structure and behavior of file management, organization, and
     categorization. This class holds detailed settings for library structure,
-    file exclusions, integration with Obsidian, classification, the AI fallback,
+    file exclusions, classification, the AI fallback,
     sorting and naming conventions. The library's category hints and filing rules are not
     here: they live in ``microfiche-library.json`` (see ``core.library.library_file``).
 
     Attributes:
         library_structure (LibraryStructureConfig): Configuration for the library structure.
         exclusions (ExclusionsConfig): Configuration for file and folder exclusions.
-        obsidian (ObsidianConfig): Configuration for Obsidian integration.
         naming_rules (NamingRulesConfig): Configuration for rules governing file naming.
         classification (ClassificationConfig): Configuration for how confident a
             classification must be before a document is filed automatically.
@@ -302,7 +279,6 @@ class MicroficheConfig(_ConfigSection):
 
     library_structure: LibraryStructureConfig
     exclusions: ExclusionsConfig
-    obsidian: ObsidianConfig
     naming_rules: NamingRulesConfig
     classification: ClassificationConfig
     ai: AIConfig

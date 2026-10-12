@@ -1,7 +1,7 @@
 # core
 
 Core library for [microfiche](../../README.md): document scanning, classification, filing,
-and library/Obsidian management logic.
+and library management logic.
 
 This package is part of the microfiche uv workspace and isn't published or used standalone —
 see the [root README](../../README.md) for installation, usage, and configuration, and
@@ -16,7 +16,6 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 | `rules/` | Deterministic group/category classification rules. |
 | `ai/` | Optional Ollama/OpenAI fallback classification. |
 | `library/` | The `Library` (layout, exclusions, taxonomy), category suggestion, naming, templates. |
-| `obsidian/` | `index.md` generation and `TagIndex.md`-governed tagging. |
 | `models/` | Shared pydantic models (`Document`, `SortableUnit`, `Taxonomy`, ...). |
 | `config.py` | Per-library TOML config loading. |
 | `utils/` | Filesystem, hashing, logging, and validation helpers. |

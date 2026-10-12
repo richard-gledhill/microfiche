@@ -14,7 +14,7 @@ Domain language (library, group, category, unit, job, ledger, ...) is defined in
 
 **Before assuming a described feature is fully wired, check
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
-actually implemented vs. still stubbed (e.g. `review`/`index` are stub commands). See
+actually implemented vs. still stubbed (e.g. `review` is a stub command). See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
 [data-model.md](docs/development/data-model.md) (ledger/audit/rollback schemas) and
 [mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
@@ -50,7 +50,7 @@ your local interpreter are what you want day to day.
 uv workspace, two packages, `core` has no dependency on `cli`:
 
 ```
-packages/core/src/core/   # scanning, classification, filing, library/Obsidian logic — the engine
+packages/core/src/core/   # scanning, classification, filing, library logic — the engine
 packages/cli/src/cli/     # Typer CLI (app.py registers commands from commands.py) — thin wrapper
 tests/core/, tests/cli/   # mirror the packages/ layout 1:1
 tests/mock_library/       # hand-built library fixture for integration-style tests
@@ -143,10 +143,10 @@ workspace `.venv`.
   classification drift gets reconciled after rule changes.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
   scope; never creates folders itself (requires explicit `--apply` at the CLI layer).
-- **`obsidian/`** — `index_writer.py` regenerates a folder's `index.md` (folder note) after every
-  touch; `tag_index.py`/`tag_mapper.py` fuzzy-match extracted keywords against the library's root
-  `TagIndex.md` and append unmatched ones to a `## Proposed` section rather than silently merging
-  them in (suggest-only tag governance).
+- **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are
+  parked in [docs/development/feature-backlog.md](docs/development/feature-backlog.md), with where to restore them
+  from. Don't reintroduce an `[obsidian]` config section or an `index` command; the integration is to be designed as
+  a plugin after the MVP.
 - **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as
   `.microfiche/rollback/job_<id>.json` (`Job` model in `core/models/job.py`); rollback is driven purely
   by that JSON, not by re-deriving anything from the filesystem. `file_batch` writes the job, so
@@ -254,6 +254,9 @@ it becomes a unit (or proposal) left for review, with the reason.
   fails if the committed file is stale.
 - `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
   by GitHub URL.
+- Record a deferred or future item once, and link to it. A gap or small postponed item goes in
+  `docs/development/mvp-roadmap.md`; a feature outside the MVP, or code removed from it, goes in
+  `docs/development/feature-backlog.md`. `mvp-build-plan.md` covers the MVP only.
 - After a rename or behaviour change, grep the docs for the old name or number.
   `architecture.md`, `mvp-roadmap.md` and `module-diagram.md` go stale first. Run `make module-diagram` when
   imports change: it rewrites the import graph's nodes and edges from the source (add `--check` to only report),
