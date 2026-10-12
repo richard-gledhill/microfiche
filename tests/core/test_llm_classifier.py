@@ -133,3 +133,68 @@ def test_llm_classifier_zero_max_document_chars_sends_whole_document() -> None:
 
     for prompt in provider.prompts:
         assert text in prompt
+
+
+# region A provider that fails
+
+
+class FailingProvider:
+    """Raises on every call, and counts the calls."""
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+        self.calls = 0
+
+    def complete(self, prompt: str) -> str:
+        self.calls += 1
+        raise self._error
+
+
+def test_llm_classifier_failure_none_until_provider_fails() -> None:
+    classifier = LLMClassifier(ScriptedProvider("Acme Ltd"), _settings())
+
+    classifier.resolve_group(_document("text"), TAXONOMY)
+
+    assert classifier.failure is None
+
+
+def test_llm_classifier_provider_failure_resolves_nothing_and_is_kept() -> None:
+    provider = FailingProvider(ConnectionError("connection refused"))
+    classifier = LLMClassifier(provider, _settings())
+
+    match = classifier.resolve_group(_document("text"), TAXONOMY)
+
+    assert (match.name, match.confidence, match.reason) == (None, 0.0, "AI fallback unavailable")
+    assert classifier.failure == "ConnectionError: connection refused"
+
+
+def test_llm_classifier_provider_asked_only_once_after_failure() -> None:
+    provider = FailingProvider(TimeoutError("timed out"))
+    classifier = LLMClassifier(provider, _settings())
+
+    classifier.resolve_group(_document("one"), TAXONOMY)
+    classifier.resolve_category(_document("two"), "Acme Ltd", TAXONOMY)
+    classifier.resolve_group(_document("three"), TAXONOMY)
+
+    assert provider.calls == 1  # a dead provider is not waited on again for every document
+    assert classifier.failure == "TimeoutError: timed out"
+
+
+def test_llm_classifier_category_stage_failure_resolves_nothing() -> None:
+    classifier = LLMClassifier(FailingProvider(ConnectionError("down")), _settings())
+
+    match = classifier.resolve_category(_document("text"), "Acme Ltd", TAXONOMY)
+
+    assert (match.name, match.confidence) == (None, 0.0)
+
+
+def test_llm_classifier_missing_optional_package_counts_as_unavailable() -> None:
+    provider = FailingProvider(ModuleNotFoundError("No module named 'ollama'"))
+    classifier = LLMClassifier(provider, _settings())
+
+    classifier.resolve_group(_document("text"), TAXONOMY)
+
+    assert classifier.failure == "ModuleNotFoundError: No module named 'ollama'"
+
+
+# endregion

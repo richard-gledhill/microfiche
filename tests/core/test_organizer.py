@@ -1,14 +1,17 @@
 """Tests for the `sort` pipeline: scan -> classify -> file as one job, leaving the rest for review."""
 
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from conftest import LinkMaker
+from core.ai.llm_classifier import LLMClassifier
 from core.config import MICROFICHE_DIRNAME
 from core.filer import AUDIT_LOG_FILENAME, rollback_job
 from core.ledger import Ledger
 from core.library.library import Library
-from core.organizer import run_sort
+from core.organizer import SortReport, run_sort
 from core.utils.hashing import file_hash
 
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
@@ -616,6 +619,265 @@ def test_run_sort_folder_kept_whole_not_checked_for_duplicates(tmp_path: Path) -
 
     assert report.duplicates == []
     assert (library / _ARCHITECTURE_DIR / _PACK).is_dir()  # filed whole, as before
+
+
+# endregion
+
+
+# region Input hardening: links, ignored names, oversize files
+
+
+def test_run_sort_oversize_file_left_for_review_unopened(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    config = library / MICROFICHE_DIRNAME / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8") + "\n[parsing]\nmax_file_mb = 1\n", encoding="utf-8")
+    big = library / "_sorting" / "huge.md"
+    big.write_bytes(b"Project Phoenix architecture. " * 100_000)  # about 2.9 MB
+
+    report = run_sort(Library(library))
+
+    held = {unit.source_path.name: classification for unit, classification in report.needs_review}
+    assert held["huge.md"].category.reason == (
+        "Could not read 'huge.md': it is 2.9 MB, over the 1 MB limit ([parsing] max_file_mb)"
+    )
+    assert big.exists()
+    assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]  # the rest of the run went ahead
+
+
+def test_run_sort_ignored_names_never_reach_the_report(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "~$notes.docx").write_text("an Office lock file", encoding="utf-8")
+    (library / "_sorting" / "Thumbs.db").write_bytes(b"clutter")
+
+    report = run_sort(Library(library))
+
+    assert {unit.source_path.name for unit, _ in report.filed + report.needs_review} == {_PHOENIX_NOTE, _SOLAR_NOTE}
+    assert (library / "_sorting" / "~$notes.docx").exists()  # left exactly where it was
+
+
+def test_run_sort_link_in_inbox_skipped_and_reported(tmp_path: Path, make_junction: LinkMaker) -> None:
+    library = _library(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (elsewhere / "outside.md").write_text(_ARCHITECTURE_TEXT, encoding="utf-8")
+    make_junction(library / "_sorting" / "linked", elsewhere)
+
+    report = run_sort(Library(library))
+
+    assert report.skipped_links == [library / "_sorting" / "linked"]
+    assert (elsewhere / "outside.md").exists()  # what the link points at was never touched
+    assert "outside.md" not in {unit.source_path.name for unit, _ in report.filed + report.needs_review}
+
+
+# endregion
+
+
+# region Failures that belong to one unit
+
+
+class _DownProvider:
+    """An AI provider that cannot be reached, and counts how often it was tried."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self._error = ConnectionError("connection refused")
+
+    def complete(self, prompt: str) -> str:
+        self.calls += 1
+        raise self._error
+
+
+class _NoAnswerProvider:
+    """An AI provider that is up but never has an answer."""
+
+    def complete(self, prompt: str) -> str:
+        return "NONE"
+
+
+def test_run_sort_open_file_left_for_review_rest_filed(tmp_path: Path, hold_open: Callable[[Path], None]) -> None:
+    library = _library(tmp_path)
+    note = library / "_sorting" / _PHOENIX_NOTE
+    (library / "_sorting" / "other.md").write_text(_ARCHITECTURE_TEXT + " Another.", encoding="utf-8")
+    hold_open(note)
+
+    report = run_sort(Library(library))
+
+    held = {unit.source_path.name: classification for unit, classification in report.needs_review}
+    assert held[_PHOENIX_NOTE].confident is False
+    assert held[_PHOENIX_NOTE].category.reason.endswith(
+        "but it could not be moved: it is open in another program; close it and sort again"
+    )
+    assert (held[_PHOENIX_NOTE].group.name, held[_PHOENIX_NOTE].category.name) == ("Project Phoenix", "02 Architecture")
+    assert note.exists()
+    assert not (library / _PHOENIX_DESTINATION).exists()  # no stray copy
+    assert [unit.source_path.name for unit, _ in report.filed] == ["other.md"]
+    assert report.job is not None
+    assert [move.original_path.name for move in report.job.moves] == ["other.md"]
+
+
+def test_run_sort_only_file_open_writes_no_job(tmp_path: Path, hold_open: Callable[[Path], None]) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / _SOLAR_NOTE).unlink()
+    hold_open(library / "_sorting" / _PHOENIX_NOTE)
+
+    report = run_sort(Library(library))
+
+    assert report.job is None
+    assert report.filed == []
+    assert [unit.source_path.name for unit, _ in report.needs_review] == [_PHOENIX_NOTE]
+    assert not (library / MICROFICHE_DIRNAME / "rollback").exists()
+
+
+def test_run_sort_folders_off_open_file_keeps_folder_and_says_why(
+    tmp_path: Path, hold_open: Callable[[Path], None]
+) -> None:
+    library = _library(tmp_path, with_pack=True)
+    hold_open(library / "_sorting" / _PACK / "research-summary.md")
+
+    report = run_sort(Library(library), keep_folders=False)
+
+    assert (library / "_sorting" / _PACK / "research-summary.md").exists()
+    assert (library / _ARCHITECTURE_DIR / "architecture-decision-log.md").exists()  # the others were filed
+    ((folder, reason),) = report.folders_kept
+    assert folder == library / "_sorting" / _PACK
+    assert reason == "it still holds research-summary.md (needs review)"
+
+
+# endregion
+
+
+# region The AI fallback is unavailable
+
+
+def test_run_sort_ai_down_run_finishes_on_rules_alone(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "unknown-one.md").write_text("Nothing recognisable in here.", encoding="utf-8")
+    (library / "_sorting" / "unknown-two.md").write_text("Nor in here.", encoding="utf-8")
+    lib = Library(library)
+    provider = _DownProvider()
+
+    report = run_sort(lib, ai_classifier=LLMClassifier(provider, lib.config.ai))
+
+    assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]  # the rules still did their work
+    assert {unit.source_path.name for unit, _ in report.needs_review} == {
+        _SOLAR_NOTE,
+        "unknown-one.md",
+        "unknown-two.md",
+    }
+    assert report.ai_unavailable == "ConnectionError: connection refused"
+    assert provider.calls == 1  # three documents wanted an answer; a dead AI was tried once
+
+
+def test_run_sort_ai_up_reports_nothing_unavailable(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    lib = Library(library)
+
+    report = run_sort(lib, ai_classifier=LLMClassifier(_NoAnswerProvider(), lib.config.ai))
+
+    assert report.ai_unavailable is None
+
+
+def test_run_sort_no_ai_requested_reports_nothing_unavailable(tmp_path: Path) -> None:
+    assert run_sort(Library(_library(tmp_path))).ai_unavailable is None
+
+
+# endregion
+
+
+# region Dry run
+
+
+def _everything(library: Path) -> dict[str, str]:
+    """Every file (by content hash) and every folder in the library, state folder included."""
+
+    return {
+        path.relative_to(library).as_posix(): file_hash(path) if path.is_file() else "<folder>"
+        for path in sorted(library.rglob("*"))
+    }
+
+
+def _outcome(report: SortReport) -> dict[str, list[str]]:
+    """What a run decided, in a form that can be compared between a preview and a real run."""
+
+    return {
+        "filed": [f"{unit.source_path.name} -> {c.group.name}/{c.category.name}" for unit, c in report.filed],
+        "review": [f"{unit.source_path.name}: {c.category.reason}" for unit, c in report.needs_review],
+        "duplicates": [f"{d.unit.source_path.name}: {d.reason}" for d in report.duplicates],
+        "folders_removed": [folder.name for folder in report.folders_removed],
+        "folders_kept": [f"{folder.name}: {reason}" for folder, reason in report.folders_kept],
+    }
+
+
+def test_run_sort_dry_run_changes_nothing_at_all(tmp_path: Path) -> None:
+    library = _library(tmp_path, with_pack=True)
+    before = _everything(library)
+
+    report = run_sort(Library(library), keep_folders=False, dry_run=True)
+
+    assert _everything(library) == before  # files, folders, ledger, audit log and jobs: all identical
+    assert report.dry_run is True
+    assert report.job is None
+    assert report.audit_events == []
+
+
+def test_run_sort_dry_run_creates_no_state_folder(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    shutil.rmtree(library / MICROFICHE_DIRNAME)
+
+    run_sort(Library(library), dry_run=True)
+
+    assert not (library / MICROFICHE_DIRNAME).exists()
+
+
+def test_run_sort_real_run_is_not_a_dry_run(tmp_path: Path) -> None:
+    assert run_sort(Library(_library(tmp_path))).dry_run is False
+
+
+@pytest.mark.parametrize("keep_folders", [True, False])
+def test_run_sort_dry_run_outcome_equals_real_run(tmp_path: Path, keep_folders: bool) -> None:
+    preview_library = _library(tmp_path / "preview", with_pack=True)
+    real_library = _library(tmp_path / "real", with_pack=True)
+    for library in (preview_library, real_library):
+        # A duplicate, a name collision, and a document nothing can classify: every kind of outcome.
+        _copy(library / "_sorting" / _PHOENIX_NOTE, library, _RESEARCH_DIR / "older-copy.md")
+        _plant(library, _ARCHITECTURE_DIR / "component-diagram-notes.md", "A different document with that name.")
+
+    preview = run_sort(Library(preview_library), keep_folders=keep_folders, dry_run=True)
+    real = run_sort(Library(real_library), keep_folders=keep_folders)
+
+    assert _outcome(preview) == _outcome(real)
+    assert preview.duplicates and preview.needs_review and preview.filed  # the comparison is not vacuous
+
+
+def test_run_sort_dry_run_folders_off_says_which_folder_would_be_removed(tmp_path: Path) -> None:
+    library = _library(tmp_path, with_pack=True)
+
+    report = run_sort(Library(library), keep_folders=False, dry_run=True)
+
+    assert report.folders_removed == [library / "_sorting" / _PACK]
+    assert report.folders_kept == []
+    assert (library / "_sorting" / _PACK).is_dir()  # still there: it is only a preview
+
+
+def test_run_sort_dry_run_folders_off_says_why_a_folder_would_stay(tmp_path: Path) -> None:
+    library = _library(tmp_path, with_pack=True)
+    (library / "_sorting" / _PACK / "diagram.png").write_bytes(b"not a document")
+
+    report = run_sort(Library(library), keep_folders=False, dry_run=True)
+
+    assert report.folders_removed == []
+    assert report.folders_kept == [(library / "_sorting" / _PACK, "it still holds diagram.png (not sorted)")]
+
+
+def test_run_sort_dry_run_still_asks_the_ai(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    lib = Library(library)
+    provider = _DownProvider()
+
+    report = run_sort(lib, ai_classifier=LLMClassifier(provider, lib.config.ai), dry_run=True)
+
+    assert provider.calls == 1  # the preview classifies exactly as a real run would
+    assert report.ai_unavailable == "ConnectionError: connection refused"
 
 
 # endregion

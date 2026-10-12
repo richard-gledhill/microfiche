@@ -87,6 +87,14 @@ _Avoid_: Resort, reorganise
 
 ### Keeping a record
 
+**Dry run**:
+A `sort` that classifies and checks everything as usual but moves and records nothing, so you can see what a real run would do first. The output is labelled a preview.
+_Avoid_: Simulation, test run
+
+**Run lock**:
+The `lock` file in the state folder that a run holds while it changes the library, so a second run refuses to start; a lock left by a process that has gone is cleared.
+_Avoid_: Mutex, semaphore
+
 **Job**:
 One run of filing — every move it made, kept so the whole run can be undone together.
 _Avoid_: Batch, transaction, run

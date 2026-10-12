@@ -32,6 +32,11 @@ the same exercise is in [config-review.md](config-review.md).
   and, if the classifier would file it elsewhere, where. Only new files are checked: duplicates already inside the
   library are normal in a project (reference documents) and are never reported, so there is no setting. Moving
   duplicates into a `_sorting/duplicates/` folder is deferred.
+- **Moves are renames:** a move is `rename` and nothing else, with no copy fallback. `shutil.move` copies then deletes
+  when a rename fails, which on Windows leaves a stray, unrecorded copy when Word has the file open. A move that
+  fails changes nothing, so the unit just stays in the inbox with the reason.
+- **The run lock is taken at the CLI level**, by `sort` (not `--dry-run`), `reclassify --apply` and `rollback`. A lock
+  whose process is gone is cleared; one that can't be read counts as held.
 - **Audit log versus diagnostic log:** `audit.log` and the ledger are product data that `rollback` reads and
   must stay stable. The diagnostic log is for people and can change. `core` uses the standard `logging` module
   and installs no handlers; only the CLI configures them.

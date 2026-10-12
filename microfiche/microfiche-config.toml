@@ -46,6 +46,13 @@ max_document_chars = 4000
 # override this for a single run: a flag beats this file, which beats the built-in default (true).
 [sorting]
 keep_folders = true
+# File and folder names (globs) the inbox scan skips without comment: Office lock files and OS clutter.
+# A skipped file is never read or filed. Setting this replaces the list, it does not add to it.
+ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
+
+# A file bigger than this many megabytes is not read: it stays in the inbox for review, with the reason.
+[parsing]
+max_file_mb = 50
 
 # Folder name/glob patterns never treated as a category and never descended into by
 # taxonomy discovery or `reclassify`. Extend this with your own non-category folders

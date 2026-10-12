@@ -73,7 +73,9 @@ workspace `.venv`.
 2. **`scanner.py::scan_sorting_inbox`** finds `SortableUnit`s (readable `documents`, plus any `unreadable`
    files) in the library's inbox (`_sorting/` unless the
    config's `[library_structure] library_inbox` says otherwise) — either a loose file
-   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit. With `keep_folders` off, each
+   or (by default; `[sorting] keep_folders`) a whole folder treated as one unit. Names matching `[sorting] ignore` are
+   skipped silently and symlinks/junctions (`utils/filesystem.py::is_link`, which checks the Windows reparse *tag* so
+   OneDrive placeholders still count as files) are skipped and listed in `InboxScan.skipped_links`. With `keep_folders` off, each
    supported file in a folder is its own unit, with `origin_folder` set so `file_batch` can remove the folder
    once it is empty (recorded in the job, so rollback recreates it).
 3. **`classifier.py::Classifier`** runs two-stage classification per document over `Resolver`s —
@@ -117,7 +119,15 @@ workspace `.venv`.
    Nothing is renamed, overwritten or deleted; `file_batch` still refuses to overwrite as the last line of defence.
 5. Anything `confident` that passed both is filed as one job (`filer.py::file_batch`: move, ledger record,
    audit line, rollback job, and removal of an inbox folder left empty); everything else goes to
-   `SortReport.needs_review` for the `review` command instead of being moved.
+   `SortReport.needs_review` for the `review` command instead of being moved. A move is a plain rename
+   (`utils/filesystem.py::safe_move`, never `shutil.move`, which falls back to copy-then-delete), so a unit
+   that can't be moved (a file open in Word) stays put and comes back in `FilingResult.failed`; `run_sort`
+   turns it into a `needs_review` entry. A provider failure switches the AI fallback off for the rest of the run
+   (`SortReport.ai_unavailable`).
+6. `sort --dry-run` runs the same pipeline with `file_batch` left out (`run_sort(dry_run=True)`): no job, ledger
+   or audit line, no lock, no state folder. `sort`, `reclassify --apply` and `rollback` take `.microfiche/lock`
+   (`runlock.py::run_lock`, at the CLI level) so only one changing run is active; a lock from a dead process is
+   cleared, an unreadable one counts as held. Never use `os.kill(pid, 0)` to test a process on Windows.
 
 ### Everything else keys off that same taxonomy/classification core
 
@@ -162,7 +172,7 @@ explorer); `microfiche/` at the repo root is the template copied into a new libr
 One module per input format (`.docx`, `.eml`/`.msg`, `.pdf`, `.md`, `.txt`), each implementing
 `parsers/base.py`'s interface and returning extracted text for the classifier. `parsers/registry.py` is
 the dispatcher (re-exported from `core.parsers`): `is_supported(path)`, `parse_document(path)` and
-`read_documents(paths)`. A parser failure never escapes as a raw library exception —
+`read_documents(paths, max_bytes=...)`; a file over `[parsing] max_file_mb` is refused unread, as unreadable. A parser failure never escapes as a raw library exception —
 `parse_document` raises `UnreadableDocumentError` (or `UnsupportedFormatError`), and `read_documents`
 collects unreadable files instead of stopping, so one corrupt file can't abort a `sort` or `reclassify`:
 it becomes a unit (or proposal) left for review, with the reason.

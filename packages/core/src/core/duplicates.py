@@ -20,6 +20,7 @@ from core.filer import destination_for
 from core.library.library import Library
 from core.models.classification import ClassificationResult
 from core.models.unit import SortableUnit
+from core.utils.filesystem import is_link
 from core.utils.hashing import file_hash
 
 # region Constants and types
@@ -66,7 +67,7 @@ class DuplicateIndex:
     """Finds library files whose content matches an inbox file, cheaply.
 
     Nothing is read until the first file is checked. Then the library is walked once - skipping the
-    inbox, the state folder and excluded folders - recording each file's size. A file is hashed only
+    inbox, the state folder, excluded folders and links - recording each file's size. A file is hashed only
     if another file of the same size is in play, and each file is hashed at most once. Empty files
     are never duplicates of anything.
 
@@ -163,7 +164,7 @@ class DuplicateIndex:
                 path = Path(entry.path)
                 try:
                     if entry.is_dir(follow_symlinks=False):
-                        if not self._library.is_excluded(path):
+                        if not self._library.is_excluded(path) and not is_link(path):
                             folders.append(path)
                     elif entry.is_file(follow_symlinks=False) and not self._library.is_excluded(path):
                         size = entry.stat().st_size

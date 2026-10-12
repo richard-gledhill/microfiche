@@ -143,7 +143,7 @@ def test_apply_reclassification_moves_only_move_proposals(tmp_path: Path) -> Non
     _write(library, f"{_RESEARCH}/unclear.md", _UNCLEAR_TEXT)
     proposals = run_reclassify(lib)
 
-    job = apply_reclassification(lib, proposals)
+    job = apply_reclassification(lib, proposals).job
 
     assert job is not None
     assert not (library / _RESEARCH / "misfiled.md").exists()
@@ -165,7 +165,7 @@ def test_apply_reclassification_nothing_to_move_writes_nothing(tmp_path: Path) -
     _write(library, f"{_ARCHITECTURE}/in-place.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
 
-    job = apply_reclassification(lib, run_reclassify(lib))
+    job = apply_reclassification(lib, run_reclassify(lib)).job
 
     assert job is None
     assert _snapshot(library) == before
@@ -177,7 +177,7 @@ def test_apply_reclassification_rollback_restores_library(tmp_path: Path) -> Non
     lib = Library(library)
     _write(library, f"{_RESEARCH}/misfiled.md", _ARCHITECTURE_TEXT)
     before = _snapshot(library)
-    job = apply_reclassification(lib, run_reclassify(lib))
+    job = apply_reclassification(lib, run_reclassify(lib)).job
     assert job is not None
     assert _snapshot(library) != before
 
@@ -200,25 +200,25 @@ def test_run_reclassify_naming_rules_apply_to_destination(tmp_path: Path) -> Non
     assert (library / _ARCHITECTURE / "refiled.md").exists()
 
 
-def test_apply_reclassification_collision_keeps_earlier_moves(
+def test_apply_reclassification_destination_taken_after_preview_fails_that_document_only(
     tmp_path: Path,
 ) -> None:
     library = _library(tmp_path)
     lib = Library(library)
     _write(library, f"{_RESEARCH}/a-first.md", _ARCHITECTURE_TEXT)
-    _write(library, f"{_RESEARCH}/b-second.md", _ARCHITECTURE_TEXT)
+    _write(library, f"{_RESEARCH}/b-second.md", _ARCHITECTURE_TEXT + " Second.")
     before = _snapshot(library)
     proposals = run_reclassify(lib)
     blocker = _write(library, f"{_ARCHITECTURE}/b-second.md", "appeared after the preview")
 
-    with pytest.raises(FileExistsError):
-        apply_reclassification(lib, proposals)
+    result = apply_reclassification(lib, proposals)
 
+    assert [failure.unit.source_path.name for failure in result.failed] == ["b-second.md"]
     assert (library / _ARCHITECTURE / "a-first.md").exists()
-    assert (library / _RESEARCH / "b-second.md").exists()
-    (job_file,) = (library / MICROFICHE_DIRNAME / "rollback").glob("job_*.json")
+    assert (library / _RESEARCH / "b-second.md").exists()  # stays where it was
+    assert result.job is not None
     blocker.unlink()
-    rollback_job(Library(library), job_file.stem.removeprefix("job_"))
+    rollback_job(Library(library), result.job.job_id)
     assert _snapshot(library) == before
 
 

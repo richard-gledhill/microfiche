@@ -15,6 +15,7 @@ from core.models.classification import ClassificationResult
 from core.models.job import Job
 from core.models.unit import SortableUnit
 from core.scanner import scan_sorting_inbox
+from core.utils.filesystem import is_link
 
 _KEPT_REASON_FILES = 3  # how many remaining files a "folder kept" reason names before saying "and N more"
 
@@ -30,9 +31,14 @@ class SortReport:
             another inbox file with the same content is being filed this run), with the reason.
         audit_events: The move events recorded for the filed units.
         job: The rollback job for the run, or ``None`` if nothing was filed.
+        skipped_links: Symbolic links and junctions in the inbox that were passed over, never followed.
+        ai_unavailable: Why the AI fallback stopped being asked part-way through the run (a connection
+            failure or a timeout), or ``None``. The rest of the run used the rules only.
         folders_removed: Inbox folders whose files were all filed and which were then removed (the job records
             them, so ``rollback`` recreates them).
         folders_kept: Inbox folders that files were taken from but which still hold something, each with why.
+        dry_run: Whether this was a preview. Nothing was moved or recorded: ``filed`` is what would be filed,
+            ``folders_removed`` the folders that would be removed once emptied, and ``job`` is ``None``.
     """
 
     filed: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
@@ -40,8 +46,11 @@ class SortReport:
     duplicates: list[Duplicate] = field(default_factory=list)
     audit_events: list[AuditEvent] = field(default_factory=list)
     job: Job | None = None
+    skipped_links: list[Path] = field(default_factory=list)
+    ai_unavailable: str | None = None
     folders_removed: list[Path] = field(default_factory=list)
     folders_kept: list[tuple[Path, str]] = field(default_factory=list)
+    dry_run: bool = False
 
 
 def run_sort(
@@ -49,6 +58,7 @@ def run_sort(
     *,
     keep_folders: bool | None = None,
     ai_classifier: LLMClassifier | None = None,
+    dry_run: bool = False,
 ) -> SortReport:
     """Scan the library's inbox, classify each unit, and file the confident ones as one job.
 
@@ -66,6 +76,8 @@ def run_sort(
             one by one and the folder is removed once it is empty. ``None`` (the default) uses the
             library's ``[sorting] keep_folders`` setting.
         ai_classifier: An optional AI fallback for stages the rules can't answer confidently.
+        dry_run: Classify and run every check as usual, but move nothing and write nothing: no job, ledger
+            record or audit line. The report says what a real run would do. The AI, if given, is still asked.
 
     Returns:
         The report of what was filed and what needs review. ``SortReport.job`` is ``None`` if
@@ -77,8 +89,10 @@ def run_sort(
 
     claims = DestinationClaims(library)
     duplicates = DuplicateIndex(library)
-    report = SortReport()
-    for unit in scan_sorting_inbox(library, keep_folders=keep_folders):
+    report = SortReport(dry_run=dry_run)
+    scan = scan_sorting_inbox(library, keep_folders=keep_folders)
+    report.skipped_links = scan.skipped_links
+    for unit in scan.units:
         classification = classifier.classify_unit(unit, taxonomy)
         duplicate = duplicates.check(unit, classification)
         if duplicate is not None:
@@ -90,32 +104,61 @@ def run_sort(
         else:
             report.needs_review.append((unit, classification))
 
-    report.job = file_batch(library, report.filed)
-    if report.job is not None:
-        report.audit_events.extend(report.job.moves)
+    if not dry_run:
+        _file_confident_units(library, report)
     _report_inbox_folders(report)
+    if ai_classifier is not None:
+        report.ai_unavailable = ai_classifier.failure
 
     return report
 
 
+def _file_confident_units(library: Library, report: SortReport) -> None:
+    """File ``report.filed`` as one job; a unit that could not be moved goes to ``needs_review`` instead."""
+
+    result = file_batch(library, report.filed)
+    report.job = result.job
+    if result.job is not None:
+        report.audit_events.extend(result.job.moves)
+    if not result.failed:
+        return
+
+    why = {failure.unit.source_path: failure.reason for failure in result.failed}
+    still_filed: list[tuple[SortableUnit, ClassificationResult]] = []
+    for unit, classification in report.filed:
+        if unit.source_path in why:
+            held = _hold(classification, f"it could not be moved: {why[unit.source_path]}")
+            report.needs_review.append((unit, held))
+        else:
+            still_filed.append((unit, classification))
+    report.filed = still_filed
+
+
 def _report_inbox_folders(report: SortReport) -> None:
-    """Fill in which inbox folders were removed once emptied, and why each of the others stayed."""
+    """Fill in which inbox folders were removed once emptied, and why each of the others stayed.
+
+    After a real run the folders on disk say which were removed. In a preview nothing has moved, so a
+    folder counts as removed if everything that would be filed from it is all it holds.
+    """
 
     units = [unit for unit, _ in (*report.filed, *report.needs_review)] + [d.unit for d in report.duplicates]
     origins = sorted({unit.origin_folder for unit in units if unit.origin_folder is not None})
     held = {unit.source_path: "needs review" for unit, _ in report.needs_review}
     held.update({duplicate.unit.source_path: "duplicate" for duplicate in report.duplicates})
+    would_move = {unit.source_path for unit, _ in report.filed} if report.dry_run else set()
     for origin in origins:
-        if origin.exists():
-            report.folders_kept.append((origin, _why_folder_kept(origin, held)))
-        else:
+        remaining = sorted(
+            path for path in origin.rglob("*") if (is_link(path) or not path.is_dir()) and path not in would_move
+        )
+        if not origin.exists() or (report.dry_run and not remaining):
             report.folders_removed.append(origin)
+        else:
+            report.folders_kept.append((origin, _why_folder_kept(origin, held, remaining)))
 
 
-def _why_folder_kept(folder: Path, held: dict[Path, str]) -> str:
+def _why_folder_kept(folder: Path, held: dict[Path, str], remaining: list[Path]) -> str:
     """Name what still holds an inbox folder open: files held back (and why), and files that are not documents."""
 
-    remaining = sorted(path for path in folder.rglob("*") if not path.is_dir())
     if not remaining:
         return "it could not be removed"
     shown = [
@@ -152,7 +195,16 @@ def _reserve_destination(
     if taken is None:
         duplicates.add(unit.source_path, destination)
         return classification
+    return _hold(classification, taken)
+
+
+def _hold(classification: ClassificationResult, why: str) -> ClassificationResult:
+    """The same classification, no longer confident, with ``why`` added to the category's reason.
+
+    The group and category stay as classified, so ``review`` can show where the unit would have gone.
+    """
+
     held_category = classification.category.model_copy(
-        update={"reason": f"{classification.category.reason}; but {taken}"}
+        update={"reason": f"{classification.category.reason}; but {why}"}
     )
     return classification.model_copy(update={"confident": False, "category": held_category})

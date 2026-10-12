@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
 from typing import NoReturn
 
@@ -20,6 +22,7 @@ from core.library.category_suggester import suggest_categories
 from core.library.library import Library, ScopeOutsideLibraryError
 from core.organizer import run_sort
 from core.reclassify import apply_reclassification, run_reclassify
+from core.runlock import RunLockError, run_lock
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
 from rich.markup import escape
@@ -60,22 +63,25 @@ def sort(
         help="Fall back to the AI named in the library's config (Ollama unless it says otherwise) for "
         "classifications the rules engine can't resolve.",
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview what would be filed and what would need review, without moving or recording anything. "
+        "Classification, including any --use-ai calls, runs as usual.",
+    ),
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library, uses_hints=True)
-    ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
-    try:
+    with _locked(opened, "sort", needed=not dry_run):  # a preview only reads, so it can run beside a real run
+        ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
         report = run_sort(
-            opened, keep_folders=_keep_folders_override(keep_folders, keep_folders_off), ai_classifier=ai_classifier
-        )
-    except FileExistsError as err:
-        # Collisions are caught and sent to review beforehand; this is a destination taken mid-run.
-        _fail(
-            f"{err}\nSome files may already have been moved; they are recorded in the job and can be undone "
-            "(see `microfiche audit` for the job id, then `microfiche rollback`)."
+            opened,
+            keep_folders=_keep_folders_override(keep_folders, keep_folders_off),
+            ai_classifier=ai_classifier,
+            dry_run=dry_run,
         )
     render_sort_report(console, report)
 
@@ -93,7 +99,7 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
     Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-    units = scan_sorting_inbox(_open_library(library))
+    units = scan_sorting_inbox(_open_library(library)).units
     documents = [document for unit in units for document in unit.documents]
     suggestions = suggest_categories(documents)
     if not suggestions:
@@ -123,22 +129,17 @@ def reclassify(
     """
 
     lib = _open_library(library, uses_hints=True)
-    try:
-        proposals = run_reclassify(lib, scope=folder)
-    except ScopeOutsideLibraryError as err:
-        _fail(str(err))
-    render_reclassify_table(console, proposals, dry_run=not apply)
-    if not apply:
+    with _locked(lib, "reclassify", needed=apply):  # held from planning to filing; the preview only reads
+        try:
+            proposals = run_reclassify(lib, scope=folder)
+        except ScopeOutsideLibraryError as err:
+            _fail(str(err))
+        render_reclassify_table(console, proposals, dry_run=not apply)
+        result = apply_reclassification(lib, proposals) if apply else None
+    if result is None:
         render_reclassify_result(console, proposals, job=None, dry_run=True)
-        return
-    try:
-        job = apply_reclassification(lib, proposals)
-    except FileExistsError as err:
-        _fail(
-            f"{err}\nSome files may already have been moved; they are recorded in the job and can be undone "
-            "(see `microfiche audit` for the job id, then `microfiche rollback`)."
-        )
-    render_reclassify_result(console, proposals, job=job, dry_run=False)
+    else:
+        render_reclassify_result(console, proposals, job=result.job, failed=result.failed, dry_run=False)
 
 
 def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -> None:
@@ -162,8 +163,10 @@ def audit(library: Path = _LIBRARY_OPTION) -> None:
 def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "--job-id")) -> None:
     """Undo a filing job by id (the id `sort` prints)."""
 
+    lib = Library(library)
     try:
-        job = rollback_job(Library(library), job_id)
+        with _locked(lib, "rollback"):
+            job = rollback_job(lib, job_id)
     except (JobNotFoundError, JobAlreadyRolledBackError) as err:
         _fail(str(err))
     except (JobMoveMissingError, FileExistsError) as err:
@@ -198,6 +201,25 @@ def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
     except ConfigError as err:
         _fail(str(err))
     return library
+
+
+@contextmanager
+def _locked(library: Library, command: str, *, needed: bool = True) -> Iterator[None]:
+    """Hold the library's run lock around the block, or exit with a message if another run holds it.
+
+    Args:
+        library: The library the command changes.
+        command: The command's name, recorded in the lock so a refused run can say what is in progress.
+        needed: Whether to take the lock at all. A command that only reads passes ``False``.
+    """
+
+    with ExitStack() as stack:
+        if needed:
+            try:
+                stack.enter_context(run_lock(library, command))
+            except RunLockError as err:
+                _fail(str(err))
+        yield
 
 
 def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:

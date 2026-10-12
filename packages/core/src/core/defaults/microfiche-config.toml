@@ -39,6 +39,12 @@ max_document_chars = 4000
 # File a folder dropped in the inbox whole, under its dominant category. Off files the documents inside
 # it one by one, and removes the folder once it is empty.
 keep_folders = true
+# File and folder names (globs) the inbox scan skips without comment: Office lock files and OS clutter.
+ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
+
+[parsing]
+# A file bigger than this many megabytes is not read: it stays in the inbox for review, with the reason.
+max_file_mb = 50
 
 [exclusions]
 exclude = []
