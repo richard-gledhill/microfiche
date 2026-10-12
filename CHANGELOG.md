@@ -16,9 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - layer packaged defaults under the library config [`f054737`](https://github.com/richard-gledhill/microfiche/commit/f054737)
 
 ### Bug Fixes
+- reject microfiche's own file names for the log, and add the missing logging tests [`579b1a7`](https://github.com/richard-gledhill/microfiche/commit/579b1a7)
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`4593eb2`](https://github.com/richard-gledhill/microfiche/commit/4593eb2)
 - document logging, -v/-q and the progress bar (Stage 4.4) [`e96e663`](https://github.com/richard-gledhill/microfiche/commit/e96e663)
 - :robot: changelog file generated [`318160b`](https://github.com/richard-gledhill/microfiche/commit/318160b)
 - :robot: changelog file generated [`f6c0f7a`](https://github.com/richard-gledhill/microfiche/commit/f6c0f7a)
@@ -58,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #50 from richard-gledhill/fix/logging-follow-ups [`5a9128b`](https://github.com/richard-gledhill/microfiche/commit/5a9128b)
 - Merge pull request #49 from richard-gledhill/feat/add-logging-and-diagnostics [`a93fc5f`](https://github.com/richard-gledhill/microfiche/commit/a93fc5f)
 - feature: show a progress bar on long runs (Stage 4.4, slice 6) [`a34117a`](https://github.com/richard-gledhill/microfiche/commit/a34117a)
 - feature: show each notice once - file-only records and the AI warning (Stage 4.4, slice 5) [`8bfd93a`](https://github.com/richard-gledhill/microfiche/commit/8bfd93a)
