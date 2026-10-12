@@ -22,7 +22,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 * `reclassify`: Re-review already-filed documents and...
 * `audit`: Show the audit log.
 * `rollback`: Undo a filing job by id (the id `sort`...
-* `config`: Library configuration.
+* `config`: Show the library configuration, or with...
 
 ## `microfiche sort`
 
@@ -138,7 +138,11 @@ $ microfiche rollback [OPTIONS]
 
 ## `microfiche config`
 
-Library configuration.
+Show the library configuration, or with --sync bring its library file in step with its folders.
+
+--sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
+that has none, creating the file if the library has none. It never changes or removes an entry, and never
+creates or removes a folder. An entry whose folder is gone is listed each time, and kept.
 
 **Usage**:
 
@@ -149,6 +153,7 @@ $ microfiche config [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `--sync`: Instead of showing the configuration, add an entry to the library file for every folder that has none, and list entries whose folder is gone.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

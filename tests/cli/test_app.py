@@ -893,6 +893,148 @@ def test_sort_dry_run_keep_folders_off_says_folder_would_be_removed(tmp_path: Pa
 # endregion
 
 
+# region Library file sync
+
+
+_LIBRARY_FILE = ".microfiche/microfiche-library.json"
+
+
+def _without_library_file(library: Path) -> Path:
+    path = library / _LIBRARY_FILE
+    path.unlink()
+    return path
+
+
+def test_sort_no_library_file_creates_it_and_says_so(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert path.is_file()
+    assert "Created microfiche-library.json listing 4 folder(s)" in " ".join(result.stdout.split())
+
+
+def test_sort_dry_run_writes_no_library_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert not path.exists()
+    assert "Created" not in result.stdout
+
+
+def test_sort_new_folder_reported_once(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _without_library_file(library)
+    runner.invoke(app, ["sort", "--library", str(library)])
+    (library / "Project Phoenix" / "04 Retrospectives").mkdir()
+
+    first = runner.invoke(app, ["sort", "--library", str(library)])
+    second = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert "Added Project Phoenix/04 Retrospectives to microfiche-library.json" in " ".join(first.stdout.split())
+    assert "Retrospectives" not in second.stdout
+
+
+def test_sort_entry_with_no_folder_reported_every_run(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / _LIBRARY_FILE).write_text(
+        json.dumps({"groups": [{"name": "Old Project"}, {"name": "*"}]}), encoding="utf-8"
+    )
+
+    first = runner.invoke(app, ["sort", "--library", str(library)])
+    second = runner.invoke(app, ["sort", "--library", str(library)])
+
+    for result in (first, second):
+        assert "Old Project is in microfiche-library.json but has no folder" in " ".join(result.stdout.split())
+
+
+def test_config_sync_adds_folders_and_lists_them(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Created microfiche-library.json listing 4 folder(s)" in " ".join(result.stdout.split())
+    assert path.is_file()
+    assert "Library configuration" not in result.stdout  # --sync shows the sync, not the settings
+
+
+def test_config_sync_nothing_to_do_says_so(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "The library file already lists every folder." in result.stdout
+
+
+def test_config_sync_reports_entry_with_no_folder_and_keeps_it(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    written = json.dumps({"groups": [{"name": "Old Project", "hints": ["old"]}, {"name": "*"}]})
+    (library / _LIBRARY_FILE).write_text(written, encoding="utf-8")
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Old Project is in microfiche-library.json but has no folder" in " ".join(result.stdout.split())
+    assert (library / _LIBRARY_FILE).read_text(encoding="utf-8") == written
+
+
+def test_config_without_sync_writes_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    result = runner.invoke(app, ["config", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not path.exists()
+    assert not (library / ".microfiche" / "microfiche.log").exists()
+
+
+def test_config_sync_invalid_library_file_exits_1_untouched(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = library / _LIBRARY_FILE
+    path.write_text('{"groups": [{"name": "A", "bogus": 1}]}', encoding="utf-8")
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 1
+    assert "Library file error" in " ".join(result.stdout.split())
+    assert path.read_text(encoding="utf-8") == '{"groups": [{"name": "A", "bogus": 1}]}'
+
+
+@pytest.mark.usefixtures("library_file_locked")
+def test_config_sync_write_failure_exits_1(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _without_library_file(library)
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 1
+    assert "Could not update the library file" in " ".join(result.stdout.split())
+
+
+def test_config_sync_refused_while_lock_held(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    with run_lock(Library(library), "sort"):
+        result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 1
+    assert "Another microfiche run is already in progress" in " ".join(result.stdout.split())
+    assert not path.exists()
+
+
+# endregion
+
+
 # region Run lock
 
 

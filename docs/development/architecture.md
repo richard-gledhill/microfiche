@@ -313,7 +313,7 @@ microfiche propose-categories                        # suggest category names fr
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
 microfiche audit                                     # show the audit log
 microfiche rollback --job-id ID                      # undo a job by id
-microfiche config                                    # show the library's loaded configuration
+microfiche config [--sync]                           # show the loaded configuration; --sync updates the library file from the folders
 ```
 
 Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
@@ -352,9 +352,14 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   its level, so hints can be shared by every group, and a named group adds its own; the most specific entry comes first.
   `Library.library_file` loads it lazily, checked against `depth`. A missing file means no hints, and an invalid one stops
   `sort` and `reclassify` before anything moves. Its JSON Schema is generated (`make library-schema`) so editors can
-  validate it. Hints and rules only match folders that already exist (§1). `naming_rules` stays in the TOML. Creating and
-  syncing the file from the folders is [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync); until then it is
-  written by hand or copied from the template.
+  validate it. Hints and rules only match folders that already exist (§1). `naming_rules` stays in the TOML. The file is
+  created from the folders, and kept in step, by `core/library/library_sync.py::sync_library_file`
+  ([Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync)): it diffs `Library.structure()` (the sorted,
+  exclusion-aware, link-skipping walk to `depth`, of which `Library.taxonomy()` is a view) against the file and appends
+  an entry, with no hints, for each folder that has none. A `*` entry at a level covers its folders, so none is added
+  for them. It runs at the start of a real `run_sort` and from `config --sync`, both under the run lock, never for a
+  preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
+  are reported, never removed.
 * **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (2 today;
   1 from Stage 4.6, and 3 from Stage 4.7 if it goes ahead). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.

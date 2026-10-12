@@ -21,6 +21,7 @@ from core.filer import (
 )
 from core.library.category_suggester import suggest_categories
 from core.library.library import Library, ScopeOutsideLibraryError
+from core.library.library_sync import sync_library_file
 from core.organizer import run_sort
 from core.reclassify import apply_reclassification, run_reclassify
 from core.runlock import LockHolder, RunLockError, run_lock
@@ -28,7 +29,13 @@ from core.scanner import scan_sorting_inbox
 from rich.console import Console
 from rich.markup import escape
 
-from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
+from cli.display import (
+    render_config,
+    render_library_sync,
+    render_reclassify_result,
+    render_reclassify_table,
+    render_sort_report,
+)
 from cli.logging import FILE_ONLY, configure_logging, reset_logging
 from cli.progress import progress_bar
 
@@ -136,12 +143,41 @@ def propose_categories(
         )
 
 
-def config(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:
-    """Library configuration."""
+def config(
+    library: Path = _LIBRARY_OPTION,
+    sync: bool = typer.Option(
+        False,
+        "--sync",
+        help="Instead of showing the configuration, add an entry to the library file for every folder that has "
+        "none, and list entries whose folder is gone.",
+    ),
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
+    """Show the library configuration, or with --sync bring its library file in step with its folders.
 
-    opened = _open_library(library)
-    with _logging("config", opened, verbose=verbose, quiet=quiet, writes=False):
-        render_config(console, opened.config)
+    --sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
+    that has none, creating the file if the library has none. It never changes or removes an entry, and never
+    creates or removes a folder. An entry whose folder is gone is listed each time, and kept.
+    """
+
+    opened = _open_library(library, uses_hints=sync)
+    result = None
+    with (
+        _locked(opened, "config", needed=sync) as cleared_lock,
+        _logging("config", opened, verbose=verbose, quiet=quiet, writes=sync, cleared_lock=cleared_lock),
+    ):
+        if sync:
+            result = sync_library_file(opened)
+        else:
+            render_config(console, opened.config)
+    if result is None:
+        return
+    render_library_sync(console, result)
+    if result.write_error is not None:
+        raise typer.Exit(code=1)
+    if not (result.added or result.missing):
+        console.print("The library file already lists every folder.")
 
 
 def reclassify(

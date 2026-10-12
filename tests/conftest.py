@@ -80,6 +80,21 @@ def hold_open() -> Iterator[Callable[[Path], None]]:
         kernel32.CloseHandle(handle)
 
 
+class _FileLockedError(PermissionError):
+    def __init__(self) -> None:
+        super().__init__("locked by another program")
+
+
+@pytest.fixture
+def library_file_locked(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Make renaming the library file into place fail, as when another program has the file open."""
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise _FileLockedError
+
+    monkeypatch.setattr("core.library.library_sync.os.replace", refuse)
+
+
 def _exit_at_once() -> None:
     """A process that does nothing and ends (it must be importable by name, for the spawned process)."""
 

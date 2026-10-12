@@ -697,7 +697,14 @@ and the run lock. Stages 4.6 and 4.7 reuse its structure walk for depths 1 and 3
 - Update `architecture.md` (§1, §8 and §10), `mvp-roadmap.md` and `module-diagram.md`, and add "library file" to [CONTEXT.md](../../CONTEXT.md).
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
-**Deferred:** a description or aliases per entry, and sending them to the AI (a privacy decision); a Markdown way to read and write the same model; rename detection beyond reporting; creating folders from the file.
+**As built:**
+- A `*` entry at a level covers every folder at that level without an entry of its own, so none is added for them. The shipped template is all `*` entries; appending an entry per folder would have reformatted every new library's file on its first sort.
+- A preview does not run the sync at all, so it doesn't list folders that would be added or entries with no folder.
+- The "filed bundle in the ledger" and `name_pattern` signals for what counts as a library folder are not built: at depth 2 the walk never reaches a bundle, and both belong to Stage 4.8.
+- A symlinked or junctioned folder is no longer a group or category (`Library.taxonomy()` now follows `structure()`), matching the inbox scan's rule.
+- A rename is flagged only when exactly one entry went and exactly one folder appeared under the same parent.
+
+**Deferred:** a description or aliases per entry, and sending them to the AI (a privacy decision); a Markdown way to read and write the same model; rename detection beyond reporting; creating folders from the file; a preview that shows what would be added.
 
 ---
 

@@ -11,9 +11,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from core.config import MICROFICHE_DIRNAME, MicroficheConfig, load_config
-from core.library.library_file import LibraryFile, load_library_file
+from core.library.library_file import FolderNode, LibraryFile, load_library_file
 from core.models.category import Taxonomy
-from core.utils.filesystem import is_excluded
+from core.utils.filesystem import is_excluded, is_link
 
 
 class ScopeOutsideLibraryError(ValueError):
@@ -63,6 +63,12 @@ class Library:
             self._library_file = load_library_file(self.state_dir, self.config.library_structure.depth)
         return self._library_file
 
+    @library_file.setter
+    def library_file(self, value: LibraryFile) -> None:
+        """Replace the kept library file, after the file on disk has been rewritten."""
+
+        self._library_file = value
+
     @property
     def state_dir(self) -> Path:
         """The hidden folder holding the config, ledger, audit log and rollback jobs."""
@@ -75,27 +81,31 @@ class Library:
 
         return self.root / self.config.library_structure.library_inbox
 
-    def taxonomy(self) -> Taxonomy:
-        """Read the library's groups and categories from the folders that exist right now.
+    def structure(self) -> list[FolderNode]:
+        """Read the library's folders, down to the configured depth, as they exist right now.
 
         Only folder names are read, never file contents, so this is cheap even for a library with
-        10,000+ files. The inbox, the state folder and anything matching the config's exclusions
-        are skipped at both levels. Nothing is cached: the folders are the taxonomy.
+        10,000+ files. The inbox, the state folder, anything matching the config's exclusions and any
+        symlink or junction (never followed) are skipped. Nothing is cached: the folders are the
+        authority on what exists.
+
+        Returns:
+            The groups in sorted order, each with its sub-folders as ``children`` down to
+            ``[library_structure] depth`` levels. The nodes carry names only, no hints or rules.
+        """
+
+        return self._folders_in(self.root, self.config.library_structure.depth)
+
+    def taxonomy(self) -> Taxonomy:
+        """The library's groups and, for each, its category names: a view of ``structure()``.
+
+        Nothing is cached: the folders are the taxonomy.
 
         Returns:
             The groups and, for each, its category names.
         """
 
-        groups: dict[str, list[str]] = {}
-        for group_dir in sorted(p for p in self.root.iterdir() if p.is_dir()):
-            if self.is_excluded(group_dir):
-                continue
-            groups[group_dir.name] = [
-                category_dir.name
-                for category_dir in sorted(group_dir.iterdir())
-                if category_dir.is_dir() and not self.is_excluded(category_dir)
-            ]
-        return Taxonomy(groups=groups)
+        return Taxonomy(groups={group.name: [child.name for child in group.children] for group in self.structure()})
 
     def target_dir(self, group: str, category: str) -> Path:
         """The folder a unit classified as ``group``/``category`` is filed into.
@@ -179,6 +189,19 @@ class Library:
 
         search_root = self._search_root(scope)
         return [path for path in sorted(search_root.rglob("*")) if path.is_file() and not self.is_excluded(path)]
+
+    def _folders_in(self, parent: Path, levels: int) -> list[FolderNode]:
+        """The library folders directly inside ``parent``, each with its own down to ``levels`` levels in all."""
+
+        if levels < 1:
+            return []
+        return [
+            # Not validated: a folder is whatever it is called, even if the library file could not hold that name
+            # (two names differing only by case on Linux, say). The sync decides which can be entries.
+            FolderNode.model_construct(name=folder.name, children=self._folders_in(folder, levels - 1))
+            for folder in sorted(parent.iterdir())
+            if folder.is_dir() and not is_link(folder) and not self.is_excluded(folder)
+        ]
 
     def _search_root(self, scope: Path | None) -> Path:
         """``scope`` re-expressed under ``root``'s own spelling of the path.

@@ -80,6 +80,7 @@ flowchart TD
         l_naming["naming.py"]
         l_templates["templates.py (unused - no create-library command yet)"]
         l_library_file["library_file.py (LibraryFile)"]
+        l_library_sync["library_sync.py"]
     end
 
     subgraph UTILS["core/utils"]
@@ -106,12 +107,15 @@ flowchart TD
     cli_commands --> core_runlock
     cli_commands --> cli_logging
     cli_commands --> cli_progress
+    cli_commands --> l_library_sync
 
     cli_display --> core_config
     cli_display --> core_organizer
     cli_display --> core_reclassify
     cli_display --> m_job
     cli_display --> core_filer
+    cli_display --> l_library_file
+    cli_display --> l_library_sync
 
     core_organizer --> a_llm
     core_organizer --> core_classifier
@@ -124,6 +128,7 @@ flowchart TD
     core_organizer --> core_scanner
     core_organizer --> core_duplicates
     core_organizer --> u_filesystem
+    core_organizer --> l_library_sync
 
     core_scanner --> m_unit
     core_scanner --> p_init
@@ -248,6 +253,9 @@ flowchart TD
     cli_logging --> l_library
 
     cli_progress --> cli_logging
+
+    l_library_sync --> l_library
+    l_library_sync --> l_library_file
 ```
 
 **Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py` and the
