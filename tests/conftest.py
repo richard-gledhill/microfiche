@@ -1,10 +1,8 @@
 """Fixtures shared across the test suite."""
 
-import ctypes
 import multiprocessing
 import sys
 from collections.abc import Callable, Iterator
-from ctypes import wintypes
 from pathlib import Path
 
 import pytest
@@ -52,6 +50,9 @@ def hold_open() -> Iterator[Callable[[Path], None]]:
 
     if sys.platform != "win32":
         pytest.skip("only Windows refuses to rename a file another program has open")
+    import ctypes
+    from ctypes import wintypes
+
     generic_read, generic_write, file_share_read, open_existing = 0x80000000, 0x40000000, 0x1, 3
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
     kernel32.CreateFileW.restype = wintypes.HANDLE

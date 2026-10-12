@@ -6,8 +6,11 @@ import fnmatch
 import stat
 from pathlib import Path
 
-# Windows reparse tags that make a path a link: a symlink, or a junction (a "mount point").
-_LINK_REPARSE_TAGS = frozenset({stat.IO_REPARSE_TAG_SYMLINK, stat.IO_REPARSE_TAG_MOUNT_POINT})
+# Windows reparse tags that make a path a link: a symlink, or a junction (a "mount point"). They are written out
+# because the ``stat`` module defines them only on Windows, and this module must import everywhere.
+_IO_REPARSE_TAG_SYMLINK = 0xA000000C
+_IO_REPARSE_TAG_MOUNT_POINT = 0xA0000003
+_LINK_REPARSE_TAGS = frozenset({_IO_REPARSE_TAG_SYMLINK, _IO_REPARSE_TAG_MOUNT_POINT})
 
 
 def is_excluded(path: Path, patterns: list[str]) -> bool:

@@ -73,8 +73,8 @@ def _fake_lstat(reparse_tag: int | None) -> object:
 @pytest.mark.parametrize(
     ("tag", "expected"),
     [
-        (stat.IO_REPARSE_TAG_MOUNT_POINT, True),  # a junction
-        (stat.IO_REPARSE_TAG_SYMLINK, True),
+        (0xA0000003, True),  # IO_REPARSE_TAG_MOUNT_POINT: a junction
+        (0xA000000C, True),  # IO_REPARSE_TAG_SYMLINK
         (0x9000701A, False),  # a OneDrive cloud placeholder: a reparse point, but a real file
         (0, False),
         (None, False),  # not Windows: no tag at all

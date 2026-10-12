@@ -235,6 +235,10 @@ def _process_alive(pid: int) -> bool:
 
 
 def _windows_process_alive(pid: int) -> bool:
+    """Whether a process is running, asked of Windows directly (only called on Windows)."""
+
+    if sys.platform != "win32":  # also tells mypy the rest is Windows-only, so it is not checked on other systems
+        return False
     import ctypes
     from ctypes import wintypes
 

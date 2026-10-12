@@ -23,7 +23,7 @@ actually implemented vs. still stubbed (e.g. `review`/`index` are stub commands)
 
 ```bash
 make install    # uv sync across the workspace + install pre-commit hooks
-make check      # uv lock --locked, pre-commit run -a, mypy, deptry (core, then cli)
+make check      # uv lock --locked, pre-commit run -a, mypy (Linux, then Windows), deptry (core, then cli)
 make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 make docs       # mkdocs serve
 make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
@@ -195,6 +195,10 @@ it becomes a unit (or proposal) left for review, with the reason.
   introduce a domain concept.
 - `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
   just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
+- Code must import and type-check on Linux (CI) and Windows. Some names exist on one only: `stat.IO_REPARSE_TAG_*`,
+  `ctypes.WinDLL`, `PermissionError.winerror`. Write such constants out, import platform modules inside the function
+  that uses them, and guard the body with `if sys.platform == "win32":` so mypy skips it elsewhere. `make check` runs
+  mypy for both platforms for this reason.
 
 **Module layout**
 - Order a module like this, omitting what it doesn't have:
@@ -279,7 +283,7 @@ These are for fast iteration; they don't replace full verification.
 ### Before reporting complete: full verification
 
 ```bash
-make check   # uv lock --locked, pre-commit run -a, mypy, deptry (core, then cli)
+make check   # uv lock --locked, pre-commit run -a, mypy (Linux, then Windows), deptry (core, then cli)
 make test    # pytest --doctest-modules with coverage for core and cli
 ```
 
