@@ -483,7 +483,9 @@ finish and try again. If no run is active, delete <library>/.microfiche/lock and
 ```
 
 Wait for the first run, then try again. If a run was killed or the machine lost power, you need do nothing: the
-lock records the process that took it, and a lock whose process is gone is cleared automatically. If the lock
+lock records the process that took it, and a lock whose process is gone is cleared automatically. The run that clears
+it warns you (`cleared a stale run lock left by a run that did not finish (sort, process 4242, started ...)`) and
+records that in the log, which tells you an earlier run never finished. If the lock
 file is damaged so that microfiche can't tell, it is treated as held, and the message names the file to delete.
 A preview (`sort --dry-run`), `reclassify` without `--apply`, `audit`, `config` and `propose-categories` only read,
 so they need no lock and run beside anything.
@@ -636,7 +638,7 @@ from `audit.log`: the audit log is the permanent record of moves, and the log is
   `propose-categories`) write nothing, and a preview never creates `.microfiche/`. A run that is refused because
   another is in progress leaves no trace either.
 - **What is in it.** By default (level `INFO`), the number of documents found, each warning (a file that could
-  not be moved, the AI being unreachable) and a summary of how the run ended. With `-v` it also has one line for
+  not be moved, the AI being unreachable, a leftover lock being cleared) and a summary of how the run ended. With `-v` it also has one line for
   each document saying where it was classified and why. It never contains the text of your documents.
 - **How big it gets.** It is rotated: when it reaches `max_bytes` it becomes `microfiche.log.1` and a new file
   starts, keeping `backup_count` old ones.
@@ -706,7 +708,8 @@ microfiche is pre-release. At the moment:
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
   again in the summary's **Needs review** list.
 - The log file is written only by commands that change the library, and not by `rollback` when the config can't be
-  read. When a leftover lock from a dead process is cleared, that is not recorded in the log.
+  read.
+- `-q` also hides the warning that a leftover lock was cleared. It is still in the log file.
 - The progress bar's threshold (20 documents, or any `--use-ai` run) is fixed; there is no setting for it.
 
 Every command and option is listed in the [CLI reference](cli-reference.md), or run

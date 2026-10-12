@@ -977,6 +977,66 @@ def test_sort_clears_a_lock_left_by_a_run_that_died(tmp_path: Path, dead_pid: in
     assert not (library / _LOCK).exists()
 
 
+def _leave_stale_lock(library: Path, dead_pid: int) -> None:
+    """A lock as a `reclassify` run that died (killed, or the machine lost power) would have left it."""
+
+    (library / _LOCK).write_text(
+        json.dumps({"pid": dead_pid, "command": "reclassify", "started": "2026-10-12T09:30:00+11:00"}),
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    [("sort", []), ("reclassify", ["--apply"]), ("rollback", ["--job-id", "20260101-000000-abcdef"])],
+)
+def test_changing_commands_warn_when_they_clear_a_stale_lock(
+    tmp_path: Path, dead_pid: int, command: str, arguments: list[str]
+) -> None:
+    library = _library(tmp_path)
+    _leave_stale_lock(library, dead_pid)
+
+    result = runner.invoke(app, [command, "--library", str(library), *arguments])
+
+    warning = " ".join(result.stderr.split())
+    assert "cleared a stale run lock" in warning
+    assert f"reclassify, process {dead_pid}, started 2026-10-12 09:30:00" in warning
+    assert "cleared a stale run lock" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_stale_lock_warning_is_hidden_by_quiet_but_kept_in_the_log(tmp_path: Path, dead_pid: int) -> None:
+    library = _library(tmp_path)
+    _leave_stale_lock(library, dead_pid)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "stale run lock" not in result.stderr  # -q shows errors only
+    assert "cleared a stale run lock" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_without_a_stale_lock_says_nothing_about_one(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "stale run lock" not in result.stderr  # the phrase, not the word: the library's path is in the log
+    assert "stale run lock" not in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_preview_leaves_a_stale_lock_alone_and_says_nothing(tmp_path: Path, dead_pid: int) -> None:
+    # A preview takes no lock, so it neither clears the stale one nor has anything to report about it.
+    library = _library(tmp_path)
+    _leave_stale_lock(library, dead_pid)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "stale run lock" not in result.stderr
+    assert (library / _LOCK).exists()
+
+
 def test_sort_unreadable_lock_file_refused_and_left_alone(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / _LOCK).write_text("garbage", encoding="utf-8")

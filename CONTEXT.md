@@ -92,7 +92,7 @@ A `sort` that classifies and checks everything as usual but moves and records no
 _Avoid_: Simulation, test run
 
 **Run lock**:
-The `lock` file in the state folder that a run holds while it changes the library, so a second run refuses to start; a lock left by a process that has gone is cleared.
+The `lock` file in the state folder that a run holds while it changes the library, so a second run refuses to start; a lock left by a process that has gone is cleared, with a warning.
 _Avoid_: Mutex, semaphore
 
 **Job**:

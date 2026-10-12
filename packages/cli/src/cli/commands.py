@@ -23,7 +23,7 @@ from core.library.category_suggester import suggest_categories
 from core.library.library import Library, ScopeOutsideLibraryError
 from core.organizer import run_sort
 from core.reclassify import apply_reclassification, run_reclassify
-from core.runlock import RunLockError, run_lock
+from core.runlock import LockHolder, RunLockError, run_lock
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
 from rich.markup import escape
@@ -89,8 +89,12 @@ def sort(
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library, uses_hints=True)
     with (
-        _locked(opened, "sort", needed=not dry_run),  # a preview only reads, so it can run beside a real run
-        _logging("sort", opened, verbose=verbose, quiet=quiet, writes=not dry_run),  # after the lock: see _logging
+        _locked(
+            opened, "sort", needed=not dry_run
+        ) as cleared_lock,  # a preview only reads, so it runs beside a real run
+        _logging(  # after the lock: see _logging
+            "sort", opened, verbose=verbose, quiet=quiet, writes=not dry_run, cleared_lock=cleared_lock
+        ),
         progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
         ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
@@ -156,8 +160,10 @@ def reclassify(
 
     lib = _open_library(library, uses_hints=True)
     with (
-        _locked(lib, "reclassify", needed=apply),  # held from planning to filing; the preview only reads
-        _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply),
+        _locked(
+            lib, "reclassify", needed=apply
+        ) as cleared_lock,  # held from planning to filing; the preview only reads
+        _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply, cleared_lock=cleared_lock),
         progress_bar(quiet=quiet, ai=False) as on_progress,
     ):
         try:
@@ -202,7 +208,10 @@ def rollback(
 
     lib = Library(library)
     try:
-        with _locked(lib, "rollback"), _logging("rollback", lib, verbose=verbose, quiet=quiet, writes=True):
+        with (
+            _locked(lib, "rollback") as cleared_lock,
+            _logging("rollback", lib, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
+        ):
             job = rollback_job(lib, job_id)
     except (JobNotFoundError, JobAlreadyRolledBackError) as err:
         _fail(str(err))
@@ -241,11 +250,21 @@ def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
 
 
 @contextmanager
-def _logging(command: str, library: Library, *, verbose: bool, quiet: bool, writes: bool) -> Iterator[None]:
+def _logging(
+    command: str,
+    library: Library,
+    *,
+    verbose: bool,
+    quiet: bool,
+    writes: bool,
+    cleared_lock: LockHolder | None = None,
+) -> Iterator[None]:
     """Set up logging for a command that has opened ``library``, and record that the command started.
 
     A command that changes the library enters this inside ``_locked``, not outside it. Only the run holding the
-    lock may write the log file, so a run the lock refuses leaves no trace in it (nor on screen).
+    lock may write the log file, so a run the lock refuses leaves no trace in it (nor on screen). The order also
+    gives the lock a way to be heard: it is taken before logging exists, so it hands over what it did, and this
+    logs it.
 
     Args:
         command: The command's name, written to the log's first line.
@@ -254,6 +273,8 @@ def _logging(command: str, library: Library, *, verbose: bool, quiet: bool, writ
         quiet: ``-q``: show errors only on screen. Wins over ``verbose``.
         writes: Whether the command holds the run lock, and so also records to the library's log file. A preview
             or a read-only command passes ``False`` and leaves no log file behind.
+        cleared_lock: The holder of the stale lock that ``_locked`` cleared to take its own, if it did. That run
+            died without letting go, which is worth a warning.
     """
 
     try:
@@ -263,6 +284,13 @@ def _logging(command: str, library: Library, *, verbose: bool, quiet: bool, writ
         configure_logging(verbose=verbose, quiet=quiet)
         _logger.warning("Not writing a log file: the library's config can't be read")
     _logger.info("%s: library %s", command, library.root)
+    if cleared_lock is not None:
+        _logger.warning(
+            "cleared a stale run lock left by a run that did not finish (%s, process %d, started %s)",
+            cleared_lock.command,
+            cleared_lock.pid,
+            f"{cleared_lock.started:%Y-%m-%d %H:%M:%S}",
+        )
     try:
         yield
     finally:
@@ -270,22 +298,27 @@ def _logging(command: str, library: Library, *, verbose: bool, quiet: bool, writ
 
 
 @contextmanager
-def _locked(library: Library, command: str, *, needed: bool = True) -> Iterator[None]:
+def _locked(library: Library, command: str, *, needed: bool = True) -> Iterator[LockHolder | None]:
     """Hold the library's run lock around the block, or exit with a message if another run holds it.
 
     Args:
         library: The library the command changes.
         command: The command's name, recorded in the lock so a refused run can say what is in progress.
         needed: Whether to take the lock at all. A command that only reads passes ``False``.
+
+    Yields:
+        The holder of the stale lock that was cleared to take this one, or ``None`` if there was none (or no
+        lock was needed). The caller logs it once logging is set up, which this cannot do: it comes first.
     """
 
+    cleared: LockHolder | None = None
     with ExitStack() as stack:
         if needed:
             try:
-                stack.enter_context(run_lock(library, command))
+                cleared = stack.enter_context(run_lock(library, command))
             except RunLockError as err:
                 _fail(str(err))
-        yield
+        yield cleared
 
 
 def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:

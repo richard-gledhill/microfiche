@@ -4,12 +4,13 @@ import json
 import multiprocessing
 import os
 import threading
+from datetime import datetime
 from multiprocessing.synchronize import Event
 from pathlib import Path
 
 import pytest
 from core.library.library import Library
-from core.runlock import LOCK_FILENAME, LockUnavailableError, RunLockedError, run_lock
+from core.runlock import LOCK_FILENAME, LockHolder, LockUnavailableError, RunLockedError, run_lock
 
 # region Test helpers
 
@@ -125,6 +126,22 @@ def test_run_lock_stale_lock_of_dead_process_taken_over(tmp_path: Path, dead_pid
         assert (details["pid"], details["command"]) == (os.getpid(), "rollback")
 
     assert not _lock_path(library).exists()
+
+
+def test_run_lock_yields_nothing_when_it_cleared_no_lock(tmp_path: Path) -> None:
+    with run_lock(_library(tmp_path), "sort") as cleared:
+        assert cleared is None
+
+
+def test_run_lock_yields_the_holder_of_the_stale_lock_it_cleared(tmp_path: Path, dead_pid: int) -> None:
+    # The lock cannot log this itself: it is taken before the CLI sets logging up. So it hands the fact to its caller.
+    library = _library(tmp_path)
+    _write_lock(library, pid=dead_pid, command="reclassify", started="2026-10-12T09:30:00+11:00")
+
+    with run_lock(library, "sort") as cleared:
+        assert cleared == LockHolder(
+            pid=dead_pid, command="reclassify", started=datetime.fromisoformat("2026-10-12T09:30:00+11:00")
+        )
 
 
 @pytest.mark.parametrize(

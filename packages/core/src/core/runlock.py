@@ -100,19 +100,23 @@ class LockUnavailableError(RunLockError):
 
 
 @contextmanager
-def run_lock(library: Library, command: str) -> Iterator[None]:
+def run_lock(library: Library, command: str) -> Iterator[LockHolder | None]:
     """Hold the library's run lock for the duration of the ``with`` block.
 
     The lock file is created atomically, so of two runs starting together exactly one gets it. It is
     removed when the block ends, including when the block raises. A lock left by a process that no
     longer exists is cleared and taken over.
 
+    The lock is taken before the caller can set up logging, so it does not log that it cleared a stale
+    lock; it says so to its caller, which can.
+
     Args:
         library: The library the run is changing. Its state folder is created if it does not exist yet.
         command: The command taking the lock, recorded so a refused run can say what is in progress.
 
     Yields:
-        Nothing; the lock is held until the block ends.
+        Who held the stale lock that was cleared to take this one (the run that died), or ``None`` if there
+        was none. The lock is held until the block ends.
 
     Raises:
         RunLockedError: if another run holds the lock, or the lock file exists but cannot be read.
@@ -120,9 +124,9 @@ def run_lock(library: Library, command: str) -> Iterator[None]:
     """
 
     path = library.state_dir / LOCK_FILENAME
-    _acquire(path, command)
+    cleared = _acquire(path, command)
     try:
-        yield
+        yield cleared
     finally:
         _release(path)
 
@@ -133,8 +137,12 @@ def run_lock(library: Library, command: str) -> Iterator[None]:
 # region Helpers
 
 
-def _acquire(path: Path, command: str) -> None:
-    """Create the lock file, clearing it first if it is stale."""
+def _acquire(path: Path, command: str) -> LockHolder | None:
+    """Create the lock file, clearing it first if it is stale.
+
+    Returns:
+        Who held the stale lock that was cleared, or ``None`` if the lock file was not there.
+    """
 
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -144,11 +152,16 @@ def _acquire(path: Path, command: str) -> None:
     try:
         _create(path, command)
     except FileExistsError:
-        _take_over_if_stale(path, command)
+        return _take_over_if_stale(path, command)
+    return None
 
 
-def _take_over_if_stale(path: Path, command: str) -> None:
-    """The lock file exists: clear it and take the lock if its holder is gone, otherwise refuse."""
+def _take_over_if_stale(path: Path, command: str) -> LockHolder:
+    """The lock file exists: clear it and take the lock if its holder is gone, otherwise refuse.
+
+    Returns:
+        The holder of the stale lock that was cleared.
+    """
 
     holder = _read_holder(path)
     if holder is None or _process_alive(holder.pid):
@@ -159,6 +172,7 @@ def _take_over_if_stale(path: Path, command: str) -> None:
         _create(path, command)
     except FileExistsError as err:  # someone else took it in the moment since we cleared it
         raise RunLockedError(path, _read_holder(path)) from err
+    return holder
 
 
 def _create(path: Path, command: str) -> None:
