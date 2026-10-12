@@ -539,7 +539,9 @@ a practical limitation (see the go/no-go gate below), the stage ends with the fi
 [library-depth.md](library-depth.md), depth stays 1 or 2, and the roadmap lists depth 3 as deferred.
 
 **Depends on:** Stage 4.6 (the single-level path and the optional category), and the rule in Stage 4.8 for telling
-a subcategory folder from a folder that was filed as content. Build 4.8 before 4.7.
+a subcategory folder from a folder that was filed as content. Build 4.8 before 4.7. As built, 4.8 gives that rule as
+`Ledger.folder_units()`, and `Library.structure()` already skips those folders, so a bundle never becomes a
+subcategory.
 
 **Plan**
 - Write the go/no-go gate with numbers, measured on the calibration corpus extended with a three-level library: how far auto-filing may fall, and how far misfiling may rise, against the same documents at depth 2. Likely limits to watch: the minimum-across-levels confidence sends more documents to review; the AI fallback costs one call per level; `review` needs a choice at each level; and the ledger schema changes again.
@@ -615,7 +617,22 @@ folder a user keeps inside a category. The reasoning is in [library-depth.md](li
 - Update `docs/how-to-use.md` (what microfiche leaves alone, and how to add a name pattern), the README, `architecture.md` §1 and §4, and `CONTEXT.md` (*non-library folder*).
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
-**Deferred:** detecting folders moved by hand that the ledger doesn't know about, beyond the name pattern.
+**Revised before building (2026-10-12).** The stage was reduced to what the principle needs: *a folder within the
+depth is a filing target unless a rule excludes it; a folder beyond the depth is content*. Skipping a folder "tagged a
+certain way" (say `yyyymmdd_*`) is what `[exclusions]` already does, so the `name_pattern` allow-list, its schema change
+and `Library.is_taxonomy_folder` were dropped, and with them the two follow-up decisions (a result object for skipped
+folders, and the library file's coupling to the taxonomy walk). Folders the user made are no longer skipped with a report
+line: `reclassify` reads their files as it always did, and the user keeps a folder out by excluding it.
+
+**As built:**
+- `Ledger.folder_units()` returns the library-relative paths of the folders currently filed whole, from the one replay of the ledger.
+- `run_reclassify` classifies each such folder as one unit (the dominant pair across its documents, as `sort` does) and proposes it whole: `keep`, `move`, `review` (a tied vote) or `conflict`. A scope that covers only part of a bundle still proposes the whole bundle. A bundle whose folder is gone is ignored.
+- `Library.structure()` skips the folders the ledger records as filed whole. This matters as soon as the depth is raised: a bundle filed at `Group/pack` at depth 1 would otherwise become a category at depth 2 (and a subcategory at depth 3). `sort` only appends to the ledger, so an unreadable ledger is a warning there and the folders are simply not recognised.
+- `reclassify` reads the ledger, so a corrupt one now stops it with a message (`LedgerCorruptError`).
+- `core.reclassify.items_below_depth` counts the ledger's current items filed deeper than the depth allows and still on disk (a bundle counts once), and `reclassify` prints a note when there are any, after any moves. Nothing is moved.
+- The opt-in flatten that would bring those items up is recorded in [feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced).
+
+**Deferred:** detecting folders moved by hand that the ledger doesn't know about. A bundle moved by hand drops out of the unit set and is split by `reclassify`; the ledger's content hash could identify it at its new place, but the hash changes if its documents were edited. Pinned by a test.
 
 ---
 
@@ -710,7 +727,7 @@ and the run lock. Stages 4.6 and 4.7 reuse its structure walk for depths 1 and 3
 **As built:**
 - A `*` entry at a level covers every folder at that level without an entry of its own, so none is added for them. The shipped template is all `*` entries; appending an entry per folder would have reformatted every new library's file on its first sort.
 - A preview does not run the sync at all, so it doesn't list folders that would be added or entries with no folder.
-- The "filed bundle in the ledger" and `name_pattern` signals for what counts as a library folder are not built: at depth 2 the walk never reaches a bundle, and both belong to Stage 4.8.
+- The "filed bundle in the ledger" and `name_pattern` signals for what counts as a library folder are not built in the sync: at depth 2 the walk never reaches a bundle. Stage 4.8 built the first for `reclassify` (`Ledger.folder_units()`) and replaced `name_pattern` with the existing `[exclusions]`.
 - A symlinked or junctioned folder is no longer a group or category (`Library.taxonomy()` now follows `structure()`), matching the inbox scan's rule.
 - A rename is flagged only when exactly one entry went and exactly one folder appeared under the same parent.
 

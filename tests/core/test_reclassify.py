@@ -10,9 +10,11 @@ from core.config import MICROFICHE_DIRNAME, load_config
 from core.filer import AUDIT_LOG_FILENAME, rollback_job
 from core.ledger import Ledger
 from core.library.library import Library, ScopeOutsideLibraryError
+from core.organizer import run_sort
 from core.reclassify import (
     ReclassifyProposal,
     apply_reclassification,
+    items_below_depth,
     run_reclassify,
 )
 from core.utils.hashing import file_hash
@@ -362,6 +364,286 @@ def test_run_reclassify_reports_progress_from_zero_to_the_total(tmp_path: Path) 
     total = len(proposals)
     assert total > 0
     assert calls == [(done, total) for done in range(total + 1)]
+
+
+# endregion
+
+
+# region Filed bundles and folders the user made
+
+
+_PACK = "phoenix-weekly-pack"
+_RESEARCH_TEXT = "Project Phoenix research article."
+_REQUIREMENTS_TEXT = "Project Phoenix requirements and user story."
+
+
+def _library_with_filed_pack(tmp_path: Path) -> tuple[Path, Path]:
+    """The mock library after a sort has filed the weekly pack whole into Project Phoenix/02 Architecture."""
+
+    library = _library(tmp_path)
+    run_sort(Library(library))
+    pack = library / _ARCHITECTURE / _PACK
+    assert pack.is_dir()
+    return library, pack
+
+
+def test_run_reclassify_filed_bundle_is_one_unit_kept_whole(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.unit.kind == "folder"
+    assert bundle.action == "keep"
+    assert "research-summary.md" not in _by_name(proposals)  # not proposed on its own: the pack stays together
+
+
+def test_run_reclassify_filed_bundle_not_split_when_a_document_disagrees(tmp_path: Path) -> None:
+    """research-summary.md reads as Research, but the pack's vote is Architecture: it must not leave the pack."""
+
+    library, pack = _library_with_filed_pack(tmp_path)
+    before = _snapshot(library)
+
+    apply_reclassification(Library(library), run_reclassify(Library(library)))
+
+    assert _snapshot(library) == before
+    assert (pack / "research-summary.md").is_file()
+
+
+def test_run_reclassify_filed_bundle_moves_whole_when_its_vote_changes(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    for name in ("architecture-decision-log.md", "component-diagram-notes.md"):
+        (pack / name).write_text(_RESEARCH_TEXT, encoding="utf-8")
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.action == "move"
+    assert bundle.destination == library / _RESEARCH / _PACK
+
+
+def test_run_reclassify_apply_moves_bundle_whole_and_rollback_restores_it(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    for name in ("architecture-decision-log.md", "component-diagram-notes.md"):
+        (pack / name).write_text(_RESEARCH_TEXT, encoding="utf-8")
+    before = _snapshot(library)
+    lib = Library(library)
+
+    result = apply_reclassification(lib, run_reclassify(lib))
+
+    assert result.job is not None
+    assert sorted(p.name for p in (library / _RESEARCH / _PACK).iterdir()) == [
+        "architecture-decision-log.md",
+        "component-diagram-notes.md",
+        "research-summary.md",
+    ]
+    assert not pack.exists()
+    rollback_job(lib, result.job.job_id)
+    assert _snapshot(library) == before
+    assert Ledger(library / MICROFICHE_DIRNAME).folder_units() == {f"{_ARCHITECTURE}/{_PACK}"}
+
+
+def test_run_reclassify_filed_bundle_tied_vote_goes_to_review(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    (pack / "architecture-decision-log.md").write_text(_ARCHITECTURE_TEXT, encoding="utf-8")
+    (pack / "component-diagram-notes.md").write_text(_REQUIREMENTS_TEXT, encoding="utf-8")
+    (pack / "research-summary.md").write_text(_RESEARCH_TEXT, encoding="utf-8")
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.action == "review"
+    assert "disagree" in bundle.classification.reason
+
+
+def test_run_reclassify_filed_bundle_destination_taken_conflicts(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    for name in ("architecture-decision-log.md", "component-diagram-notes.md"):
+        (pack / name).write_text(_RESEARCH_TEXT, encoding="utf-8")
+    (library / _RESEARCH / _PACK).mkdir()
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.action == "conflict"
+
+
+def test_run_reclassify_scope_inside_bundle_still_proposes_the_whole_bundle(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+
+    proposals = run_reclassify(Library(library), scope=pack)
+
+    assert [p.current_path for p in proposals] == [pack]
+
+
+def test_run_reclassify_bundle_moved_by_hand_is_no_longer_recognised(tmp_path: Path) -> None:
+    """A known limit (deferred in the build plan): the ledger names the old path, so the moved folder is just a
+    folder the user made and its files are read one by one."""
+
+    library, pack = _library_with_filed_pack(tmp_path)
+    moved = library / _ARCHITECTURE / "archive" / _PACK
+    moved.parent.mkdir()
+    shutil.move(pack, moved)
+
+    proposals = run_reclassify(Library(library))
+
+    assert pack not in [p.current_path for p in proposals]  # the old path is gone and nothing stands in for it
+    assert moved not in [p.current_path for p in proposals]
+    assert {"architecture-decision-log.md", "research-summary.md"} <= set(_by_name(proposals))  # read file by file
+
+
+def test_run_reclassify_rolled_back_bundle_is_not_a_unit(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    report = run_sort(Library(library))
+    assert report.job is not None
+    rollback_job(Library(library), report.job.job_id)
+    _write(library, f"{_ARCHITECTURE}/{_PACK}/loose.md", _ARCHITECTURE_TEXT)  # a folder, but not one microfiche filed
+
+    proposals = run_reclassify(Library(library))
+
+    assert [p.current_path.name for p in proposals if p.unit.kind == "folder"] == []
+    assert "loose.md" in _by_name(proposals)
+
+
+def test_run_reclassify_folder_the_user_made_is_read_file_by_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _write(library, f"{_ARCHITECTURE}/attachments/misfiled.md", _RESEARCH_TEXT)
+
+    proposals = _by_name(run_reclassify(Library(library)))
+
+    assert proposals["misfiled.md"].action == "move"
+
+
+def test_run_reclassify_excluded_folder_is_left_alone(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _write(library, f"{_ARCHITECTURE}/attachments/misfiled.md", _RESEARCH_TEXT)
+    _write(library, f"{_ARCHITECTURE}/20260115_review/misfiled-too.md", _RESEARCH_TEXT)
+    config = load_config(library / MICROFICHE_DIRNAME)
+    config.exclusions.exclude = ["attachments", "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*"]
+
+    names = {p.current_path.name for p in run_reclassify(Library(library, config=config))}
+
+    assert "misfiled.md" not in names
+    assert "misfiled-too.md" not in names
+
+
+# endregion
+
+
+# region Filed items below the library's depth
+
+
+def test_items_below_depth_counts_items_filed_deeper_than_the_depth_allows(tmp_path: Path) -> None:
+    library, _ = _library_with_filed_pack(tmp_path)
+    lib = Library(library)
+    assert items_below_depth(lib) == 0  # a file sits at depth + 1: group/category/file
+
+    lib.config.library_structure.depth = 1  # assigned past the validator for the sake of the test
+
+    assert items_below_depth(lib) == 2  # the architecture note, and the pack (counted once, not per document)
+
+
+def test_items_below_depth_nothing_filed_is_zero(tmp_path: Path) -> None:
+    assert items_below_depth(Library(_library(tmp_path))) == 0
+
+
+def test_items_below_depth_rolled_back_items_do_not_count(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    report = run_sort(Library(library))
+    assert report.job is not None
+    rollback_job(Library(library), report.job.job_id)
+    lib = Library(library)
+    lib.config.library_structure.depth = 1
+
+    assert items_below_depth(lib) == 0
+
+
+# endregion
+
+
+# region Filed bundles: edge cases
+
+
+def test_run_reclassify_progress_counts_units_and_covers_the_parsing(tmp_path: Path) -> None:
+    library, _ = _library_with_filed_pack(tmp_path)
+    calls: list[tuple[int, int]] = []
+
+    proposals = run_reclassify(Library(library), progress=lambda done, total: calls.append((done, total)))
+
+    total = len(proposals)
+    assert calls[0] == (0, total)  # reported before any document is read
+    assert calls[-1] == (total, total)
+    assert any(p.unit.kind == "folder" for p in proposals)  # the pack is one unit, not three
+
+
+def test_run_reclassify_bundle_with_nothing_readable_goes_to_review(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    for path in pack.iterdir():
+        path.unlink()
+    (pack / "broken.docx").write_bytes(b"not a zip file")
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.action == "review"
+    assert "Could not read 'broken.docx'" in bundle.classification.reason
+
+
+def test_run_reclassify_apply_of_a_keep_only_run_writes_no_job(tmp_path: Path) -> None:
+    library, _ = _library_with_filed_pack(tmp_path)
+    lib = Library(library)
+    before = _snapshot(library)
+
+    result = apply_reclassification(lib, run_reclassify(lib))
+
+    assert result.job is None
+    assert _snapshot(library) == before
+
+
+def test_run_reclassify_scope_over_part_of_a_bundle_and_beyond_proposes_each_thing_once(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    _write(library, f"{_ARCHITECTURE}/loose.md", _ARCHITECTURE_TEXT)
+
+    proposals = run_reclassify(Library(library), scope=library / _ARCHITECTURE)
+
+    paths = [p.current_path for p in proposals]
+    assert paths.count(pack) == 1
+    assert len(paths) == len(set(paths))
+    assert not any(path.parent == pack for path in paths)
+
+
+def test_run_reclassify_filed_bundle_in_a_flat_library_is_kept_whole(tmp_path: Path) -> None:
+    library = tmp_path / "flat"
+    shutil.copytree(Path(__file__).resolve().parents[1] / "mock_flat_library", library)
+    run_sort(Library(library))
+    pack = library / "Project Phoenix" / "mixed-pack"
+    assert pack.is_dir()
+
+    proposals = run_reclassify(Library(library))
+
+    (bundle,) = [p for p in proposals if p.current_path == pack]
+    assert bundle.action == "keep"
+    assert "atlas-plan.md" not in _by_name(proposals)  # the Atlas document stays with the pack
+
+
+def test_items_below_depth_items_gone_from_disk_do_not_count(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    shutil.rmtree(pack)
+    lib = Library(library)
+    lib.config.library_structure.depth = 1
+
+    assert items_below_depth(lib) == 1  # the architecture note is still there; the pack is not
+
+
+def test_items_below_depth_a_refiled_bundle_counts_once(tmp_path: Path) -> None:
+    library, pack = _library_with_filed_pack(tmp_path)
+    for name in ("architecture-decision-log.md", "component-diagram-notes.md"):
+        (pack / name).write_text(_RESEARCH_TEXT, encoding="utf-8")
+    lib = Library(library)
+    apply_reclassification(lib, run_reclassify(lib))  # the pack moves to Research; the old record is superseded
+    lib.config.library_structure.depth = 1
+
+    assert items_below_depth(lib) == 2  # the note and the pack, each once
 
 
 # endregion

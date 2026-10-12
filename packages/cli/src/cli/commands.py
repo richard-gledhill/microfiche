@@ -19,11 +19,12 @@ from core.filer import (
     JobNotFoundError,
     rollback_job,
 )
+from core.ledger import LedgerCorruptError
 from core.library.category_suggester import suggest_categories
 from core.library.library import Library, ScopeOutsideLibraryError
 from core.library.library_sync import sync_library_file
 from core.organizer import run_sort
-from core.reclassify import apply_reclassification, run_reclassify
+from core.reclassify import apply_reclassification, items_below_depth, run_reclassify
 from core.runlock import LockHolder, RunLockError, run_lock
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
@@ -208,12 +209,24 @@ def reclassify(
             proposals = run_reclassify(lib, scope=folder, progress=on_progress)
         except ScopeOutsideLibraryError as err:
             _fail(str(err))
+        except LedgerCorruptError as err:
+            _fail(f"The ledger can't be read, so filed folders can't be told apart: {err}")
         render_reclassify_table(console, proposals, dry_run=not apply)
         result = apply_reclassification(lib, proposals) if apply else None
+        below_depth = items_below_depth(lib)  # after any move, so it is what is still below
+    depth = lib.config.library_structure.depth
     if result is None:
-        render_reclassify_result(console, proposals, job=None, dry_run=True)
+        render_reclassify_result(console, proposals, job=None, dry_run=True, below_depth=below_depth, depth=depth)
     else:
-        render_reclassify_result(console, proposals, job=result.job, failed=result.failed, dry_run=False)
+        render_reclassify_result(
+            console,
+            proposals,
+            job=result.job,
+            failed=result.failed,
+            dry_run=False,
+            below_depth=below_depth,
+            depth=depth,
+        )
 
 
 def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:

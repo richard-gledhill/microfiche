@@ -661,6 +661,32 @@ job: it prints a job id, is recorded in the ledger and audit log, and can be und
 `--folder` works with `--apply` too. Preview first: classification is rule-based, so it is worth
 checking the table before moving anything.
 
+**A folder that was filed whole stays whole.** When `keep_folders` is on, `sort` files a dropped folder as one unit.
+`reclassify` treats it the same way: it is one row in the table, classified by the group and category most of its
+documents belong to, and `--apply` moves the whole folder or none of it. A document inside it that reads as something
+else does not leave it. (Microfiche knows which folders it filed from its ledger, so a folder you moved by hand is
+no longer recognised and its files are read one by one.)
+
+**Keeping a folder out.** A folder inside a category that microfiche did not file, such as `attachments/`, is just a
+place files sit: `reclassify` reads its files one by one and may propose moving one out. To leave such a folder alone,
+and to stop a folder being used for filing at all, list it under `[exclusions]` in the config. A name or a glob works,
+at any level, so this skips every folder whose name starts with a date such as `20260115_`:
+
+```toml
+[exclusions]
+exclude = ["attachments", "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*"]
+```
+
+**If you reduce the depth.** Say you change `depth` from 2 to 1. Nothing is moved. The old category folders are now
+plain folders inside their group, an item in one is kept where it is while it is still in the group it belongs to, and
+`reclassify` tells you how many filed items sit below the new depth:
+
+```text
+12 filed item(s) sit in folders below the library's depth (1). Those folders are no longer groups or categories; ...
+```
+
+Raising the depth needs nothing special: `reclassify` proposes moving the existing items into the new level.
+
 View the audit log:
 
 === "Bash"
@@ -808,6 +834,10 @@ microfiche is pre-release. At the moment:
   **Needs review** stays in the inbox for you to file by hand.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
   integration after the first release.
+- A folder you move by hand after `sort` filed it whole is no longer recognised as one unit by `reclassify` (the
+  ledger names its old path), and `reclassify` reads a bundle's folder through the ledger, so a corrupt ledger stops it.
+- There is no command to bring items up to the new depth after you reduce it; they stay where they are. An opt-in way
+  is recorded as an idea, to be reviewed.
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
   inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md#flat-libraries-depth-1).

@@ -9,12 +9,16 @@ is, and where a classified unit belongs. Everything else asks it.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from core.config import MICROFICHE_DIRNAME, MicroficheConfig, load_config
+from core.ledger import Ledger, LedgerCorruptError
 from core.library.library_file import FolderNode, LibraryFile, load_library_file
 from core.models.category import Taxonomy
 from core.utils.filesystem import is_excluded, is_link
+
+_logger = logging.getLogger(__name__)
 
 
 class ScopeOutsideLibraryError(ValueError):
@@ -86,16 +90,17 @@ class Library:
         """Read the library's folders, down to the configured depth, as they exist right now.
 
         Only folder names are read, never file contents, so this is cheap even for a library with
-        10,000+ files. The inbox, the state folder, anything matching the config's exclusions and any
-        symlink or junction (never followed) are skipped. Nothing is cached: the folders are the
-        authority on what exists.
+        10,000+ files. The inbox, the state folder, anything matching the config's exclusions, any
+        symlink or junction (never followed) and any folder the ledger records as filed whole are skipped. The
+        last matters after the depth is raised: a bundle filed at ``Group/pack`` would otherwise become a category.
+        Nothing is cached: the folders are the authority on what exists.
 
         Returns:
             The groups in sorted order, each with its sub-folders as ``children`` down to
             ``[library_structure] depth`` levels. The nodes carry names only, no hints or rules.
         """
 
-        return self._folders_in(self.root, self.config.library_structure.depth)
+        return self._folders_in(self.root, self.config.library_structure.depth, self._filed_whole())
 
     def taxonomy(self) -> Taxonomy:
         """The library's groups and, for each, its category names: a view of ``structure()``.
@@ -191,7 +196,20 @@ class Library:
         search_root = self._search_root(scope)
         return [path for path in sorted(search_root.rglob("*")) if path.is_file() and not self.is_excluded(path)]
 
-    def _folders_in(self, parent: Path, levels: int) -> list[FolderNode]:
+    def _filed_whole(self) -> set[Path]:
+        """The folders microfiche filed whole, which are content and not structure.
+
+        An unreadable ledger is a warning, not an error: it would otherwise stop ``sort``, which only appends to it.
+        The folders are then simply not recognised.
+        """
+
+        try:
+            return {self.root / path for path in Ledger(self.state_dir).folder_units()}
+        except LedgerCorruptError as err:
+            _logger.warning("the ledger can't be read, so folders filed whole are not recognised: %s", err)
+            return set()
+
+    def _folders_in(self, parent: Path, levels: int, filed_whole: set[Path]) -> list[FolderNode]:
         """The library folders directly inside ``parent``, each with its own down to ``levels`` levels in all."""
 
         if levels < 1:
@@ -199,9 +217,9 @@ class Library:
         return [
             # Not validated: a folder is whatever it is called, even if the library file could not hold that name
             # (two names differing only by case on Linux, say). The sync decides which can be entries.
-            FolderNode.model_construct(name=folder.name, children=self._folders_in(folder, levels - 1))
+            FolderNode.model_construct(name=folder.name, children=self._folders_in(folder, levels - 1, filed_whole))
             for folder in sorted(parent.iterdir())
-            if folder.is_dir() and not is_link(folder) and not self.is_excluded(folder)
+            if folder.is_dir() and not is_link(folder) and not self.is_excluded(folder) and folder not in filed_whole
         ]
 
     def _search_root(self, scope: Path | None) -> Path:

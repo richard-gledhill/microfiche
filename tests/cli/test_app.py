@@ -1597,3 +1597,56 @@ def test_sort_piped_output_carries_no_progress_control_codes(tmp_path: Path) -> 
 
 
 # endregion
+
+
+# region Filed bundles and a reduced depth
+
+
+def test_reclassify_keeps_a_filed_bundle_whole(tmp_path: Path) -> None:
+    library = _library(tmp_path, with_pack=True)
+    runner.invoke(app, ["sort", "--library", str(library)])
+    pack = library / "Project Phoenix" / "02 Architecture" / _PACK
+    assert pack.is_dir()
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    assert pack.is_dir()
+    assert (pack / "research-summary.md").is_file()  # not carried off to Research on its own
+
+
+def test_reclassify_says_when_filed_items_sit_below_a_reduced_depth(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    runner.invoke(app, ["sort", "--library", str(library)])
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8").replace("depth = 2", "depth = 1"), encoding="utf-8")
+    (library / _LIBRARY_FILE).write_text(json.dumps({"groups": []}), encoding="utf-8")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "1 filed item(s) sit in folders below the library's depth (1)" in output
+    assert "no longer groups or categories" in output
+
+
+def test_reclassify_says_nothing_about_depth_when_nothing_is_below_it(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    runner.invoke(app, ["sort", "--library", str(library)])
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert "below the library's depth" not in result.stdout
+
+
+def test_reclassify_corrupt_ledger_exits_1_with_a_message(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / ".microfiche" / "ledger.jsonl").write_text("not json\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert "ledger" in result.stdout.lower()
+
+
+# endregion

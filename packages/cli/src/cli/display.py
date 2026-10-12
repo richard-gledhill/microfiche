@@ -154,6 +154,8 @@ def render_reclassify_result(
     job: Job | None,
     dry_run: bool,
     failed: Sequence[FailedFiling] = (),
+    below_depth: int = 0,
+    depth: int = 2,
 ) -> None:
     """Summarise a reclassify run: counts by action, and either the job (applied) or how to apply.
 
@@ -163,6 +165,8 @@ def render_reclassify_result(
         job: The job that filed the moves, or ``None`` for a dry run or if nothing moved.
         dry_run: Whether the run was a preview.
         failed: Documents that could not be moved; they stay where they were.
+        below_depth: How many filed items sit in folders below the library's depth (see ``items_below_depth``).
+        depth: The library's depth, named in the note about those items.
     """
 
     counts = {action: sum(1 for proposal in proposals if proposal.action == action) for action in _ACTION_STYLES}
@@ -189,6 +193,13 @@ def render_reclassify_result(
     for failure in failed:
         console.print(
             f"  [red]{escape(str(failure.unit.source_path))}[/red] — could not be moved: {escape(failure.reason)}",
+            soft_wrap=True,
+        )
+    if below_depth:
+        console.print(
+            f"[dim]{below_depth} filed item(s) sit in folders below the library's depth ({depth}). Those folders are "
+            "no longer groups or categories; an item in one stays where it is while the classifier still puts it in "
+            "the group or category it is in.[/dim]",
             soft_wrap=True,
         )
     if dry_run:

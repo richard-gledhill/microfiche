@@ -134,11 +134,21 @@ library file takes `hints` and `rules`, matched as a filename rule, then the gro
 a flat library has none of. Calibrated on a small flat corpus (`tests/calibration/corpus_flat`); see
 [calibration.md](calibration.md#flat-libraries-depth-1).
 
-Three more concern the library's shape, from [library-depth.md](library-depth.md); none is built:
+[Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders) is built, reduced to what the principle needs: a folder
+within the depth is a filing target unless `[exclusions]` skips it, and a folder beyond the depth is content. A folder
+microfiche filed whole is recorded in the ledger (`Ledger.folder_units()`), and `reclassify` now classifies it as one
+unit and proposes it whole (`keep`, `move`, `review` or `conflict`) instead of splitting its documents. Any other folder
+below a category is read file by file, as before; to keep one out, exclude it by name or glob (`attachments`,
+`[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*`). When the depth is reduced, nothing moves; `reclassify` says how many filed
+items now sit below it (`items_below_depth`). `Library.structure()` also skips filed bundles, so one never becomes a
+category when the depth is raised. `name_pattern` was dropped in favour of the existing exclusions. Still open: a
+bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
+[feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced), to be reviewed.
+
+Two more concern the library's shape, from [library-depth.md](library-depth.md); neither is built:
 [Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) (depth 3 with subcategories,
-provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders)
-(folders that aren't part of the taxonomy, such as bundles filed by `keep_folders`; today `reclassify` would split
-them) and [Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
+provisional and deferred if it hits a practical limit) and
+[Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
 setting: `leaf_only` or `best_level`).
 
 [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
@@ -149,8 +159,7 @@ sorting. Entries with no folder are reported every run and kept; one gone and on
 a possible rename. Nothing the user wrote is changed, a `*` entry covers the folders at its level, and the file is
 written through a temporary file and a rename, only when something was added. A preview and plain `config` write
 nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview
-doesn't show what would be added, a `name_pattern` and the filed-bundle signal wait for
-[Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders), and the walk reads two levels until Stages 4.6 and 4.7.
+doesn't show what would be added, and the walk reads one or two levels until Stage 4.7.
 
 ## Future work and deferred beyond MVP
 

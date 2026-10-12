@@ -23,6 +23,10 @@ _Avoid_: Project (a project is only one thing a group can be), folder, bucket
 A folder inside a group, where a document actually lands — such as a document type or a stage of work. A flat library has none: its documents land in the group.
 _Avoid_: Subfolder, tag, label
 
+**Bundle**:
+A folder microfiche filed whole as one unit (`keep_folders`), recorded as such in the ledger. It is content inside a category, not a part of the library's structure, and `reclassify` moves it whole or not at all.
+_Avoid_: Sub-category, nested folder
+
 **State folder**:
 The hidden folder inside a library where microfiche keeps its config and its own records.
 _Avoid_: Data directory, config folder, logs folder
