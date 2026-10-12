@@ -1,5 +1,6 @@
 """Tests for the Classifier: stage-by-stage resolution, AI fallback, taxonomy checks, and folder votes."""
 
+import logging
 from pathlib import Path
 
 import pytest
@@ -447,6 +448,57 @@ def test_classify_unit_unreadable_files_do_not_vote_or_block() -> None:
 
 
 # endregion
+
+
+# endregion
+
+
+# region Logging
+
+
+def _decision_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    return [record for record in caplog.records if record.name == "core.classifier"]
+
+
+def test_classify_document_logs_decision_and_reasons(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="core")
+    rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
+
+    Classifier(rules).classify_document(_document(file_name="notes.md"), TAXONOMY)
+
+    [record] = _decision_records(caplog)
+    message = record.getMessage()
+    assert record.levelno == logging.DEBUG
+    for expected in ("notes.md", PHOENIX, ARCH, "rules_engine", f"group {PHOENIX}", f"category {ARCH}"):
+        assert expected in message
+
+
+def test_classify_document_unresolved_logs_both_reasons(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="core")
+    rules = FakeResolver("rules_engine", _group(None), _category(None))
+
+    Classifier(rules).classify_document(_document(file_name="notes.md"), TAXONOMY)
+
+    [record] = _decision_records(caplog)
+    assert "group None" in record.getMessage()  # the group stage's reason
+    assert "Group unresolved" in record.getMessage()  # the category stage's reason
+
+
+@pytest.mark.parametrize(
+    ("group", "category"),
+    [(_group(PHOENIX), _category(ARCH)), (_group(None), _category(None))],
+)
+def test_classify_document_log_never_holds_document_text(
+    caplog: pytest.LogCaptureFixture, group: GroupMatch, category: CategoryMatch
+) -> None:
+    document_text = "UNIQUE-DOCUMENT-TEXT-MARKER"
+    caplog.set_level(logging.DEBUG, logger="core")
+    rules = FakeResolver("rules_engine", group, category)
+
+    Classifier(rules).classify_document(_document(document_text), TAXONOMY)
+
+    assert _decision_records(caplog)  # something was logged, so the next line is not trivially true
+    assert document_text not in caplog.text
 
 
 # endregion

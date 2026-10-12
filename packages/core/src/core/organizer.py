@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,6 +17,8 @@ from core.models.job import Job
 from core.models.unit import SortableUnit
 from core.scanner import scan_sorting_inbox
 from core.utils.filesystem import is_link
+
+_logger = logging.getLogger(__name__)
 
 _KEPT_REASON_FILES = 3  # how many remaining files a "folder kept" reason names before saying "and N more"
 
@@ -92,16 +95,28 @@ def run_sort(
     report = SortReport(dry_run=dry_run)
     scan = scan_sorting_inbox(library, keep_folders=keep_folders)
     report.skipped_links = scan.skipped_links
+    label = " (dry run)" if dry_run else ""
+    _logger.info("sort%s: %d unit(s) to classify", label, len(scan.units))
     for unit in scan.units:
         classification = classifier.classify_unit(unit, taxonomy)
         duplicate = duplicates.check(unit, classification)
         if duplicate is not None:
+            _logger.debug("%s: held as a duplicate", unit.source_path.name)
             report.duplicates.append(duplicate)
             continue
         classification = _reserve_destination(unit, classification, library, claims, duplicates)
         if classification.confident:
+            _logger.debug(
+                "%s: to be filed under %s / %s",
+                unit.source_path.name,
+                classification.group.name,
+                classification.category.name,
+            )
             report.filed.append((unit, classification))
         else:
+            _logger.debug(
+                "%s: left for review (confidence %.2f)", unit.source_path.name, classification.overall_confidence
+            )
             report.needs_review.append((unit, classification))
 
     if not dry_run:
@@ -110,6 +125,13 @@ def run_sort(
     if ai_classifier is not None:
         report.ai_unavailable = ai_classifier.failure
 
+    _logger.info(
+        "sort%s finished: %d filed, %d for review, %d duplicate(s)",
+        label,
+        len(report.filed),
+        len(report.needs_review),
+        len(report.duplicates),
+    )
     return report
 
 

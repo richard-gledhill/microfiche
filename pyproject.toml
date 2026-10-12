@@ -119,6 +119,10 @@ select = [
     "C4",
     # flake8-debugger
     "T10",
+    # flake8-logging
+    "LOG",
+    # flake8-logging-format
+    "G",
     # flake8-simplify
     "SIM",
     # isort

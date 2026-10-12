@@ -8,6 +8,7 @@ result is confident enough to file. The resolvers only propose; they don't decid
 
 from __future__ import annotations
 
+import logging
 from collections import Counter
 from collections.abc import Callable, Sequence
 from typing import Protocol, TypeVar
@@ -23,6 +24,8 @@ from core.rules.rules_engine import RulesEngine
 # region Constants and types
 
 Match = TypeVar("Match", GroupMatch, CategoryMatch)
+
+_logger = logging.getLogger(__name__)
 
 
 class Resolver(Protocol):
@@ -132,13 +135,27 @@ class Classifier:
             )
 
         overall = combine_confidence(group.confidence, category.confidence)
-        return ClassificationResult(
+        result = ClassificationResult(
             group=group,
             category=category,
             overall_confidence=overall,
             classified_by=self._label(group_source, category_source),
             confident=group.name is not None and category.name is not None and overall >= self._threshold,
         )
+
+        _logger.debug(
+            "%s: group %s (%.2f, %s); category %s (%.2f, %s); by %s",
+            document.file_name,
+            group.name,
+            group.confidence,
+            group.reason,
+            category.name,
+            category.confidence,
+            category.reason,
+            result.classified_by,
+        )
+
+        return result
 
     def classify_unit(self, unit: SortableUnit, taxonomy: Taxonomy) -> ClassificationResult:
         """Classify a unit: a file directly, a folder by the dominant pair across its documents.
