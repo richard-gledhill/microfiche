@@ -8,6 +8,7 @@ from core.config import AIConfig
 from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
+from core.utils.errors import describe_error
 
 
 class LLMClassifier:
@@ -16,6 +17,11 @@ class LLMClassifier:
     Asks the model to pick a group or category from the taxonomy, or to say none fit. It is a
     fallback resolver for ``core.classifier.Classifier``, which decides whether the answer is
     confident enough to use.
+
+    If the provider fails - Ollama not running, a timeout, the optional package missing - the
+    classifier stops asking for the rest of its life and answers "no match" from then on, so the
+    run carries on with the rules alone and does not wait out a timeout for every document. The
+    first failure is kept in ``failure`` for the caller to report once.
 
     Args:
         provider: The model to ask.
@@ -31,6 +37,13 @@ class LLMClassifier:
     def __init__(self, provider: AIProvider, settings: AIConfig) -> None:
         self._provider = provider
         self._settings = settings
+        self._failure: str | None = None
+
+    @property
+    def failure(self) -> str | None:
+        """Why the provider stopped being asked (one line), or ``None`` if it has not failed."""
+
+        return self._failure
 
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Ask the model which of the taxonomy's groups ``document`` belongs to.
@@ -48,7 +61,9 @@ class LLMClassifier:
             group_names=", ".join(taxonomy.group_names),
             document_text=self._clip(document.content),
         )
-        answer = self._provider.complete(prompt).strip()
+        answer = self._ask(prompt)
+        if answer is None:
+            return GroupMatch(name=None, confidence=0.0, reason="AI fallback unavailable")
         if answer.upper() == "NONE" or answer not in taxonomy.group_names:
             return GroupMatch(name=None, confidence=0.0, reason="AI found no matching group")
         return GroupMatch(name=answer, confidence=self._settings.ai_confidence, reason="Resolved by AI fallback")
@@ -72,10 +87,27 @@ class LLMClassifier:
             category_names=", ".join(categories),
             document_text=self._clip(document.content),
         )
-        answer = self._provider.complete(prompt).strip()
+        answer = self._ask(prompt)
+        if answer is None:
+            return CategoryMatch(name=None, confidence=0.0, reason="AI fallback unavailable")
         if answer.upper() == "NONE" or answer not in categories:
             return CategoryMatch(name=None, confidence=0.0, reason="AI found no matching category")
         return CategoryMatch(name=answer, confidence=self._settings.ai_confidence, reason="Resolved by AI fallback")
+
+    def _ask(self, prompt: str) -> str | None:
+        """The provider's answer, or ``None`` if it has failed - now or on an earlier call.
+
+        Any exception from the provider counts: the providers wrap third-party libraries that share no
+        exception base, so a connection error, a timeout and a missing package all look different.
+        """
+
+        if self._failure is not None:
+            return None
+        try:
+            return self._provider.complete(prompt).strip()
+        except Exception as err:
+            self._failure = describe_error(err)
+            return None
 
     def _clip(self, text: str) -> str:
         """The part of ``text`` the AI is sent: all of it when ``max_document_chars`` is 0."""

@@ -15,6 +15,7 @@ from core.config import (
     MicroficheConfig,
     NamingRulesConfig,
     ObsidianConfig,
+    ParsingConfig,
     SortingConfig,
     TomlConfigParseError,
     UnsupportedDepthError,
@@ -42,6 +43,7 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("classification", ClassificationConfig),
     ("ai", AIConfig),
     ("sorting", SortingConfig),
+    ("parsing", ParsingConfig),
 ]
 
 
@@ -369,6 +371,44 @@ def test_load_config_keep_folders_not_a_boolean_rejected(tmp_path: Path) -> None
     (tmp_path / "microfiche-config.toml").write_text('[sorting]\nkeep_folders = "perhaps"\n', encoding="utf-8")
 
     with pytest.raises(ConfigError, match=r"sorting.keep_folders"):
+        load_config(tmp_path)
+
+
+def test_load_config_ignore_defaults_to_office_locks_and_os_clutter() -> None:
+    assert load_config(Path("does-not-exist")).sorting.ignore == ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
+
+
+def test_load_config_ignore_list_replaces_default(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[sorting]\nignore = ["*.bak"]\n', encoding="utf-8")
+
+    assert load_config(tmp_path).sorting.ignore == ["*.bak"]
+
+
+def test_load_config_ignore_not_a_list_rejected(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[sorting]\nignore = "*.bak"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"sorting.ignore"):
+        load_config(tmp_path)
+
+
+def test_load_config_max_file_mb_defaults_to_fifty() -> None:
+    parsing = load_config(Path("does-not-exist")).parsing
+
+    assert parsing.max_file_mb == 50
+    assert parsing.max_file_bytes == 50 * 1024 * 1024
+
+
+def test_load_config_max_file_mb_custom_value_in_bytes(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[parsing]\nmax_file_mb = 0.5\n", encoding="utf-8")
+
+    assert load_config(tmp_path).parsing.max_file_bytes == 512 * 1024
+
+
+@pytest.mark.parametrize("value", ["0", "-5"])
+def test_load_config_max_file_mb_not_positive_rejected(tmp_path: Path, value: str) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(f"[parsing]\nmax_file_mb = {value}\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match=r"parsing.max_file_mb"):
         load_config(tmp_path)
 
 

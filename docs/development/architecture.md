@@ -175,6 +175,40 @@ names the file and why it stayed: not a document, still needs review, or a dupli
 event in the job, and `rollback` recreates the folder (`restore_folder`) before putting its files back. This is the only
 thing microfiche ever removes: no file is deleted, and the folder is empty when it goes.
 
+**Decision — a failure belongs to one unit, not to the run.** One awkward input never aborts a `sort`:
+
+- *A move is a plain rename* (`core.utils.filesystem.safe_move`), never a copy followed by a delete. `shutil.move`
+  quietly falls back to copy-then-delete when a rename fails, and on Windows, when Word has the file open, the rename
+  fails, the copy succeeds and the delete fails, leaving a full copy that no job, ledger or audit line knows about (the next
+  run then holds the original as a duplicate of it). A rename either happens or changes nothing. There is no
+  cross-volume fallback: the inbox is inside the library, so a move across volumes is almost unreachable, and the case
+  fails with the operating system's error.
+- `file_batch` returns a `FilingResult` (the job, and the units that failed). A move that raises an `OSError` is not
+  recorded, its reason is put into plain language (a file in use becomes "it is open in another program; close it and
+  sort again"), and the rest of the batch is filed. `run_sort` moves such a unit to `needs_review` with the reason,
+  keeping the group and category it was given. The job only ever holds moves that happened, so `rollback` needs to know
+  nothing about failures.
+- The AI fallback: any exception from the provider (a connection failure, a timeout, a missing optional package) makes
+  `LLMClassifier` stop asking for the rest of the run, answering "no match" so the rules' answers stand. The first failure
+  is kept (`failure`) and reported once in `SortReport.ai_unavailable`; `core` stays quiet and the CLI prints it.
+- Inputs are filtered before they are read: names matching `[sorting] ignore` are skipped without comment, a symlink or
+  Windows junction is skipped and listed (`is_link` checks the reparse *tag*, because OneDrive's on-demand placeholders are
+  reparse points too), and a file over `[parsing] max_file_mb` is refused by `parse_document` before it is opened, so it
+  reaches review as an unreadable document with the reason.
+
+**Decision — a preview is the same run with one step left out.** `sort --dry-run` runs `run_sort(dry_run=True)`: scan,
+classify, duplicate and name checks, and any AI calls, but not `file_batch`. It writes no job, ledger or audit line and
+takes no lock, and creates no state folder. Because the real code path is shared, a preview cannot drift from a real run.
+The one piece of new logic is predicting which inbox folders would be removed once emptied.
+
+**Decision — one run at a time.** `sort` (not `--dry-run`), `reclassify --apply` and `rollback` take `.microfiche/lock`
+(`core/runlock.py`) at the CLI level, so `reclassify --apply` can hold it from planning to filing. The file is created
+atomically (`O_CREAT | O_EXCL`) and holds the process id, command and start time. A lock whose process no longer exists
+is stale and is cleared; a lock file that cannot be read counts as held and is never cleared, because guessing wrong
+would let two runs through while deleting one file is an easy request to make. On Windows the process check uses the
+operating system's process API: `os.kill(pid, 0)` must not be used there, since it sends the process a Ctrl-C. Previews
+and read-only commands take no lock. A lock timeout and a `--force` override are deferred.
+
 ## 5. Exclusions
 
 `microfiche-config.toml`'s `[exclusions]` table — glob patterns never treated as a category and never descended into by
@@ -263,7 +297,7 @@ the dominant category.
 ## 8. CLI surface (supersedes concept 1a's command list)
 
 ```bash
-microfiche sort [--keep-folders | --keep-folders-off] [--use-ai]        # process the library-wide _sorting/ inbox
+microfiche sort [--keep-folders | --keep-folders-off] [--use-ai] [--dry-run]        # process the library-wide _sorting/ inbox
 microfiche review                                    # work the low-confidence queue (stub - see mvp-roadmap.md)
 microfiche propose-categories                        # suggest category names from the inbox; print-only
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
@@ -316,6 +350,9 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
 * **`[sorting] keep_folders`** defaults to `true`. `sort --keep-folders` and `--keep-folders-off` override it for one run,
   and passing both is an error. With it off, a folder's documents are filed one by one, and the emptied folder is
   removed and recorded in the job so `rollback` can recreate it (§4).
+* **`[sorting] ignore`** lists file and folder name globs the inbox scan skips without comment (Office lock files and OS
+  clutter by default). A library's list replaces the default. **`[parsing] max_file_mb`** (default 50, above 0) is the size
+  past which a file is not read and goes to review (§4).
 * **`[ai]`** picks the provider (`ollama` or `openai`), model, host, timeout, the name of the environment variable that
   holds the OpenAI key (`api_key_env`; the key is never in the file), the AI score, and `max_document_chars` (how much of a
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when

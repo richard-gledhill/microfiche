@@ -10,7 +10,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 | Command | Status | Notes |
 |---|---|---|
-| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. |
+| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). |
 | `review` | Stub | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
@@ -97,9 +97,17 @@ has no setting. `keep_folders = false` descends into inbox folders, files each d
 folder once it is empty, recorded as a `remove_folder` event so `rollback` recreates it. Still open: duplicates
 are not checked for folders kept whole, and a duplicate is not moved out of the inbox for you.
 
-Three further steps follow it; none is built:
-[Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) (`sort --dry-run`, a run
-lock, per-unit failure isolation, symlink and size limits) and
+[Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) is built. `sort --dry-run` previews a run
+(`run_sort(dry_run=True)`), writing nothing and taking no lock. `sort`, `reclassify --apply` and `rollback` take
+`.microfiche/lock` (`core/runlock.py`) so a second changing run refuses to start; a lock from a dead process is
+cleared. A move is now a plain rename, so a file another program has open fails cleanly and, like any other
+per-unit failure, goes to review with the reason while the rest of the batch is filed (`file_batch` returns a
+`FilingResult`). A failing AI provider switches the AI off for the rest of the run, with one warning. The inbox
+scan skips `[sorting] ignore` names, symlinks and junctions, and a file over `[parsing] max_file_mb` is left for
+review unread. Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
+the inbox's `ignore` and link rules.
+
+Two further steps follow it; neither is built:
 [Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) (logging, `--verbose`/`--quiet`, progress) and
 [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as
 Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
@@ -160,6 +168,7 @@ RAG, and knowledge-graph work are future-roadmap items, not MVP scope.
 Also postponed, after the review in [operations-review.md](operations-review.md):
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
+- **A lock timeout or `--force` override** for the run lock, and nested-library detection.
 - **Moving duplicates** to a `_sorting/duplicates/` folder to leave the inbox tidier, checking folders kept whole for duplicates, and a persistent hash cache. Content-duplicate detection itself is built (Stage 4.2).
 - **Renaming on collision** (a suffix setting). Collisions go to review instead.
 - **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche.

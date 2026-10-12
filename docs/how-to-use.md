@@ -303,7 +303,8 @@ as normal. Fix or replace the file and sort again.
 
 microfiche's own records live in the hidden `.microfiche/` folder inside your library: a ledger
 of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
-per job. No extra files are written next to your documents.
+per job. While a run is in progress there is also a `lock` file there (see
+[Two runs at once](#two-runs-at-once)). No extra files are written next to your documents.
 
 A folder dropped in the inbox is kept together and filed whole, under the category most of its
 documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To file the
@@ -333,6 +334,31 @@ sub-folders). This is the only thing microfiche ever removes, and `rollback` put
 is left in the folder — a file that isn't a document, a document that needs review, a duplicate — the
 folder stays, and the `sort` summary says which file kept it there.
 
+### Preview before you sort
+
+To see what a run would do without doing it, add `--dry-run`:
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche sort --library ~/Documents/Library --dry-run
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche sort --library "$HOME\Documents\Library" --dry-run
+    ```
+
+The output is labelled **Preview**. It lists what would be filed and where, what would need review, which
+files are duplicates, and (with `--keep-folders-off`) which emptied inbox folders would be removed. Nothing is
+moved, and nothing is recorded: no job, no ledger or audit line, and no lock. A real run then does the same
+thing, which is the point of a preview.
+
+Two things a preview cannot know. It still classifies, so with `--use-ai` it asks the AI, and with OpenAI that
+sends document text and costs money. And it cannot see that a file will be open in another program when you
+do the real run (see below).
+
 ### Name clashes and duplicates
 
 `sort` never overwrites, renames or deletes a file. Two situations leave a file where it is:
@@ -354,6 +380,8 @@ Only the new files in the inbox are checked, against the library. Copies already
 reference document kept in two projects, are normal and are never reported. An empty file is never counted as a
 duplicate, and a folder kept whole is not checked as a duplicate (turn `keep_folders` off to check its files one
 by one).
+
+### The AI fallback
 
 Use the Ollama fallback for low-confidence documents (requires the `ai` extra and a running
 Ollama server):
@@ -406,6 +434,55 @@ variable is not set, `sort` stops with a message naming it before anything is mo
 **Sending whole documents.** `max_document_chars = 0` removes the limit. That uses more tokens
 (and with OpenAI, costs more) and takes longer, and a document longer than the model's context window
 may fail or be cut off, so `sort` prints a warning once before it starts.
+
+**If the AI cannot be reached.** Ollama not running, a timeout, or the `ai` extra not installed does not stop
+the run. The first failure switches the AI off for the rest of that run (so a dead server is waited on once, not
+once per document), and `sort` prints one warning: `AI fallback unavailable: <reason>`. Everything the rules can
+decide is filed as usual. Anything only the AI could have answered stays under **Needs review**.
+
+### Files that can't be sorted
+
+One awkward file never stops a run. It stays where it is, and the summary says why:
+
+- **Open in another program.** A document that Word (or another program) has open cannot be moved on
+  Windows. It is listed under **Needs review** as `... but it could not be moved: it is open in another program;
+  close it and sort again`. Moves are plain renames, so a failed move leaves nothing behind: no stray copy, and
+  nothing recorded in the job, ledger or audit log. Close the file and sort again. With `--keep-folders-off`, a
+  folder with a file that could not be moved stays in the inbox; a folder kept whole is not moved at all.
+- **Too big.** A file over `[parsing] max_file_mb` (default 50) is not read. It is listed as
+  `Could not read 'x.pdf': it is 120.0 MB, over the 50 MB limit ([parsing] max_file_mb)` and left in the inbox.
+  Raise the setting to include it.
+- **Names that are skipped.** Office lock files (`~$report.docx`) and OS clutter are skipped without comment: never
+  read, filed or moved. These are the `[sorting] ignore` patterns, and a setting you write replaces the list:
+
+  ```toml
+  [sorting]
+  ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]   # the defaults
+  [parsing]
+  max_file_mb = 50                                       # the default
+  ```
+
+  A skipped file still counts as something in its folder, so with `--keep-folders-off` a folder holding only a
+  `Thumbs.db` stays (no file is ever deleted to empty it).
+- **Links.** A symbolic link or a Windows junction in the inbox is never followed, read or filed, so a link can't
+  lead `sort` out of the library. `sort` lists it as `Skipped <name>: links and junctions are never followed`.
+  Files that OneDrive keeps online only are ordinary files and are sorted as usual.
+
+### Two runs at once
+
+`sort`, `reclassify --apply` and `rollback` change the library, so only one can run at a time. Each takes a lock
+(a small `lock` file in `.microfiche/`, removed when the run ends), and a second one refuses to start:
+
+```text
+Another microfiche run is already in progress (sort, process 4242, started 2026-10-12 09:30:12). Wait for it to
+finish and try again. If no run is active, delete <library>/.microfiche/lock and try again.
+```
+
+Wait for the first run, then try again. If a run was killed or the machine lost power, you need do nothing: the
+lock records the process that took it, and a lock whose process is gone is cleared automatically. If the lock
+file is damaged so that microfiche can't tell, it is treated as held, and the message names the file to delete.
+A preview (`sort --dry-run`), `reclassify` without `--apply`, `audit`, `config` and `propose-categories` only read,
+so they need no lock and run beside anything.
 
 ## 4. Maintain the library
 
@@ -523,6 +600,11 @@ microfiche is pre-release. At the moment:
 - Duplicates are found by exact content only: a copy saved again by another program, so that its bytes
   differ, is not recognised. A folder kept whole is not checked as a duplicate, and nothing moves a duplicate
   out of the inbox for you.
+- A preview can't tell that a file will be open in another program when the real run happens, and it can be
+  out of date if another run is changing the library at the same time.
+- The inbox settings `[sorting] ignore` and the skipping of links apply to `sort`. `reclassify` honours
+  `[parsing] max_file_mb` but not those two.
+- A file open in another program is not retried: close it and run `sort` again.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 
 Every command and option is listed in the [CLI reference](cli-reference.md), or run

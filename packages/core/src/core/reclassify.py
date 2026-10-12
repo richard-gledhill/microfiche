@@ -13,10 +13,9 @@ from pathlib import Path
 from typing import Literal
 
 from core.classifier import Classifier
-from core.filer import DestinationClaims, destination_for, file_batch
+from core.filer import DestinationClaims, FilingResult, destination_for, file_batch
 from core.library.library import Library
 from core.models.classification import ClassificationResult
-from core.models.job import Job
 from core.models.unit import SortableUnit
 from core.parsers import is_supported, read_documents
 
@@ -88,7 +87,7 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
         if not is_supported(file_path):
             continue
 
-        read = read_documents([file_path])
+        read = read_documents([file_path], max_bytes=library.config.parsing.max_file_bytes)
         unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
         classification = classifier.classify_unit(unit, taxonomy)
         proposals.append(_plan(unit, classification, library, claims))
@@ -96,19 +95,18 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
     return proposals
 
 
-def apply_reclassification(library: Library, proposals: list[ReclassifyProposal]) -> Job | None:
+def apply_reclassification(library: Library, proposals: list[ReclassifyProposal]) -> FilingResult:
     """File every proposal whose action is ``"move"`` as one job (see ``core.filer.file_batch``).
+
+    A document that cannot be moved (open in another program, say, or a destination taken after the
+    proposals were made) stays where it is and is listed in the result; the others are still moved.
 
     Args:
         library: The library the proposals were made for.
         proposals: The result of ``run_reclassify``.
 
     Returns:
-        The saved job, or ``None`` if there was nothing to move.
-
-    Raises:
-        FileExistsError: if a destination was taken after the proposals were made. Moves already
-            made are saved as a job and can be rolled back.
+        The saved job (``None`` if nothing was moved) and the documents that could not be moved.
     """
 
     items = [(proposal.unit, proposal.classification) for proposal in proposals if proposal.action == "move"]

@@ -15,6 +15,7 @@ from pathlib import Path
 from core.models.document import Document, UnreadableDocument
 from core.parsers import docx_parser, eml_parser, markdown_parser, msg_parser, pdf_parser, txt_parser
 from core.parsers.base import Parser
+from core.utils.errors import describe_error
 
 # Todo: Add support for folder parsing with a collection of documents that sorts the whole folder as a unit.
 
@@ -30,7 +31,7 @@ _PARSERS: dict[str, Parser] = {
 
 SUPPORTED_EXTENSIONS = frozenset(_PARSERS)
 
-_MAX_REASON_CHARS = 200
+_MEGABYTE = 1024 * 1024
 
 
 class UnsupportedFormatError(ValueError):
@@ -84,37 +85,49 @@ def is_supported(path: Path) -> bool:
     return path.suffix.lower() in SUPPORTED_EXTENSIONS
 
 
-def parse_document(path: Path) -> Document:
+def parse_document(path: Path, *, max_bytes: int | None = None) -> Document:
     """Parse ``path`` with the parser registered for its extension.
 
     Args:
         path: The file to parse.
+        max_bytes: Refuse a file bigger than this, without reading it. ``None`` means no limit.
 
     Returns:
         The extracted ``Document``.
 
     Raises:
         UnsupportedFormatError: if no parser is registered for the file's extension.
-        UnreadableDocumentError: if the file's parser fails for any reason.
+        UnreadableDocumentError: if the file is over ``max_bytes`` or its parser fails for any reason.
     """
 
     parser = _PARSERS.get(path.suffix.lower())
     if parser is None:
         raise UnsupportedFormatError(path)
     try:
+        size = path.stat().st_size
+    except OSError as err:
+        raise UnreadableDocumentError(path, describe_error(err)) from err
+    if max_bytes is not None and size > max_bytes:
+        raise UnreadableDocumentError(
+            path,
+            f"it is {size / _MEGABYTE:.1f} MB, over the {max_bytes / _MEGABYTE:g} MB limit ([parsing] max_file_mb)",
+        )
+    try:
         return parser(path)
     except Exception as err:
-        raise UnreadableDocumentError(path, _describe(err)) from err
+        raise UnreadableDocumentError(path, describe_error(err)) from err
 
 
-def read_documents(paths: Iterable[Path]) -> DocumentsRead:
+def read_documents(paths: Iterable[Path], *, max_bytes: int | None = None) -> DocumentsRead:
     """Read every supported file in ``paths``.
 
     Unsupported files are skipped silently (they are not documents). Supported files that can't
-    be read are collected in ``unreadable`` instead of stopping the batch.
+    be read, or are bigger than ``max_bytes``, are collected in ``unreadable`` instead of stopping
+    the batch.
 
     Args:
         paths: The files to read.
+        max_bytes: Leave a file bigger than this unread. ``None`` means no limit.
 
     Returns:
         The documents that were read and the supported files that could not be.
@@ -125,15 +138,7 @@ def read_documents(paths: Iterable[Path]) -> DocumentsRead:
         if not is_supported(path):
             continue
         try:
-            result.documents.append(parse_document(path))
+            result.documents.append(parse_document(path, max_bytes=max_bytes))
         except UnreadableDocumentError as err:
             result.unreadable.append(UnreadableDocument(file_path=path, reason=err.reason))
     return result
-
-
-def _describe(err: Exception) -> str:
-    """``ExceptionType: first line of its message``, capped so one bad file can't flood the output."""
-
-    lines = str(err).splitlines()
-    text = f"{type(err).__name__}: {lines[0]}" if lines else type(err).__name__
-    return text if len(text) <= _MAX_REASON_CHARS else text[: _MAX_REASON_CHARS - 1] + "…"

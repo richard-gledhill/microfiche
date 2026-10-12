@@ -188,9 +188,30 @@ class SortingConfig(_ConfigSection):
             dominant category. If not, each document in it is filed on its own and the folder is
             removed once it is empty. The ``--keep-folders`` and ``--keep-folders-off`` options
             override it for one run.
+        ignore (list[str]): File and folder name patterns (globs) the inbox scan skips without
+            comment, such as Office lock files (``~$*``) and ``Thumbs.db``. A skipped file is never
+            read or filed; a folder is not descended into.
     """
 
     keep_folders: bool
+    ignore: list[str]
+
+
+class ParsingConfig(_ConfigSection):
+    """How documents are read.
+
+    Attributes:
+        max_file_mb (float): Greater than 0. A file bigger than this many megabytes is not parsed:
+            it is left for review with the reason, so one huge file cannot exhaust memory or stall a run.
+    """
+
+    max_file_mb: float = Field(gt=0)
+
+    @property
+    def max_file_bytes(self) -> int:
+        """``max_file_mb`` in bytes."""
+
+        return int(self.max_file_mb * 1024 * 1024)
 
 
 class MicroficheConfig(_ConfigSection):
@@ -212,6 +233,7 @@ class MicroficheConfig(_ConfigSection):
             classification must be before a document is filed automatically.
         ai (AIConfig): Configuration for the AI fallback.
         sorting (SortingConfig): Configuration for how the inbox is sorted.
+        parsing (ParsingConfig): Configuration for how documents are read.
     """
 
     library_structure: LibraryStructureConfig
@@ -221,6 +243,7 @@ class MicroficheConfig(_ConfigSection):
     classification: ClassificationConfig
     ai: AIConfig
     sorting: SortingConfig
+    parsing: ParsingConfig
 
 
 # endregion

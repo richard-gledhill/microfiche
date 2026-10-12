@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from core.config import MicroficheConfig
+from core.filer import FailedFiling
 from core.models.job import Job
 from core.organizer import SortReport
 from core.reclassify import ReclassifyProposal
@@ -60,33 +61,30 @@ def render_config(console: Console, config: MicroficheConfig) -> None:
 def render_sort_report(console: Console, report: SortReport) -> None:
     """Print what a sort run filed and what it left for review, then the job to undo it.
 
+    A preview (``report.dry_run``) is labelled as one and says what *would* happen; it has no job.
+
     Args:
         console: Where to print.
         report: The result of the sort run.
     """
 
-    console.print(f"[green]Filed:[/green] {len(report.filed)}")
+    if report.dry_run:
+        console.print("[bold]Preview:[/bold] nothing was moved, and nothing was recorded.")
+    console.print(f"[green]{'Would file' if report.dry_run else 'Filed'}:[/green] {len(report.filed)}")
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
     console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
-    for unit, classification in report.filed:
+    if report.ai_unavailable is not None:
         console.print(
-            f"  {unit.source_path.name} -> {classification.group.name}/{classification.category.name} "
-            f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})"
-        )
-    for unit, classification in report.needs_review:
-        console.print(
-            f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.category.reason)}",
+            f"[yellow]AI fallback unavailable:[/yellow] {escape(report.ai_unavailable)}. "
+            "The rest of the run used the rules only; anything only the AI could have answered is under Needs review.",
             soft_wrap=True,
         )
-    for duplicate in report.duplicates:
-        console.print(
-            f"  [cyan]{escape(duplicate.unit.source_path.name)}[/cyan] — {escape(duplicate.reason)}", soft_wrap=True
-        )
-    for folder in report.folders_removed:
-        console.print(f"  [dim]Removed the emptied inbox folder[/dim] {escape(folder.name)}", soft_wrap=True)
-    for folder, reason in report.folders_kept:
-        console.print(f"  [yellow]{escape(folder.name)}[/yellow] stays in the inbox: {escape(reason)}", soft_wrap=True)
-    if report.job is not None:
+    _render_units(console, report)
+    _render_inbox_notes(console, report)
+    if report.dry_run:
+        if report.filed:
+            console.print("Run again without --dry-run to file these.")
+    elif report.job is not None:
         _render_job(console, report.job)
 
 
@@ -118,7 +116,12 @@ def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal
 
 
 def render_reclassify_result(
-    console: Console, proposals: list[ReclassifyProposal], *, job: Job | None, dry_run: bool
+    console: Console,
+    proposals: list[ReclassifyProposal],
+    *,
+    job: Job | None,
+    dry_run: bool,
+    failed: Sequence[FailedFiling] = (),
 ) -> None:
     """Summarise a reclassify run: counts by action, and either the job (applied) or how to apply.
 
@@ -127,6 +130,7 @@ def render_reclassify_result(
         proposals: The proposals the run made.
         job: The job that filed the moves, or ``None`` for a dry run or if nothing moved.
         dry_run: Whether the run was a preview.
+        failed: Documents that could not be moved; they stay where they were.
     """
 
     counts = {action: sum(1 for proposal in proposals if proposal.action == action) for action in _ACTION_STYLES}
@@ -134,7 +138,7 @@ def render_reclassify_result(
     if dry_run:
         console.print(f"Would move: {moves}")
     else:
-        console.print(f"[green]Moved:[/green] {moves}")
+        console.print(f"[green]Moved:[/green] {moves - len(failed)}")
     console.print(
         f"Already in place: {counts['keep']}  Needs review (not moved): {counts['review']}  "
         f"Skipped, destination taken: {counts['conflict']}"
@@ -150,6 +154,11 @@ def render_reclassify_result(
                 f"  [red]{escape(str(proposal.current_path))}[/red] — {escape(str(proposal.destination))} is taken",
                 soft_wrap=True,
             )
+    for failure in failed:
+        console.print(
+            f"  [red]{escape(str(failure.unit.source_path))}[/red] — could not be moved: {escape(failure.reason)}",
+            soft_wrap=True,
+        )
     if dry_run:
         if moves:
             console.print("Re-run with --apply to move these files.")
@@ -177,6 +186,39 @@ def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tupl
     if isinstance(value, Mapping):
         return list(value.items())
     return list(value)
+
+
+def _render_units(console: Console, report: SortReport) -> None:
+    """One line for each unit filed, left for review, or held as a duplicate."""
+
+    for unit, classification in report.filed:
+        console.print(
+            f"  {unit.source_path.name} -> {classification.group.name}/{classification.category.name} "
+            f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})"
+        )
+    for unit, classification in report.needs_review:
+        console.print(
+            f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.category.reason)}",
+            soft_wrap=True,
+        )
+    for duplicate in report.duplicates:
+        console.print(
+            f"  [cyan]{escape(duplicate.unit.source_path.name)}[/cyan] — {escape(duplicate.reason)}", soft_wrap=True
+        )
+
+
+def _render_inbox_notes(console: Console, report: SortReport) -> None:
+    """Notes about the inbox itself: links skipped, and folders removed or kept."""
+
+    for link in report.skipped_links:
+        console.print(
+            f"  [dim]Skipped {escape(link.name)}: links and junctions are never followed[/dim]", soft_wrap=True
+        )
+    for folder in report.folders_removed:
+        removal = "Would remove the emptied inbox folder" if report.dry_run else "Removed the emptied inbox folder"
+        console.print(f"  [dim]{removal}[/dim] {escape(folder.name)}", soft_wrap=True)
+    for folder, reason in report.folders_kept:
+        console.print(f"  [yellow]{escape(folder.name)}[/yellow] stays in the inbox: {escape(reason)}", soft_wrap=True)
 
 
 def _render_job(console: Console, job: Job) -> None:

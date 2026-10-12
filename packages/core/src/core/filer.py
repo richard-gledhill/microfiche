@@ -10,12 +10,17 @@ the library's ``.microfiche/`` folder:
 Nothing is ever deleted: rollback moves units back, and the ledger and audit log only grow. The one
 thing removed is an inbox folder that is left completely empty once its files are filed; the removal is
 recorded in the job so rollback recreates it.
+
+A move is a plain rename (see ``core.utils.filesystem.safe_move``), so it either happens or changes
+nothing. A unit that cannot be moved, such as a file another program has open, stays where it is and
+is reported back; it never stops the rest of the batch.
 """
 
 from __future__ import annotations
 
 import re
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Literal
@@ -28,6 +33,7 @@ from core.models.classification import ClassificationResult
 from core.models.job import Job
 from core.models.ledger import LedgerRecord
 from core.models.unit import SortableUnit
+from core.utils.errors import describe_error
 from core.utils.filesystem import ensure_dir, safe_move
 from core.utils.hashing import unit_hash
 
@@ -36,6 +42,35 @@ from core.utils.hashing import unit_hash
 AUDIT_LOG_FILENAME = "audit.log"
 _ROLLBACK_DIRNAME = "rollback"
 _JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+# Windows error codes for a file another program has open: a sharing violation and a lock violation.
+_FILE_IN_USE_WINERRORS = (32, 33)
+
+
+@dataclass
+class FailedFiling:
+    """A unit that could not be moved, and why. It is exactly where it was; nothing was recorded for it.
+
+    Attributes:
+        unit: The unit that stayed where it was.
+        reason: One line a person can read, such as "it is open in another program; close it and sort again".
+    """
+
+    unit: SortableUnit
+    reason: str
+
+
+@dataclass
+class FilingResult:
+    """What ``file_batch`` did.
+
+    Attributes:
+        job: The saved job, or ``None`` if no unit was moved (nothing is written in that case).
+        failed: The units that could not be moved. The rest of the batch was filed regardless.
+    """
+
+    job: Job | None = None
+    failed: list[FailedFiling] = field(default_factory=list)
+
 
 # endregion
 
@@ -84,12 +119,15 @@ class JobMoveMissingError(FileNotFoundError):
 # region Public API
 
 
-def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationResult]]) -> Job | None:
+def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationResult]]) -> FilingResult:
     """Move each unit into its classified (group, category) folder and record the run as one job.
 
-    The whole batch is checked for unresolved classifications before anything moves. If a move
-    then fails part-way (for example because the destination already exists), the moves already
-    made are still saved as the job - so they can be rolled back - and the error is re-raised.
+    The whole batch is checked for unresolved classifications before anything moves. A move that
+    then fails (a file another program has open, a destination taken in the meantime, a permission
+    error) is nothing more than that unit staying where it is: moves are plain renames, so a failed
+    one changes nothing. It is not recorded as a move, it is returned in ``failed`` with the reason,
+    and the rest of the batch is filed. The job holds only the moves that happened, so they can be
+    rolled back.
 
     Each unit's name is rewritten by the library's naming rules as it is filed.
 
@@ -102,15 +140,16 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
         items: Pairs of a unit and its (resolved) classification.
 
     Returns:
-        The saved ``Job``, or ``None`` if ``items`` is empty (nothing is written in that case).
+        The saved job (``None`` if nothing was moved, in which case nothing is written) and the
+        units that could not be moved.
 
     Raises:
         UnresolvedClassificationError: if any classification has no group or category.
-        FileExistsError: if a destination already exists; nothing is ever overwritten.
     """
 
+    result = FilingResult()
     if not items:
-        return None
+        return result
     for unit, classification in items:
         if classification.group.name is None or classification.category.name is None:
             raise UnresolvedClassificationError(unit.source_path.name)
@@ -118,17 +157,24 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
     state_dir = library.state_dir
     ledger = Ledger(state_dir)
     job = Job(job_id=_new_job_id())
+    moved: list[SortableUnit] = []
     try:
         for unit, classification in items:
-            event, record = _file_unit(unit, classification, library, job.job_id)
+            try:
+                event, record = _file_unit(unit, classification, library, job.job_id)
+            except OSError as err:
+                result.failed.append(FailedFiling(unit, _describe_move_failure(err)))
+                continue
+            moved.append(unit)
             job.moves.append(event)
             ledger.append([record])
             _append_audit_lines(library, job.job_id, [event])
-        _remove_emptied_folders(library, job, [unit for unit, _ in items])
+        _remove_emptied_folders(library, job, moved)
     finally:
         if job.moves:
             save_job(state_dir, job)
-    return job
+    result.job = job if job.moves else None
+    return result
 
 
 def rollback_job(library: Library, job_id: str) -> Job:
@@ -342,6 +388,18 @@ def _file_unit(
         classified_by=classification.classified_by,
     )
     return event, record
+
+
+def _describe_move_failure(err: OSError) -> str:
+    """Say why a move failed, in words a person can act on."""
+
+    if isinstance(err, FileExistsError):
+        return "something took its place at the destination while sorting"
+    if isinstance(err, PermissionError):
+        if getattr(err, "winerror", None) in _FILE_IN_USE_WINERRORS:
+            return "it is open in another program; close it and sort again"
+        return "permission denied"
+    return describe_error(err)
 
 
 def _remove_emptied_folders(library: Library, job: Job, units: list[SortableUnit]) -> None:

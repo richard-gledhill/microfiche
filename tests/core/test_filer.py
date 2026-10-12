@@ -1,5 +1,7 @@
 """Tests for filing a batch of classified units and rolling the job back."""
 
+import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -19,6 +21,7 @@ from core.library.library import Library
 from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from core.models.document import Document
 from core.models.unit import SortableUnit
+from core.utils.filesystem import safe_move
 from core.utils.hashing import file_hash, unit_hash
 
 # region Test helpers
@@ -99,7 +102,7 @@ def test_file_batch_moves_units_to_group_category(tmp_path: Path) -> None:
     requirements = _file_unit(library, "reqs.md")
     design = _file_unit(library, "design.md")
 
-    job = file_batch(Library(library), [(requirements, _classified()), (design, _classified(ARCHITECTURE))])
+    job = file_batch(Library(library), [(requirements, _classified()), (design, _classified(ARCHITECTURE))]).job
 
     assert job is not None
     assert (library / GROUP / REQUIREMENTS / "reqs.md").read_text(encoding="utf-8") == "some content"
@@ -119,7 +122,7 @@ def test_file_batch_writes_no_sidecar_files(tmp_path: Path) -> None:
 def test_file_batch_empty_writes_nothing(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    assert file_batch(Library(library), []) is None
+    assert file_batch(Library(library), []).job is None
     assert not (library / ".microfiche").exists()
 
 
@@ -137,7 +140,7 @@ def test_file_batch_applies_naming_rules(tmp_path: Path) -> None:
 def test_file_batch_saves_loadable_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
 
-    job = file_batch(Library(library), [(_file_unit(library, "reqs.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "reqs.md"), _classified())]).job
 
     assert job is not None
     loaded = load_job(library / ".microfiche", job.job_id)
@@ -150,7 +153,7 @@ def test_file_batch_records_what_and_why_in_ledger(tmp_path: Path) -> None:
     unit = _file_unit(library, "reqs.md", text="hash me")
     expected_hash = file_hash(unit.source_path)
 
-    job = file_batch(Library(library), [(unit, _classified())])
+    job = file_batch(Library(library), [(unit, _classified())]).job
 
     assert job is not None
     (record,) = Ledger(library / ".microfiche").current()
@@ -169,7 +172,7 @@ def test_file_batch_appends_audit_line_per_move(tmp_path: Path) -> None:
 
     job = file_batch(
         Library(library), [(_file_unit(library, "a.md"), _classified()), (_file_unit(library, "b.md"), _classified())]
-    )
+    ).job
 
     assert job is not None
     lines = (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8").splitlines()
@@ -209,7 +212,7 @@ def test_file_batch_emptied_origin_folder_removed_and_recorded(tmp_path: Path) -
     one = _unit_from_folder(library, "pack/one.md")
     two = _unit_from_folder(library, "pack/sub/two.md")
 
-    job = file_batch(Library(library), [(one, _classified()), (two, _classified())])
+    job = file_batch(Library(library), [(one, _classified()), (two, _classified())]).job
 
     assert job is not None
     assert not (library / "_sorting" / "pack").exists()
@@ -239,7 +242,7 @@ def test_file_batch_folder_that_cannot_be_removed_left_and_unrecorded(
 
     monkeypatch.setattr(Path, "rmdir", locked)
 
-    job = file_batch(Library(library), [(unit, _classified())])
+    job = file_batch(Library(library), [(unit, _classified())]).job
 
     assert job is not None
     assert (library / "_sorting" / "pack").is_dir()  # the move still happened, the folder just stays
@@ -252,7 +255,7 @@ def test_file_batch_origin_folder_with_leftover_file_kept(tmp_path: Path) -> Non
     unit = _unit_from_folder(library, "pack/one.md")
     (library / "_sorting" / "pack" / "photo.png").write_bytes(b"x")
 
-    job = file_batch(Library(library), [(unit, _classified())])
+    job = file_batch(Library(library), [(unit, _classified())]).job
 
     assert job is not None
     assert (library / "_sorting" / "pack" / "photo.png").exists()
@@ -273,32 +276,176 @@ def test_file_batch_unit_without_origin_folder_removes_nothing(tmp_path: Path) -
     library = _library(tmp_path)
     (library / "_sorting" / "elsewhere").mkdir()  # an empty folder that no unit came from
 
-    job = file_batch(Library(library), [(_file_unit(library, "loose.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "loose.md"), _classified())]).job
 
     assert job is not None
     assert (library / "_sorting" / "elsewhere").is_dir()
     assert [event.action for event in job.moves] == ["move"]
 
 
-def test_file_batch_collision_keeps_earlier_moves(tmp_path: Path) -> None:
+def test_file_batch_destination_taken_midway_fails_that_unit_only(tmp_path: Path) -> None:
+    # The destination appears after the batch was planned, so it is not caught earlier: the one unit fails.
     library = _library(tmp_path)
     first = _file_unit(library, "first.md")
     second = _file_unit(library, "second.md")
+    third = _file_unit(library, "third.md")
     (library / GROUP / ARCHITECTURE / "second.md").write_text("already here", encoding="utf-8")
     before = _snapshot(library)
 
-    with pytest.raises(FileExistsError):
-        file_batch(Library(library), [(first, _classified()), (second, _classified(ARCHITECTURE))])
+    result = file_batch(
+        Library(library), [(first, _classified()), (second, _classified(ARCHITECTURE)), (third, _classified())]
+    )
 
+    assert [failure.unit for failure in result.failed] == [second]
+    assert result.failed[0].reason == "something took its place at the destination while sorting"
     assert (library / GROUP / REQUIREMENTS / "first.md").exists()
+    assert (library / GROUP / REQUIREMENTS / "third.md").exists()  # the rest of the batch carried on
     assert second.source_path.exists()
     assert (library / GROUP / ARCHITECTURE / "second.md").read_text(encoding="utf-8") == "already here"
-    assert [r.path for r in Ledger(library / ".microfiche").current()] == [f"{GROUP}/{REQUIREMENTS}/first.md"]
-    (job_file,) = (library / ".microfiche" / "rollback").glob("job_*.json")
+    assert result.job is not None
+    assert [move.original_path.name for move in result.job.moves] == ["first.md", "third.md"]
+    assert sorted(r.path for r in Ledger(library / ".microfiche").current()) == [
+        f"{GROUP}/{REQUIREMENTS}/first.md",
+        f"{GROUP}/{REQUIREMENTS}/third.md",
+    ]
 
-    rollback_job(Library(library), job_file.stem.removeprefix("job_"))
+    rollback_job(Library(library), result.job.job_id)
 
     assert _snapshot(library) == before
+
+
+# endregion
+
+
+# region file_batch failures
+
+
+def _in_use(winerror: int) -> PermissionError:
+    """The error Windows raises for a file another program has open (errno 13, plus a Windows error code).
+
+    The fourth argument becomes ``.winerror`` on Windows and is ignored elsewhere.
+    """
+
+    return PermissionError(
+        13, "The process cannot access the file because it is being used by another process", None, winerror
+    )
+
+
+_WINDOWS_ONLY = pytest.mark.skipif(sys.platform != "win32", reason="the Windows error code only exists on Windows")
+
+
+def test_file_batch_open_file_stays_put_unrecorded_and_batch_continues(
+    tmp_path: Path, hold_open: Callable[[Path], None]
+) -> None:
+    library = _library(tmp_path)
+    locked = _file_unit(library, "locked.docx")
+    free = _file_unit(library, "free.md")
+    hold_open(locked.source_path)
+    before = _snapshot(library)
+
+    result = file_batch(Library(library), [(locked, _classified()), (free, _classified())])
+
+    (failure,) = result.failed
+    assert failure.unit is locked
+    assert failure.reason == "it is open in another program; close it and sort again"
+    assert locked.source_path.exists()
+    assert not (library / GROUP / REQUIREMENTS / "locked.docx").exists()  # no stray copy
+    assert (library / GROUP / REQUIREMENTS / "free.md").exists()
+    assert result.job is not None
+    assert [move.original_path.name for move in result.job.moves] == ["free.md"]
+    assert [r.original_path for r in Ledger(library / ".microfiche").read_all()] == ["_sorting/free.md"]
+    assert "locked.docx" not in (library / ".microfiche" / AUDIT_LOG_FILENAME).read_text(encoding="utf-8")
+    rollback_job(Library(library), result.job.job_id)
+    assert _snapshot(library) == before
+
+
+def test_file_batch_every_move_fails_writes_nothing(tmp_path: Path, hold_open: Callable[[Path], None]) -> None:
+    library = _library(tmp_path)
+    locked = _file_unit(library, "locked.docx")
+    hold_open(locked.source_path)
+
+    result = file_batch(Library(library), [(locked, _classified())])
+
+    assert result.job is None
+    assert len(result.failed) == 1
+    state_dir = library / ".microfiche"
+    assert not (state_dir / "rollback").exists()
+    assert not (state_dir / AUDIT_LOG_FILENAME).exists()
+    assert not Ledger(state_dir).path.exists()
+
+
+def test_file_batch_folder_with_open_file_stays_whole_and_unrecorded(
+    tmp_path: Path, hold_open: Callable[[Path], None]
+) -> None:
+    library = _library(tmp_path)
+    unit = _folder_unit(library, "bundle")
+    hold_open(library / "_sorting" / "bundle" / "one.md")
+
+    result = file_batch(Library(library), [(unit, _classified())])
+
+    assert result.job is None
+    assert sorted(path.name for path in (library / "_sorting" / "bundle").rglob("*.md")) == ["one.md", "two.md"]
+    assert not (library / GROUP / REQUIREMENTS / "bundle").exists()  # no partial copy of the folder
+
+
+def test_file_batch_failed_unit_keeps_its_inbox_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    moved = _unit_from_folder(library, "pack/one.md")
+    stuck = _unit_from_folder(library, "pack/two.md")
+    real_move = safe_move
+
+    def refuse_two(source: Path, destination: Path) -> Path:
+        if source.name == "two.md":
+            raise _in_use(32)
+        return real_move(source, destination)
+
+    monkeypatch.setattr("core.filer.safe_move", refuse_two)
+
+    result = file_batch(Library(library), [(moved, _classified()), (stuck, _classified())])
+
+    assert [failure.unit for failure in result.failed] == [stuck]
+    assert (library / "_sorting" / "pack" / "two.md").exists()  # so the folder is not emptied, and not removed
+    assert result.job is not None
+    assert [event.action for event in result.job.moves] == ["move"]
+
+
+@pytest.mark.parametrize(
+    ("error", "reason"),
+    [
+        pytest.param(_in_use(32), "it is open in another program; close it and sort again", marks=_WINDOWS_ONLY),
+        pytest.param(_in_use(33), "it is open in another program; close it and sort again", marks=_WINDOWS_ONLY),
+        (PermissionError(13, "Permission denied"), "permission denied"),
+        (FileExistsError(17, "File exists"), "something took its place at the destination while sorting"),
+        (OSError(5, "Input/output error"), "OSError: [Errno 5] Input/output error"),
+    ],
+)
+def test_file_batch_failure_reason_is_plain_language(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, error: OSError, reason: str
+) -> None:
+    library = _library(tmp_path)
+    unit = _file_unit(library, "reqs.md")
+
+    def fail(source: Path, destination: Path) -> Path:
+        raise error
+
+    monkeypatch.setattr("core.filer.safe_move", fail)
+
+    result = file_batch(Library(library), [(unit, _classified())])
+
+    assert [failure.reason for failure in result.failed] == [reason]
+
+
+def test_file_batch_unreadable_source_fails_that_unit(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    vanished = _file_unit(library, "gone.md")
+    vanished.source_path.unlink()  # removed after the scan
+    other = _file_unit(library, "other.md")
+
+    result = file_batch(Library(library), [(vanished, _classified()), (other, _classified())])
+
+    assert [failure.unit for failure in result.failed] == [vanished]
+    assert result.failed[0].reason.startswith("FileNotFoundError")
+    assert (library / GROUP / REQUIREMENTS / "other.md").exists()
 
 
 # endregion
@@ -311,7 +458,7 @@ def test_rollback_job_restores_pre_sort_tree(tmp_path: Path) -> None:
     library = _library(tmp_path)
     units = [_file_unit(library, "a.md", "alpha"), _file_unit(library, "b.md", "beta"), _folder_unit(library, "bundle")]
     before = _snapshot(library)
-    job = file_batch(Library(library), [(unit, _classified()) for unit in units])
+    job = file_batch(Library(library), [(unit, _classified()) for unit in units]).job
     assert job is not None
     assert _snapshot(library) != before
 
@@ -324,7 +471,7 @@ def test_rollback_job_restores_pre_sort_tree(tmp_path: Path) -> None:
 
 def test_rollback_job_updates_ledger_and_audit_log(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
     assert job is not None
 
     rollback_job(Library(library), job.job_id)
@@ -341,7 +488,7 @@ def test_rollback_job_recreates_removed_folders_and_files(tmp_path: Path) -> Non
     library = _library(tmp_path)
     units = [_unit_from_folder(library, "pack/one.md"), _unit_from_folder(library, "pack/sub/two.md")]
     before_files = _snapshot(library)
-    job = file_batch(Library(library), [(unit, _classified()) for unit in units])
+    job = file_batch(Library(library), [(unit, _classified()) for unit in units]).job
     assert job is not None
 
     rollback_job(Library(library), job.job_id)
@@ -357,7 +504,7 @@ def test_rollback_job_retry_restores_folder_once(tmp_path: Path) -> None:
     library = _library(tmp_path)
     loose = _file_unit(library, "loose.md")
     from_folder = _unit_from_folder(library, "pack/one.md")
-    job = file_batch(Library(library), [(loose, _classified()), (from_folder, _classified())])
+    job = file_batch(Library(library), [(loose, _classified()), (from_folder, _classified())]).job
     assert job is not None
     blocker = library / "_sorting" / "loose.md"  # something now sits where loose.md must go back to
     blocker.write_text("in the way", encoding="utf-8")
@@ -376,7 +523,7 @@ def test_rollback_job_retry_restores_folder_once(tmp_path: Path) -> None:
 
 def test_rollback_job_twice_refused(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
     assert job is not None
     rollback_job(Library(library), job.job_id)
 
@@ -397,7 +544,7 @@ def test_rollback_job_partial_retries_after_blocker_removed(tmp_path: Path) -> N
     first = _file_unit(library, "first.md")
     second = _file_unit(library, "second.md")
     before = _snapshot(library)
-    job = file_batch(Library(library), [(first, _classified()), (second, _classified())])
+    job = file_batch(Library(library), [(first, _classified()), (second, _classified())]).job
     assert job is not None
     # Something new now occupies the first unit's original location, so reversing it must fail.
     blocker = library / "_sorting" / "first.md"
@@ -419,7 +566,7 @@ def test_rollback_job_partial_retries_after_blocker_removed(tmp_path: Path) -> N
 
 def test_rollback_job_vanished_unit_raises(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
     assert job is not None
     (library / GROUP / REQUIREMENTS / "a.md").unlink()
 
@@ -431,7 +578,7 @@ def test_rollback_job_vanished_unit_raises(tmp_path: Path) -> None:
 
 def test_rollback_job_invalid_config_still_works(tmp_path: Path) -> None:
     library = _library(tmp_path)
-    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
     assert job is not None
     (library / ".microfiche" / "microfiche-config.toml").write_text("this is [not valid toml", encoding="utf-8")
 

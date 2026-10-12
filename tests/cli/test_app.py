@@ -1,12 +1,19 @@
 """Smoke test that the microfiche CLI exposes all expected commands."""
 
+import json
+import os
 import re
 import shutil
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from pathlib import Path
 
 import pytest
 from cli.app import app
+from conftest import LinkMaker
 from core.config import AIConfig
+from core.library.library import Library
+from core.runlock import run_lock
 from typer.testing import CliRunner
 
 # region Test helpers
@@ -716,6 +723,275 @@ def test_sort_without_duplicates_prints_zero(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.stdout
     assert "Duplicates (left in the inbox): 0" in result.stdout
+
+
+# endregion
+
+
+# region Input hardening
+
+
+def test_sort_reports_skipped_link(tmp_path: Path, make_junction: LinkMaker) -> None:
+    library = _library(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    make_junction(library / "_sorting" / "linked-folder", elsewhere)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Skipped linked-folder: links and junctions are never followed" in " ".join(result.stdout.split())
+
+
+def test_sort_oversize_file_listed_with_reason(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(config.read_text(encoding="utf-8") + "\n[parsing]\nmax_file_mb = 1\n", encoding="utf-8")
+    (library / "_sorting" / "huge.md").write_bytes(b"x" * 2 * 1024 * 1024)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "huge.md" in result.stdout
+    assert "over the 1 MB limit" in " ".join(result.stdout.split())
+    assert (library / "_sorting" / "huge.md").exists()
+
+
+# endregion
+
+
+# region Failures that belong to one unit
+
+
+class _DownProvider:
+    """An AI provider that cannot be reached."""
+
+    _error = ConnectionError("connection refused")
+
+    def complete(self, prompt: str) -> str:
+        raise self._error
+
+
+def test_sort_use_ai_provider_down_warns_once_and_still_files(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "unknown-one.md").write_text("Nothing recognisable in here.", encoding="utf-8")
+    (library / "_sorting" / "unknown-two.md").write_text("Nor in here.", encoding="utf-8")
+    monkeypatch.setattr("cli.commands.build_provider", lambda config: _DownProvider())
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert output.count("AI fallback unavailable") == 1
+    assert "AI fallback unavailable: ConnectionError: connection refused." in output
+    assert "used the rules only" in output
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+
+
+def test_sort_open_file_listed_for_review_with_reason(tmp_path: Path, hold_open: Callable[[Path], None]) -> None:
+    library = _library(tmp_path)
+    hold_open(library / "_sorting" / _PHOENIX_NOTE)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout  # a locked file is not a failure of the run
+    assert "it is open in another program; close it and sort again" in " ".join(result.stdout.split())
+    assert (library / "_sorting" / _PHOENIX_NOTE).exists()
+
+
+def test_reclassify_apply_move_that_fails_is_listed_and_left_in_place(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library_with_a_misfiled_note(tmp_path)
+
+    def refuse(source: Path, destination: Path) -> Path:
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr("core.filer.safe_move", refuse)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Moved: 0" in output
+    assert "could not be moved: permission denied" in output
+    assert (library / _MISFILED).exists()
+    assert "Job:" not in result.stdout  # nothing moved, so nothing to undo
+
+
+# endregion
+
+
+# region Dry run
+
+
+def test_sort_dry_run_previews_without_moving_or_recording(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Preview: nothing was moved, and nothing was recorded." in output
+    assert "Would file: 1" in output
+    assert f"{_PHOENIX_NOTE} -> Project Phoenix/02 Architecture" in output
+    assert "Run again without --dry-run to file these." in output
+    assert "Filed:" not in output
+    assert "Job:" not in output  # there is nothing to undo
+    assert _tree(library) == before
+    state = library / ".microfiche"
+    assert not (state / "rollback").exists()
+    assert not (state / "ledger.jsonl").exists()
+    assert not (state / "audit.log").exists()
+
+
+def test_sort_dry_run_then_real_run_files_what_the_preview_listed(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
+
+
+def test_sort_dry_run_nothing_to_file_gives_no_run_again_hint(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / _PHOENIX_NOTE).unlink()
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Would file: 0" in result.stdout
+    assert "Run again" not in result.stdout
+
+
+def test_sort_dry_run_keep_folders_off_says_folder_would_be_removed(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    bundle = _bundle_in_inbox(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders-off", "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Would remove the emptied inbox folder bundle" in " ".join(result.stdout.split())
+    assert (bundle / _PHOENIX_NOTE).exists()  # untouched
+
+
+# endregion
+
+
+# region Run lock
+
+
+_LOCK = ".microfiche/lock"
+_IN_PROGRESS = "Another microfiche run is already in progress"
+
+
+def _held(library: Path) -> AbstractContextManager[None]:
+    """Hold the run lock, as another run in progress would."""
+
+    return run_lock(Library(library), "sort")
+
+
+def test_sort_refused_while_another_run_holds_the_lock(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    with _held(library):
+        result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert _IN_PROGRESS in " ".join(result.stdout.split())
+    assert f"process {os.getpid()}" in result.stdout
+    assert _tree(library) == before  # nothing was moved
+    assert not (library / ".microfiche" / "rollback").exists()
+
+
+@pytest.mark.parametrize("command", ["rollback", "reclassify"])
+def test_other_changing_commands_refused_while_lock_held(tmp_path: Path, command: str) -> None:
+    library = _library(tmp_path)
+    arguments = ["--job-id", "20260101-000000-abcdef"] if command == "rollback" else ["--apply"]
+
+    with _held(library):
+        result = runner.invoke(app, [command, "--library", str(library), *arguments])
+
+    assert result.exit_code == 1
+    assert _IN_PROGRESS in " ".join(result.stdout.split())
+
+
+def test_sort_dry_run_allowed_while_lock_held(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    with _held(library):
+        result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Would file: 1" in result.stdout
+
+
+@pytest.mark.parametrize("command", [["reclassify"], ["audit"], ["config"], ["propose-categories"]])
+def test_read_only_commands_allowed_while_lock_held(tmp_path: Path, command: list[str]) -> None:
+    library = _library(tmp_path)
+
+    with _held(library):
+        result = runner.invoke(app, [*command, "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+
+
+def test_sort_releases_the_lock_when_it_finishes(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOCK).exists()
+    assert runner.invoke(app, ["sort", "--library", str(library)]).exit_code == 0  # and a second run is fine
+
+
+def test_rollback_releases_the_lock_when_it_fails(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", "20260101-000000-abcdef"])
+
+    assert result.exit_code == 1
+    assert "No rollback job found" in " ".join(result.stdout.split())
+    assert not (library / _LOCK).exists()
+
+
+def test_sort_clears_a_lock_left_by_a_run_that_died(tmp_path: Path, dead_pid: int) -> None:
+    library = _library(tmp_path)
+    (library / _LOCK).write_text(
+        json.dumps({"pid": dead_pid, "command": "sort", "started": "2026-10-12T09:30:00+11:00"}), encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+    assert not (library / _LOCK).exists()
+
+
+def test_sort_unreadable_lock_file_refused_and_left_alone(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / _LOCK).write_text("garbage", encoding="utf-8")
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 1
+    assert "cannot be read" in " ".join(result.stdout.split())
+    assert (library / _LOCK).read_text(encoding="utf-8") == "garbage"
+
+
+def test_sort_bad_flags_fail_before_taking_the_lock(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--keep-folders", "--keep-folders-off"])
+
+    assert result.exit_code == 1
+    assert not (library / _LOCK).exists()
 
 
 # endregion

@@ -222,6 +222,57 @@ def test_parse_document_missing_file_unreadable(tmp_path: Path) -> None:
 # endregion
 
 
+# region Files that are too big
+
+
+def test_parse_document_over_max_bytes_unreadable_without_parsing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    big = tmp_path / "big.txt"
+    big.write_bytes(b"x" * 3 * 1024 * 1024)
+    monkeypatch.setattr("core.parsers.registry._PARSERS", {".txt": _must_not_run})
+
+    with pytest.raises(UnreadableDocumentError) as raised:
+        parse_document(big, max_bytes=2 * 1024 * 1024)
+
+    assert raised.value.reason == "it is 3.0 MB, over the 2 MB limit ([parsing] max_file_mb)"
+
+
+def _must_not_run(path: Path) -> object:
+    pytest.fail(f"{path} should not have been opened")
+
+
+def test_parse_document_exactly_max_bytes_is_read(tmp_path: Path) -> None:
+    file = tmp_path / "exact.txt"
+    file.write_text("x" * 100, encoding="utf-8")
+
+    assert parse_document(file, max_bytes=100).content == "x" * 100
+
+
+def test_parse_document_no_limit_by_default(tmp_path: Path) -> None:
+    file = tmp_path / "any.txt"
+    file.write_bytes(b"x" * 2 * 1024 * 1024)
+
+    assert len(parse_document(file).content) == 2 * 1024 * 1024
+
+
+def test_read_documents_over_limit_collected_rest_read(tmp_path: Path) -> None:
+    small = tmp_path / "small.txt"
+    small.write_text("fine", encoding="utf-8")
+    big = tmp_path / "big.txt"
+    big.write_bytes(b"x" * 1000)
+
+    result = read_documents([big, small], max_bytes=500)
+
+    assert [document.file_name for document in result.documents] == ["small.txt"]
+    ((unreadable),) = result.unreadable
+    assert unreadable.file_path == big
+    assert "over the" in unreadable.reason
+
+
+# endregion
+
+
 # region Reading a batch
 
 

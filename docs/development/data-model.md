@@ -89,12 +89,15 @@ class Job(BaseModel):
 
 `core/filer.py` provides both directions:
 
-- `file_batch(library_root, items, *, naming_rules)` — moves each unit into its
-  `group/category` folder, then for every move appends to the ledger and the audit log, and
-  saves the `Job`. The whole batch is checked for unresolved classifications before anything
-  moves. If a move fails part-way (for example the destination already exists), the moves
-  already made are still saved as the job so they can be rolled back, and the error is
-  re-raised. Returns `None`, writing nothing, if there is nothing to file. After the last move, an
+- `file_batch(library, items)` — moves each unit into its `group/category` folder, then for
+  every move appends to the ledger and the audit log, and saves the `Job`. The whole batch is
+  checked for unresolved classifications before anything moves. A move is a plain rename
+  (`core.utils.filesystem.safe_move`), so it either happens or changes nothing. If it fails (a file
+  another program has open, a destination taken in the meantime, a permission error) the unit stays
+  where it is, nothing is recorded for it, and the rest of the batch is filed. It returns a
+  `FilingResult`: `job` (the saved job, or `None` if nothing moved, in which case nothing is
+  written) and `failed` (each unit that stayed, with a one-line reason). The job therefore holds
+  only moves that happened. After the last move, an
   inbox folder that the filed units came from (`SortableUnit.origin_folder`) is removed, with its
   empty sub-folders, if nothing at all is left in it; each removal is a `remove_folder` event in the
   job and the audit log. A removal is not a filed unit, so it has no ledger record.
@@ -132,6 +135,7 @@ ledger and the job file are the machine-readable records.
 ```text
 <library_root>/.microfiche/
 ├── microfiche-config.toml # the library's config — read, not written, by microfiche
+├── lock                   # exists only while a sort / reclassify --apply / rollback is running (see below)
 ├── ledger.jsonl           # append-only classification ledger (above)
 ├── audit.log              # human-readable trail; read by `microfiche audit`
 └── rollback/
@@ -139,7 +143,12 @@ ledger and the job file are the machine-readable records.
 ```
 
 `ledger.jsonl`, `audit.log` and `rollback/` are created the first time something is filed; a
-`sort` that files nothing writes none of them.
+`sort` that files nothing writes none of them. A `sort --dry-run` writes nothing at all.
+
+`lock` is the run lock (`core/runlock.py`): JSON holding the `pid`, `command` and `started` time of the run that
+took it, created atomically and removed when the run ends. A second changing command refuses to start while it
+exists. If the recorded process is gone the lock is stale and is cleared; if the file cannot be read it counts as
+held and is never cleared automatically.
 
 ## See also
 
