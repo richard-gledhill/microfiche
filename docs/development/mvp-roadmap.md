@@ -126,8 +126,15 @@ One further step follows it, and it is not built:
 Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
 calibration corpus; see [ai-classifier-options.md](ai-classifier-options.md)).
 
-Four more concern the library's shape, from [library-depth.md](library-depth.md); none is built:
-[Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) (depth 1, group only),
+[Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) is built: `[library_structure] depth = 1` is a flat library
+of group folders only, and a document is filed straight into one. `Taxonomy` carries the depth; `Classifier` runs a
+single group stage; `ClassificationResult.category` is `None` and `.folders` is what filing uses; a group entry in the
+library file takes `hints` and `rules`, matched as a filename rule, then the group's name, then its hints. The ledger,
+`rollback`, `reclassify` and the duplicate check work on it. `propose-categories` still prints category names, which
+a flat library has none of. Calibrated on a small flat corpus (`tests/calibration/corpus_flat`); see
+[calibration.md](calibration.md#flat-libraries-depth-1).
+
+Three more concern the library's shape, from [library-depth.md](library-depth.md); none is built:
 [Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) (depth 3 with subcategories,
 provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders)
 (folders that aren't part of the taxonomy, such as bundles filed by `keep_folders`; today `reclassify` would split

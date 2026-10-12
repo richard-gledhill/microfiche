@@ -281,8 +281,8 @@ def test_rules_for_returns_pattern_and_category_pairs() -> None:
     rules = _shared_and_phoenix().rules_for("Project Atlas", _CATEGORIES)
 
     assert rules == [
-        {"pattern": "requirements*.docx", "category": "01 Requirements"},
-        {"pattern": "architecture*.pdf", "category": "02 Architecture"},
+        {"pattern": "requirements*.docx", "target": "01 Requirements"},
+        {"pattern": "architecture*.pdf", "target": "02 Architecture"},
     ]
 
 
@@ -312,13 +312,13 @@ def test_rules_for_same_specificity_keeps_file_order_not_folder_order() -> None:
 
     rules = library_file.rules_for("A", ["Alpha", "Zeta"])
 
-    assert [rule["category"] for rule in rules] == ["Zeta", "Alpha"]
+    assert [rule["target"] for rule in rules] == ["Zeta", "Alpha"]
 
 
 def test_rules_for_only_categories_given_are_considered() -> None:
     rules = _shared_and_phoenix().rules_for("Project Atlas", ["01 Requirements"])
 
-    assert [rule["category"] for rule in rules] == ["01 Requirements"]
+    assert [rule["target"] for rule in rules] == ["01 Requirements"]
 
 
 def test_rules_for_keeps_a_nodes_rules_in_order() -> None:
@@ -527,14 +527,49 @@ def test_template_library_file_is_valid_and_matches_the_old_template_config() ->
     assert template.hints_for("Any Group", "01 Requirements") == ["requirement", "user story", "acceptance criteria"]
     assert template.hints_for("Any Group", "05 Correspondence") == ["email", "correspondence"]
     assert template.rules_for("Any Group", categories) == [
-        {"pattern": "requirements*.docx", "category": "01 Requirements"},
-        {"pattern": "architecture*.pdf", "category": "02 Architecture"},
-        {"pattern": "meeting-notes*", "category": "04 Meeting Notes"},
+        {"pattern": "requirements*.docx", "target": "01 Requirements"},
+        {"pattern": "architecture*.pdf", "target": "02 Architecture"},
+        {"pattern": "meeting-notes*", "target": "04 Meeting Notes"},
     ]
     assert template.height() <= 2
 
 
 # endregion
+
+
+# endregion
+
+
+# region Group-level hints and rules (a flat library)
+
+
+def test_group_hints_for_returns_the_groups_own_hints() -> None:
+    library_file = _file(_node("Household", hints=["invoice", "bill"]), _node("Project Phoenix", hints=["phoenix"]))
+
+    assert library_file.group_hints_for("Household") == ["invoice", "bill"]
+    assert library_file.group_hints_for("household") == ["invoice", "bill"]  # case is ignored
+    assert library_file.group_hints_for("Project Atlas") == []
+
+
+def test_group_rules_for_targets_the_group_in_file_order() -> None:
+    library_file = _file(
+        _node("Project Phoenix", rules=[{"pattern": "adr-*"}]),
+        _node("Household", rules=[{"pattern": "statement-*"}, {"pattern": "bill-*"}]),
+    )
+
+    rules = library_file.group_rules_for(["Household", "Project Phoenix", "Project Atlas"])
+
+    assert rules == [
+        {"pattern": "adr-*", "target": "Project Phoenix"},
+        {"pattern": "statement-*", "target": "Household"},
+        {"pattern": "bill-*", "target": "Household"},
+    ]
+
+
+def test_group_rules_for_only_the_groups_given_are_considered() -> None:
+    library_file = _file(_node("Household", rules=[{"pattern": "statement-*"}]))
+
+    assert library_file.group_rules_for(["Project Phoenix"]) == []
 
 
 # endregion

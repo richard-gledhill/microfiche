@@ -124,11 +124,31 @@ class LibraryFile(_Model):
         hints = (hint for node, _ in _matching(self.groups, (group, category)) for hint in node.hints)
         return list(dict.fromkeys(hints))
 
+    def group_hints_for(self, group: str) -> list[str]:
+        """The keyword hints for the group folder ``group`` itself, which a flat library matches on."""
+
+        hints = (hint for node, _ in _matching(self.groups, (group,)) for hint in node.hints)
+        return list(dict.fromkeys(hints))
+
+    def group_rules_for(self, groups: list[str]) -> list[dict[str, str]]:
+        """The filename rules held by the group entries of ``groups``, in the shape ``RulesEngine`` takes.
+
+        Each rule's ``target`` is the group, in the order the entries have in the file.
+        """
+
+        return [
+            {"pattern": rule.pattern, "target": group}
+            for node in self.groups
+            for group in groups
+            if node.name.casefold() == group.casefold()
+            for rule in node.rules
+        ]
+
     def rules_for(self, group: str, categories: list[str]) -> list[dict[str, str]]:
         """The filename rules that apply within ``group``, in the shape ``RulesEngine`` takes.
 
-        The most specific entry's rules come first; within the same specificity they keep the order they
-        have in the file, as the old single list of rules did.
+        Each rule's ``target`` is the category it files into. The most specific entry's rules come first; within
+        the same specificity they keep the order they have in the file, as the old single list of rules did.
         """
 
         position = {id(node): index for index, node in enumerate(_walk(self.groups))}
@@ -139,7 +159,7 @@ class LibraryFile(_Model):
             for rule in node.rules
         ]
         found.sort(key=lambda item: (item[0], item[1]))  # stable, so a node's own rules stay in order
-        return [{"pattern": rule.pattern, "category": category} for _, _, rule, category in found]
+        return [{"pattern": rule.pattern, "target": category} for _, _, rule, category in found]
 
 
 # endregion
@@ -181,7 +201,8 @@ class LibraryFileTooDeepError(ConfigError):
         self.depth = depth
         super().__init__(
             f"Library file error: {path}: it describes {levels} levels of folders, but the library's "
-            f"depth is {depth} ([library_structure] depth in microfiche-config.toml)"
+            f"depth is {depth} ([library_structure] depth in microfiche-config.toml); "
+            "remove the entries below the top level, or raise the depth"
         )
 
 

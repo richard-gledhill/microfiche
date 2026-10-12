@@ -23,12 +23,12 @@ def _library_file(hints: dict[str, list[str]] | None = None, rules: list[dict[st
 
     hints = hints or {}
     rules = rules or []
-    names = list(dict.fromkeys([*hints, *(rule["category"] for rule in rules)]))
+    names = list(dict.fromkeys([*hints, *(rule["target"] for rule in rules)]))
     children = [
         {
             "name": name,
             "hints": hints.get(name, []),
-            "rules": [{"pattern": rule["pattern"]} for rule in rules if rule["category"] == name],
+            "rules": [{"pattern": rule["pattern"]} for rule in rules if rule["target"] == name],
         }
         for name in names
     ]
@@ -65,7 +65,7 @@ def test_rules_engine_unknown_content_unresolved() -> None:
 
 def test_filing_rule_category_missing_from_group_ignored() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements"], "Project Atlas": ["01 Requirements"]})
-    rules = [{"pattern": "launch-plan*", "category": "04 Launch"}]
+    rules = [{"pattern": "launch-plan*", "target": "04 Launch"}]
     engine = RulesEngine(_library_file(rules=rules), _settings())
 
     match = engine.resolve_category(_document("Project Atlas plan", "launch-plan.md"), "Project Atlas", taxonomy)
@@ -75,7 +75,7 @@ def test_filing_rule_category_missing_from_group_ignored() -> None:
 
 def test_filing_rule_ignored_leaves_keyword_hints_to_decide() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements", "02 Architecture"]})
-    rules = [{"pattern": "plan*", "category": "04 Launch"}]
+    rules = [{"pattern": "plan*", "target": "04 Launch"}]
     hints = {"02 Architecture": ["system diagram"]}
     engine = RulesEngine(_library_file(hints=hints, rules=rules), _settings())
 
@@ -86,7 +86,7 @@ def test_filing_rule_ignored_leaves_keyword_hints_to_decide() -> None:
 
 def test_filing_rule_existing_category_beats_keyword_hints() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements", "02 Architecture"]})
-    rules = [{"pattern": "architecture*.pdf", "category": "02 Architecture"}]
+    rules = [{"pattern": "architecture*.pdf", "target": "02 Architecture"}]
     hints = {"01 Requirements": ["requirement"]}
     engine = RulesEngine(_library_file(hints=hints, rules=rules), _settings())
 
@@ -119,7 +119,7 @@ def test_rules_engine_hint_match_scored_by_setting() -> None:
 
 def test_rules_engine_filename_match_scored_by_setting() -> None:
     taxonomy = Taxonomy(groups={"Project Phoenix": ["02 Architecture"]})
-    rules = [{"pattern": "architecture*.pdf", "category": "02 Architecture"}]
+    rules = [{"pattern": "architecture*.pdf", "target": "02 Architecture"}]
     engine = RulesEngine(_library_file(rules=rules), _settings(filename_match_confidence=0.5))
 
     match = engine.resolve_category(_document("text", "architecture-overview.pdf"), "Project Phoenix", taxonomy)
@@ -214,7 +214,7 @@ def test_rules_engine_group_entry_filing_rule_applies_to_that_group_only() -> No
 def test_rules_engine_entry_for_missing_folder_never_proposed() -> None:
     # The folders decide what exists: a rule for a category this group has no folder for is ignored.
     taxonomy = Taxonomy(groups={"Project Phoenix": ["01 Requirements"]})
-    library_file = _library_file(rules=[{"pattern": "launch-plan*", "category": "04 Launch"}])
+    library_file = _library_file(rules=[{"pattern": "launch-plan*", "target": "04 Launch"}])
     engine = RulesEngine(library_file, _settings())
 
     match = engine.resolve_category(_document("text", "launch-plan.md"), "Project Phoenix", taxonomy)
@@ -233,3 +233,96 @@ def test_rules_engine_fuzzy_group_score_rounded_before_threshold() -> None:
     match = engine.resolve_group(_document(text), taxonomy)
 
     assert (match.name, match.confidence) == (name, 0.85)
+
+
+# region Flat library (depth 1)
+
+
+def _flat_file(*groups: dict[str, Any]) -> LibraryFile:
+    return LibraryFile.model_validate({"groups": list(groups)})
+
+
+_FLAT = Taxonomy(groups={"Household": [], "Project Phoenix": []}, depth=1)
+
+
+def test_rules_engine_flat_library_group_found_by_name() -> None:
+    engine = RulesEngine(_flat_file(), _settings())
+
+    match = engine.resolve_group(_document("Notes for Project Phoenix."), _FLAT)
+
+    assert match.name == "Project Phoenix"
+    assert match.confidence == 1.0
+
+
+def test_rules_engine_flat_library_group_found_by_hint() -> None:
+    engine = RulesEngine(_flat_file({"name": "Household", "hints": ["invoice"]}), _settings())
+
+    match = engine.resolve_group(_document("An Invoice for March."), _FLAT)
+
+    assert match.name == "Household"
+    assert match.confidence == _settings().hint_match_confidence
+    assert "Keyword hint 'invoice'" in match.reason
+
+
+def test_rules_engine_flat_library_filename_rule_beats_name_and_hint() -> None:
+    engine = RulesEngine(
+        _flat_file({"name": "Household", "hints": ["phoenix"], "rules": [{"pattern": "statement-*.md"}]}), _settings()
+    )
+
+    match = engine.resolve_group(_document("About Project Phoenix.", "statement-q1.md"), _FLAT)
+
+    assert match.name == "Household"
+    assert match.confidence == _settings().filename_match_confidence
+
+
+def test_rules_engine_flat_library_name_beats_hint() -> None:
+    engine = RulesEngine(_flat_file({"name": "Household", "hints": ["phoenix"]}), _settings())
+
+    assert engine.resolve_group(_document("Project Phoenix phoenix"), _FLAT).name == "Project Phoenix"
+
+
+def test_rules_engine_flat_library_hints_of_two_groups_are_ambiguous() -> None:
+    engine = RulesEngine(
+        _flat_file({"name": "Household", "hints": ["invoice"]}, {"name": "Project Phoenix", "hints": ["budget"]}),
+        _settings(),
+    )
+
+    match = engine.resolve_group(_document("The invoice is over budget."), _FLAT)
+
+    assert match.name is None
+    assert match.confidence == 0.0
+    assert "'Household' ('invoice')" in match.reason
+    assert "'Project Phoenix' ('budget')" in match.reason
+
+
+def test_rules_engine_flat_library_two_hints_of_one_group_are_not_ambiguous() -> None:
+    engine = RulesEngine(_flat_file({"name": "Household", "hints": ["invoice", "bill"]}), _settings())
+
+    assert engine.resolve_group(_document("An invoice and a bill."), _FLAT).name == "Household"
+
+
+def test_rules_engine_flat_library_nothing_matches() -> None:
+    engine = RulesEngine(_flat_file({"name": "Household", "hints": ["invoice"]}), _settings())
+
+    match = engine.resolve_group(_document("Holiday ideas."), _FLAT)
+
+    assert match.name is None
+    assert match.confidence == 0.0
+
+
+def test_rules_engine_flat_library_rule_for_missing_folder_never_proposed() -> None:
+    engine = RulesEngine(_flat_file({"name": "Elsewhere", "rules": [{"pattern": "*.md"}]}), _settings())
+
+    assert engine.resolve_group(_document("Holiday ideas.", "a.md"), _FLAT).name is None
+
+
+def test_rules_engine_two_level_library_ignores_group_hints_and_rules() -> None:
+    taxonomy = Taxonomy(groups={"Household": ["01 Bills"]})
+    engine = RulesEngine(
+        _flat_file({"name": "Household", "hints": ["invoice"], "rules": [{"pattern": "*.md"}]}), _settings()
+    )
+
+    assert engine.resolve_group(_document("An invoice.", "a.md"), taxonomy).name is None
+
+
+# endregion

@@ -8,7 +8,7 @@ recording every move so it can be undone.
 ### The library
 
 **Library**:
-The folder microfiche manages: an inbox plus two levels of folders, group then category.
+The folder microfiche manages: an inbox plus one or two levels of folders, group then category (or group alone, in a flat library).
 _Avoid_: Vault, repository, archive
 
 **Inbox**:
@@ -20,7 +20,7 @@ A top-level folder of the library — what a document belongs to, such as a proj
 _Avoid_: Project (a project is only one thing a group can be), folder, bucket
 
 **Category**:
-A folder inside a group, where a document actually lands — such as a document type or a stage of work.
+A folder inside a group, where a document actually lands — such as a document type or a stage of work. A flat library has none: its documents land in the group.
 _Avoid_: Subfolder, tag, label
 
 **State folder**:
@@ -32,7 +32,11 @@ The file in the state folder (`microfiche-library.json`) that describes the libr
 _Avoid_: Library config, taxonomy file, template
 
 **Taxonomy**:
-The library's groups and, within each, its categories, read from the folders that already exist.
+The library's groups and, within each, its categories, read from the folders that already exist. It also records the library's depth.
+
+**Flat library**:
+A library with one level of folders (`depth = 1`): groups only, with documents filed straight into a group.
+_Avoid_: Single-level library, groups-only library
 _Avoid_: Schema, category list
 
 **Unit**:

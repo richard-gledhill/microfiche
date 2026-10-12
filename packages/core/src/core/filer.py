@@ -89,7 +89,7 @@ class UnresolvedClassificationError(ValueError):
 
     def __init__(self, unit_name: str) -> None:
         self.unit_name = unit_name
-        super().__init__(f"Cannot file '{unit_name}': its group or category is unresolved")
+        super().__init__(f"Cannot file '{unit_name}': it has no group, or no category where the library has them")
 
 
 class JobNotFoundError(FileNotFoundError):
@@ -123,7 +123,7 @@ class JobMoveMissingError(FileNotFoundError):
 
 
 def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationResult]]) -> FilingResult:
-    """Move each unit into its classified (group, category) folder and record the run as one job.
+    """Move each unit into its classified folder (group, then category if the library has them) and record a job.
 
     The whole batch is checked for unresolved classifications before anything moves. A move that
     then fails (a file another program has open, a destination taken in the meantime, a permission
@@ -147,14 +147,14 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
         units that could not be moved.
 
     Raises:
-        UnresolvedClassificationError: if any classification has no group or category.
+        UnresolvedClassificationError: if any classification is unresolved (see ``ClassificationResult.folders``).
     """
 
     result = FilingResult()
     if not items:
         return result
     for unit, classification in items:
-        if classification.group.name is None or classification.category.name is None:
+        if classification.folders is None:
             raise UnresolvedClassificationError(unit.source_path.name)
 
     state_dir = library.state_dir
@@ -294,22 +294,22 @@ class DestinationClaims:
         return None
 
 
-def destination_for(library: Library, group: str, category: str, source_name: str) -> Path:
+def destination_for(library: Library, folders: tuple[str, ...], source_name: str) -> Path:
     """Work out where ``file_batch`` will put a unit, after the library's naming rules.
 
     Lets callers (such as ``core.reclassify``) preview a move, or spot a clash, without filing.
 
     Args:
         library: The library being filed into.
-        group: The unit's group.
-        category: The unit's category within ``group``.
+        folders: The folder names the unit belongs under (``ClassificationResult.folders``): its group, and
+            its category in a library that has them.
         source_name: The unit's current file or folder name.
 
     Returns:
         The path the unit would be filed at.
     """
 
-    return library.target_dir(group, category) / apply_naming_rules(source_name, library.config.naming_rules.rules)
+    return library.target_dir(*folders) / apply_naming_rules(source_name, library.config.naming_rules.rules)
 
 
 def load_job(state_dir: Path, job_id: str) -> Job:
@@ -366,7 +366,7 @@ def _file_unit(
 
     Args:
         unit: The unit to move.
-        classification: Its classification, which must name a group and a category.
+        classification: Its classification, which must be resolved (see ``ClassificationResult.folders``).
         library: The library to file into.
         job_id: The id of the job this move belongs to.
 
@@ -374,15 +374,15 @@ def _file_unit(
         The move's audit event and ledger record.
 
     Raises:
-        UnresolvedClassificationError: if the classification has no group or category.
+        UnresolvedClassificationError: if the classification is unresolved.
     """
 
-    group, category = classification.group.name, classification.category.name
-    if group is None or category is None:
+    folders = classification.folders
+    if folders is None or classification.group.name is None:
         raise UnresolvedClassificationError(unit.source_path.name)
 
     content_hash = unit_hash(unit.source_path)  # before the move, while the content is still at the source
-    destination = destination_for(library, group, category, unit.source_path.name)
+    destination = destination_for(library, folders, unit.source_path.name)
     ensure_dir(destination.parent)
     safe_move(unit.source_path, destination)
     _logger.debug("moved %s -> %s", library.relative(unit.source_path), library.relative(destination))
@@ -395,10 +395,10 @@ def _file_unit(
         original_path=library.relative(unit.source_path),
         content_hash=content_hash,
         unit_type=unit.kind,
-        group=group,
-        category=category,
+        group=classification.group.name,
+        category=classification.category.name if classification.category else None,
         group_reason=classification.group.reason,
-        category_reason=classification.category.reason,
+        category_reason=classification.category.reason if classification.category else None,
         confidence=classification.overall_confidence,
         classified_by=classification.classified_by,
     )

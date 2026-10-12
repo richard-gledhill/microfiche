@@ -37,7 +37,7 @@ $ microfiche sort [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
-* `--keep-folders`: Sort whole folders from the inbox intact, filed by dominant category, for this run.
+* `--keep-folders`: Sort whole folders from the inbox intact, filed under the group or category most of their documents belong to, for this run.
 * `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library&#x27;s keep_folders setting says.
 * `--use-ai`: Fall back to the AI named in the library&#x27;s config (Ollama unless it says otherwise) for classifications the rules engine can&#x27;t resolve.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.

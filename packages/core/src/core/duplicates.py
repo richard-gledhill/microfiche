@@ -199,12 +199,9 @@ class _Placement:
     def __init__(self, library: Library, unit: SortableUnit, classification: ClassificationResult) -> None:
         self._library = library
         self._classification = classification
-        self._group = classification.group.name
-        self._category = classification.category.name
+        self._folders = classification.folders
         self._destination = (
-            destination_for(library, self._group, self._category, unit.source_path.name)
-            if self._group is not None and self._category is not None
-            else None
+            destination_for(library, self._folders, unit.source_path.name) if self._folders is not None else None
         )
 
     def rank(self, copy: ExistingCopy) -> int:
@@ -227,10 +224,10 @@ class _Placement:
                 f"identical to '{copy.pending_from.name}', which is being filed this run to "
                 f"{self._library.relative(copy.path.parent)}"
             )
-        if self._group is None or self._category is None:
+        if self._folders is None:
             return f"identical to {found}; could not be classified"
 
-        target = f"{self._group}/{self._category}"
+        target = "/".join(self._folders)
         if not self._classification.confident:
             return f"identical to {found}; the classifier suggests {target} but is not confident"
         if copy.path == self._destination:
@@ -240,9 +237,9 @@ class _Placement:
         return f"identical to {found}; this would be filed in {target}"
 
     def _in_destination_folder(self, path: Path) -> bool:
-        if self._group is None or self._category is None:
+        if self._folders is None:
             return False
-        return self._library.filed_under(path, self._group, self._category)
+        return self._library.filed_under(path, *self._folders)
 
 
 def _size(path: Path) -> int | None:

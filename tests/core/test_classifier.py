@@ -453,6 +453,125 @@ def test_classify_unit_unreadable_files_do_not_vote_or_block() -> None:
 # endregion
 
 
+# region Flat library (depth 1)
+
+
+FLAT = Taxonomy(groups={PHOENIX: [], ATLAS: []}, depth=1)
+
+
+def test_classify_document_flat_library_never_asks_for_a_category() -> None:
+    rules = FakeResolver("rules_engine", _group(PHOENIX, 0.9), _category(ARCH))
+
+    result = Classifier(rules).classify_document(_document(), FLAT)
+
+    assert result.group.name == PHOENIX
+    assert result.category is None
+    assert result.folders == (PHOENIX,)
+    assert result.overall_confidence == 0.9
+    assert result.confident is True
+    assert rules.category_calls == []
+
+
+def test_classify_document_flat_library_confidence_is_the_groups() -> None:
+    rules = FakeResolver("rules_engine", _group(PHOENIX, 0.75), _category(ARCH, 0.1))
+
+    assert Classifier(rules, threshold=0.75).classify_document(_document(), FLAT).confident is True
+    assert Classifier(rules, threshold=0.76).classify_document(_document(), FLAT).confident is False
+
+
+def test_classify_document_flat_library_weak_group_asks_the_ai_for_the_group_only() -> None:
+    rules = FakeResolver("rules_engine", _group(None), _category(None))
+    fallback = FakeResolver("ai_fallback", _group(ATLAS, 0.8), _category(REQS, 0.8))
+
+    result = Classifier(rules, fallback).classify_document(_document(), FLAT)
+
+    assert result.group.name == ATLAS
+    assert result.classified_by == "ai_fallback"
+    assert fallback.group_calls == 1
+    assert fallback.category_calls == []
+
+
+def test_classify_document_flat_library_unresolved_group_not_confident() -> None:
+    result = Classifier(FakeResolver("rules_engine", _group(None), _category(None))).classify_document(
+        _document(), FLAT
+    )
+
+    assert result.group.name is None
+    assert result.folders is None
+    assert result.confident is False
+    assert result.reason == "group None"
+
+
+def test_classify_document_flat_library_group_outside_taxonomy_rejected() -> None:
+    result = Classifier(FakeResolver("rules_engine", _group("Elsewhere"), _category(None))).classify_document(
+        _document(), FLAT
+    )
+
+    assert result.group.name is None
+    assert "not an existing group" in result.reason
+
+
+def test_classify_document_two_level_group_without_categories_cannot_be_filed() -> None:
+    """The same empty list means something different at depth 2: nowhere to file, not 'the group is the place'."""
+
+    taxonomy = Taxonomy(groups={PHOENIX: []}, depth=2)
+    rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
+
+    result = Classifier(rules).classify_document(_document(), taxonomy)
+
+    assert result.category is not None
+    assert result.category.name is None
+    assert result.folders is None
+    assert result.confident is False
+
+
+def test_classify_unit_flat_library_folder_votes_on_the_group_alone() -> None:
+    unit = SortableUnit(
+        source_path=Path("folder"),
+        kind="folder",
+        documents=[_document(file_name="a.md"), _document(file_name="b.md"), _document(file_name="c.md")],
+    )
+    classifier = _voting_classifier({
+        "a.md": (_group(PHOENIX), _category(ARCH)),
+        "b.md": (_group(PHOENIX), _category(REQS)),  # the category is not asked about, so this cannot split the vote
+        "c.md": (_group(ATLAS), _category(ARCH)),
+    })
+
+    result = classifier.classify_unit(unit, FLAT)
+
+    assert result.folders == (PHOENIX,)
+
+
+def test_classify_unit_flat_library_tie_names_groups_only() -> None:
+    unit = SortableUnit(
+        source_path=Path("folder"), kind="folder", documents=[_document(file_name="a.md"), _document(file_name="b.md")]
+    )
+    classifier = _voting_classifier({
+        "a.md": (_group(PHOENIX), _category(ARCH)),
+        "b.md": (_group(ATLAS), _category(ARCH)),
+    })
+
+    result = classifier.classify_unit(unit, FLAT)
+
+    assert result.category is None
+    assert result.confident is False
+    assert result.reason == f"Documents in this folder disagree: {PHOENIX} (1 documents), {ATLAS} (1 documents)"
+
+
+def test_classify_unit_flat_library_unreadable_unit_has_no_category() -> None:
+    unit = SortableUnit(
+        source_path=Path("broken.docx"), kind="file", documents=[], unreadable=[_unreadable("broken.docx")]
+    )
+
+    result = Classifier(FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))).classify_unit(unit, FLAT)
+
+    assert result.category is None
+    assert result.reason.startswith("Could not read 'broken.docx'")
+
+
+# endregion
+
+
 # region Logging
 
 

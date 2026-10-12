@@ -62,7 +62,7 @@ class ReclassifyProposal:
     def proposed_category(self) -> str | None:
         """The category the classifier would file it under, or ``None`` if unresolved."""
 
-        return self.classification.category.name
+        return self.classification.category.name if self.classification.category else None
 
 
 def run_reclassify(
@@ -147,13 +147,13 @@ def _plan(
 ) -> ReclassifyProposal:
     """Decide what to do with one classified document; ``claims`` holds destinations already planned."""
 
-    group, category = classification.group.name, classification.category.name
-    if group is None or category is None or not classification.confident:
+    folders = classification.folders
+    if folders is None or not classification.confident:
         return ReclassifyProposal(unit, classification, "review")
 
-    destination = destination_for(library, group, category, unit.source_path.name)
+    destination = destination_for(library, folders, unit.source_path.name)
     current = unit.source_path
-    if library.filed_under(current, group, category):
+    if library.filed_under(current, *folders):
         return ReclassifyProposal(unit, classification, "keep")
     if claims.claim(destination) is not None:
         return ReclassifyProposal(unit, classification, "conflict", destination)

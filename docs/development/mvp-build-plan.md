@@ -517,6 +517,16 @@ be reworked. The vocabulary, the depth model and the dependencies between 4.6 to
 - Update `architecture.md` §2 and §10, `data-model.md`, and `CONTEXT.md` (the library is one or two levels; a group is the top level at any depth).
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
+**As built:**
+- `Taxonomy` gained `depth` (default 2) and `is_flat`, and keeps `groups` as a dict whose category lists are empty at depth 1. This is the "depth-aware shape": the empty list alone could not tell "no categories at this depth" from "a group with nowhere to file into".
+- `ClassificationResult.category` is `None` in a flat library, which is not the same as a `CategoryMatch` with `name=None` (an unresolved category). `ClassificationResult.folders` returns the folder names to file under, and `reason` and `held()` say which stage carries the reason. `Library.target_dir`, `Library.filed_under` and `destination_for` take those folders, so nothing outside the classifier counts levels.
+- The `category` key of a rule became `target` inside `RulesEngine`. The library file did not change: a rule is held by the entry it files into, so a group entry's rules file into the group at depth 1. No schema change, so `make library-schema` produced no diff.
+- A flat library's group is matched by filename rule, then its name, then its hints (filename rule 0.95, an exact name 1.0, a hint 0.75). Hints of two different groups in one document are left for review, not resolved in favour of the first: with the group as the only stage there is nothing after it to correct a wrong guess. The two-level category matcher still takes the earlier category.
+- `propose-categories` says a flat library has no categories and prints nothing; the reclassify table drops its category column.
+- A library file written at depth 2 is refused at depth 1 (its entries below the top level are too deep) with a message saying to remove them or raise the depth; sync never prunes entries.
+- The calibration corpus for depth 1 is a separate root, `tests/calibration/corpus_flat`. The AI arm and its saved answers cover the two-level corpus only and were not re-run for depth 1.
+- Group names are the only signal in a flat library, so the substring gap (`Car` in `care` or `scarf`, recorded in [calibration.md](calibration.md)) bites more. It is a known follow-up, not part of this stage.
+
 ---
 
 ## Stage 4.7 — Subcategories (Depth 3+) (provisional)

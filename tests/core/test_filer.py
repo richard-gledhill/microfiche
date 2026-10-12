@@ -195,6 +195,45 @@ def test_file_batch_unresolved_aborts_before_moving(tmp_path: Path) -> None:
     assert not (library / ".microfiche").exists()
 
 
+def _flat_classified(group: str | None = GROUP) -> ClassificationResult:
+    """A classification from a flat library: a group and no category at all."""
+
+    return ClassificationResult(
+        group=GroupMatch(name=group, confidence=1.0, reason="group reason"),
+        category=None,
+        overall_confidence=1.0,
+        classified_by="rules_engine",
+        confident=True,
+    )
+
+
+def test_file_batch_flat_library_files_straight_into_the_group(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    unit = _file_unit(library, "note.md")
+
+    result = file_batch(Library(library), [(unit, _flat_classified())])
+
+    assert (library / GROUP / "note.md").is_file()
+    assert not unit.source_path.exists()
+    assert result.job is not None
+    (record,) = Ledger(library / ".microfiche").read_all()
+    assert (record.group, record.category) == (GROUP, None)
+    assert record.category_reason is None
+    assert record.path == f"{GROUP}/note.md"
+
+
+def test_file_batch_flat_library_unresolved_group_refused_before_anything_moves(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    good = _file_unit(library, "good.md")
+    bad = _file_unit(library, "bad.md")
+
+    with pytest.raises(UnresolvedClassificationError):
+        file_batch(Library(library), [(good, _flat_classified()), (bad, _flat_classified(group=None))])
+
+    assert good.source_path.exists()
+    assert not (library / ".microfiche").exists()
+
+
 def test_file_batch_folder_filed_whole_hashed_as_manifest(tmp_path: Path) -> None:
     library = _library(tmp_path)
     unit = _folder_unit(library, "bundle")

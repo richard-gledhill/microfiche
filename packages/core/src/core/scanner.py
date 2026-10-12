@@ -49,7 +49,7 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
     Loose supported files become single-document units. A sub-folder with at least one supported file
     is descended into either way:
 
-    - keeping folders whole (the default): the folder is one unit, filed under its dominant category;
+    - keeping folders whole (the default): the folder is one unit, filed under its dominant group or category;
     - not keeping them: every supported file in it, including those in nested sub-folders, is a
       single-document unit of its own, with ``origin_folder`` set to the folder so that it can be removed
       once it is empty.

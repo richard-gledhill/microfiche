@@ -124,12 +124,7 @@ def run_sort(
             continue
         classification = _reserve_destination(unit, classification, library, claims, duplicates)
         if classification.confident:
-            _logger.debug(
-                "%s: to be filed under %s / %s",
-                unit.source_path.name,
-                classification.group.name,
-                classification.category.name,
-            )
+            _logger.debug("%s: to be filed under %s", unit.source_path.name, " / ".join(classification.folders or ()))
             report.filed.append((unit, classification))
         else:
             _logger.debug(
@@ -169,7 +164,7 @@ def _file_confident_units(library: Library, report: SortReport) -> None:
     still_filed: list[tuple[SortableUnit, ClassificationResult]] = []
     for unit, classification in report.filed:
         if unit.source_path in why:
-            held = _hold(classification, f"it could not be moved: {why[unit.source_path]}")
+            held = classification.held(f"it could not be moved: {why[unit.source_path]}")
             report.needs_review.append((unit, held))
         else:
             still_filed.append((unit, classification))
@@ -228,25 +223,13 @@ def _reserve_destination(
     with the same content is held as a copy of it.
     """
 
-    group, category = classification.group.name, classification.category.name
-    if not classification.confident or group is None or category is None:
+    folders = classification.folders
+    if not classification.confident or folders is None:
         return classification
 
-    destination = destination_for(library, group, category, unit.source_path.name)
+    destination = destination_for(library, folders, unit.source_path.name)
     taken = claims.claim(destination)
     if taken is None:
         duplicates.add(unit.source_path, destination)
         return classification
-    return _hold(classification, taken)
-
-
-def _hold(classification: ClassificationResult, why: str) -> ClassificationResult:
-    """The same classification, no longer confident, with ``why`` added to the category's reason.
-
-    The group and category stay as classified, so ``review`` can show where the unit would have gone.
-    """
-
-    held_category = classification.category.model_copy(
-        update={"reason": f"{classification.category.reason}; but {why}"}
-    )
-    return classification.model_copy(update={"confident": False, "category": held_category})
+    return classification.held(taken)

@@ -3,13 +3,13 @@
 A review of how many levels a library may have, how microfiche tells a library folder from a folder that is just
 content, and where a document may land when only some levels are confident. It feeds Stages
 [4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) to
-[4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) of the build plan. Nothing here is built.
+[4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) of the build plan. Depth 1 (Stage 4.6) is built; the rest is not.
 
-## Where depth 2 is built in today
+## Where depth 2 was built in
 
 | Part | What assumes two levels |
 |---|---|
-| `Taxonomy` | `groups: dict[str, list[str]]`; `Library.taxonomy()` walks exactly two levels |
+| `Taxonomy` | `groups: dict[str, list[str]]`; `Library.taxonomy()` walks exactly two levels (since Stage 4.6 it also carries `depth`, and reads one level at depth 1) |
 | `Classifier` and `Resolver` | Two stages, `resolve_group` then `resolve_category` |
 | Matching | Hints are keyed by category name; filing rules name a category; the AI prompts are group and category prompts |
 | Filing | `Library.target_dir(group, category)` |

@@ -8,8 +8,8 @@ from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
 from core.rules.group_rules import match_group
-from core.rules.keyword_rules import match_category
-from core.rules.metadata_rules import match_by_filename
+from core.rules.keyword_rules import match_category, match_group_hints
+from core.rules.metadata_rules import match_by_filename, match_group_by_filename
 
 
 class RulesEngine:
@@ -40,6 +40,9 @@ class RulesEngine:
     def resolve_group(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
         """Propose a group by matching the document's text against the taxonomy's group names.
 
+        In a flat library the group is also the destination, so a filename rule comes first and the groups'
+        keyword hints last, as for a category in a two-level library.
+
         Args:
             document: The document to classify.
             taxonomy: The library's groups and categories.
@@ -48,7 +51,20 @@ class RulesEngine:
             The proposed group, with ``name=None`` if none matched.
         """
 
-        return match_group(document.content, taxonomy.group_names, fuzzy_threshold=self._settings.fuzzy_group_threshold)
+        if not taxonomy.is_flat:
+            return self._match_name(document, taxonomy)
+        by_filename = match_group_by_filename(
+            document.file_name,
+            self._library_file.group_rules_for(taxonomy.group_names),
+            confidence=self._settings.filename_match_confidence,
+        )
+        if by_filename.name is not None:
+            return by_filename
+        by_name = self._match_name(document, taxonomy)
+        if by_name.name is not None:
+            return by_name
+        hints = {group: self._library_file.group_hints_for(group) for group in taxonomy.group_names}
+        return match_group_hints(document.content, hints, confidence=self._settings.hint_match_confidence)
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Propose a category of ``group``: by filename rule first, then by name or keyword hint.
@@ -79,3 +95,6 @@ class RulesEngine:
             name_confidence=self._settings.name_match_confidence,
             hint_confidence=self._settings.hint_match_confidence,
         )
+
+    def _match_name(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
+        return match_group(document.content, taxonomy.group_names, fuzzy_threshold=self._settings.fuzzy_group_threshold)

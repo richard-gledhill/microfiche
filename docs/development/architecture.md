@@ -59,10 +59,18 @@ keyword hints, so the user guides ([README](../../README.md#how-a-library-is-org
 library_inbox = "_sorting"
 depth = 2
 ```
-Depth is configurable for future flexibility, but 2 is the only depth implemented today, and any other
-value is rejected with a message saying so. Loose files and kept-whole folders are filed at the leaf. Stage 4.6 plans depth 1
-(groups only), and Stage 4.7 plans depth 3 (group, category, subcategory), provisionally; see
-[library-depth.md](library-depth.md). The word *group* is used at every depth.
+Depth is 1 or 2; any other value is rejected with a message saying so. Loose files and kept-whole folders are filed at the
+leaf. Stage 4.7 plans depth 3 (group, category, subcategory), provisionally; see [library-depth.md](library-depth.md).
+The word *group* is used at every depth.
+
+**Depth 1 — a flat library** (Stage 4.6). A library of group folders only: a document is filed straight into one. The
+taxonomy says so itself (`Taxonomy.depth`, `is_flat`), because an empty category list could otherwise mean either "no
+categories at this depth" or "a group with nowhere to file into". `Classifier` then runs one stage: the confidence is the
+group's, the AI fallback is asked the group prompt only, and a folder unit's vote is on the group alone.
+`ClassificationResult.category` is `None` (not an unresolved `CategoryMatch`), and `ClassificationResult.folders` is the
+tuple of folder names to file under, `(group,)` or `(group, category)`, so the filer, `reclassify` and the duplicate check
+do not care how many levels there are. With only its folder names to go on, a flat library's group entries in the library
+file take `hints` and `rules`: `RulesEngine.resolve_group` tries a filename rule, then the group's name, then its hints.
 
 ## 3. Sorting is a single, library-wide inbox — two-stage classification
 
@@ -360,8 +368,8 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   for them. It runs at the start of a real `run_sort` and from `config --sync`, both under the run lock, never for a
   preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
   are reported, never removed.
-* **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (2 today;
-  1 from Stage 4.6, and 3 from Stage 4.7 if it goes ahead). `levels`, `file_target_level` and `library_templates` are
+* **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (1 and 2;
+  3 from Stage 4.7 if it goes ahead). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.
 * **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
   name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
