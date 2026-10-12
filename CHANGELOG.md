@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`3face28`](https://github.com/richard-gledhill/microfiche/commit/3face28)
 - :robot: changelog file generated [`600d7a2`](https://github.com/richard-gledhill/microfiche/commit/600d7a2)
 - :robot: changelog file generated [`551eec9`](https://github.com/richard-gledhill/microfiche/commit/551eec9)
 - :robot: changelog file generated [`6af9f74`](https://github.com/richard-gledhill/microfiche/commit/6af9f74)
@@ -65,7 +66,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #54 from richard-gledhill/feature/flat-libraries [`85f1254`](https://github.com/richard-gledhill/microfiche/commit/85f1254)
 - Merge pull request #53 from richard-gledhill/feature/library-file-sync [`f6906e6`](https://github.com/richard-gledhill/microfiche/commit/f6906e6)
+- feature: flat libraries (depth 1): groups only, filed straight into a group [`91c0ff4`](https://github.com/richard-gledhill/microfiche/commit/91c0ff4)
 - feature: keep the library file in step with the library's folders [`c7d7a83`](https://github.com/richard-gledhill/microfiche/commit/c7d7a83)
 - Merge pull request #52 from richard-gledhill/refactor/defer-obsidian-integration [`10cb30d`](https://github.com/richard-gledhill/microfiche/commit/10cb30d)
 - Merge pull request #51 from richard-gledhill/fix/log-cleared-stale-lock [`c8dd46e`](https://github.com/richard-gledhill/microfiche/commit/c8dd46e)
