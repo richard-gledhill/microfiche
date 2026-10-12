@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from cli.logging import configure_logging, reset_logging
+from cli.logging import FILE_ONLY, configure_logging, reset_logging
 from core.library.library import Library
 
 # region Test helpers
@@ -270,6 +270,37 @@ def test_reset_logging_closes_log_file(tmp_path: Path) -> None:
     reset_logging()
 
     (library.state_dir / _LOG_NAME).unlink()
+
+
+# endregion
+
+
+# region File-only records
+
+
+def test_configure_logging_file_only_record_kept_off_console(capsys: pytest.CaptureFixture[str]) -> None:
+    configure_logging()
+
+    _CORE.warning("a notice already printed", extra=FILE_ONLY)
+
+    assert "a notice already printed" not in capsys.readouterr().err
+
+
+def test_configure_logging_file_only_record_still_written_to_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    configure_logging(library=library)
+
+    _CORE.warning("a notice already printed", extra=FILE_ONLY)
+
+    assert "a notice already printed" in _log_text(library)
+
+
+def test_configure_logging_unmarked_record_still_on_console(capsys: pytest.CaptureFixture[str]) -> None:
+    configure_logging()
+
+    _CORE.warning("an ordinary warning")
+
+    assert "an ordinary warning" in capsys.readouterr().err
 
 
 # endregion

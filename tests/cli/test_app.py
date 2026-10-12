@@ -782,10 +782,12 @@ def test_sort_use_ai_provider_down_warns_once_and_still_files(tmp_path: Path, mo
     result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
 
     assert result.exit_code == 0, result.stdout
-    output = " ".join(result.stdout.split())
-    assert output.count("AI fallback unavailable") == 1
-    assert "AI fallback unavailable: ConnectionError: connection refused." in output
-    assert "used the rules only" in output
+    # The warning is a log record now, shown once on stderr; the report no longer prints a line of its own.
+    assert "AI fallback unavailable" not in result.stdout
+    warning = " ".join(result.stderr.split())
+    assert warning.count("AI fallback unavailable") == 1
+    assert "ConnectionError: connection refused" in warning
+    assert "uses the rules only" in warning
     assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
 
 
@@ -1116,6 +1118,55 @@ def test_commands_leave_no_logging_handlers_behind(tmp_path: Path, command: str)
 
     assert _handlers_left_on("core") == []
     assert _handlers_left_on("cli") == []
+
+
+def test_sort_use_ai_openai_notice_stays_on_stdout_and_goes_to_log_file_only(
+    tmp_path: Path, built_with: list[AIConfig]
+) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert "sent to OpenAI" in result.stdout  # the direct print stays
+    assert "sent to OpenAI" not in result.stderr  # and the log does not repeat it on screen
+    assert "sent to OpenAI" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_use_ai_unlimited_notice_stays_on_stdout_and_goes_to_log_file_only(
+    tmp_path: Path, built_with: list[AIConfig]
+) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, "max_document_chars = 0\n")
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert "no limit" in result.stdout
+    assert "no limit" not in result.stderr
+    assert "no limit" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_use_ai_openai_notice_survives_quiet(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    # A notice about what leaves the machine is a consent matter, so -q must not hide it.
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
+
+    assert "sent to OpenAI" in result.stdout
+
+
+def test_sort_use_ai_provider_down_warning_is_in_log_file_and_hidden_by_quiet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("cli.commands.build_provider", lambda config: _DownProvider())
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "AI fallback unavailable" not in result.stderr  # -q shows errors only
+    assert "AI fallback unavailable" in (library / _LOG_FILE).read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(

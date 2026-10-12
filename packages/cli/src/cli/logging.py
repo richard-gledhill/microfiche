@@ -18,6 +18,11 @@ from rich.logging import RichHandler
 # packages does (the AI SDKs' HTTP clients, for one), so a third party's chatter stays out of the log.
 _LOGGER_NAMES = ("core", "cli")
 
+# Pass as ``extra=FILE_ONLY`` to a log call whose message the user has already been told on screen: the record is
+# written to the log file but kept off the console, so it is not shown twice.
+_FILE_ONLY_KEY = "file_only"
+FILE_ONLY: dict[str, bool] = {_FILE_ONLY_KEY: True}
+
 # stderr, so piped output stays clean. The progress display shares this console, so log lines print above its bar.
 stderr_console = Console(stderr=True)
 
@@ -50,6 +55,7 @@ def configure_logging(*, verbose: bool = False, quiet: bool = False, library: Li
         show_path=False,
         level=_console_level(verbose=verbose, quiet=quiet),
     )
+    console_handler.addFilter(_ConsoleFilter())
     handlers: list[logging.Handler] = [console_handler]
 
     if library is not None:
@@ -95,3 +101,11 @@ def _file_level(settings: LoggingConfig, *, verbose: bool) -> int:
     """The log file's threshold: DEBUG with ``verbose``, else the level named in ``[logging] level``."""
 
     return logging.DEBUG if verbose else logging.getLevelNamesMapping()[settings.level]
+
+
+class _ConsoleFilter(logging.Filter):
+    """Decides, record by record, whether the console shows it. The log file has no such filter."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # ``extra=FILE_ONLY`` made the marker an attribute of the record; most records have none, hence the default.
+        return not getattr(record, _FILE_ONLY_KEY, False)

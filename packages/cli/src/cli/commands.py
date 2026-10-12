@@ -29,7 +29,7 @@ from rich.console import Console
 from rich.markup import escape
 
 from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
-from cli.logging import configure_logging, reset_logging
+from cli.logging import FILE_ONLY, configure_logging, reset_logging
 
 # region Constants and types
 
@@ -296,18 +296,18 @@ def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
     except ConfigError as err:
         _fail(str(err))
     if settings.provider == "openai":
-        console.print(
-            "[yellow]AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI.[/yellow]",
-            soft_wrap=True,
-        )
+        notice = "AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI."
+        console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
+        _logger.warning(notice, extra=FILE_ONLY)
     if settings.max_document_chars == 0:
         billing = " OpenAI bills for the tokens used." if settings.provider == "openai" else ""
-        console.print(
-            "[yellow]max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
+        notice = (
+            "max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
             "This uses more tokens and takes longer, and a document longer than the model's context window "
-            f"may fail or be cut off.{billing}[/yellow]",
-            soft_wrap=True,
+            f"may fail or be cut off.{billing}"
         )
+        console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
+        _logger.warning(notice, extra=FILE_ONLY)
     return LLMClassifier(provider, settings)
 
 

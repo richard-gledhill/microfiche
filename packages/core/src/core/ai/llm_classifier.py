@@ -113,6 +113,11 @@ class LLMClassifier:
             answer = self._provider.complete(prompt).strip()
         except Exception as err:
             self._failure = describe_error(err)
+            _logger.warning(
+                "AI fallback unavailable (%s): the rest of the run uses the rules only, "
+                "so anything only the AI could answer goes to review",
+                self._failure,
+            )
             return None
         # Only how long and how much: neither the prompt nor the answer, which can hold the document's text.
         _logger.debug("AI answered in %.2f s (%d prompt chars)", time.perf_counter() - started, len(prompt))
