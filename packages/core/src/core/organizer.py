@@ -12,6 +12,7 @@ from core.classifier import Classifier
 from core.duplicates import Duplicate, DuplicateIndex
 from core.filer import DestinationClaims, destination_for, file_batch
 from core.library.library import Library
+from core.library.library_sync import LibrarySync, sync_library_file
 from core.models.audit_event import AuditEvent
 from core.models.classification import ClassificationResult
 from core.models.job import Job
@@ -43,6 +44,8 @@ class SortReport:
         folders_kept: Inbox folders that files were taken from but which still hold something, each with why.
         dry_run: Whether this was a preview. Nothing was moved or recorded: ``filed`` is what would be filed,
             ``folders_removed`` the folders that would be removed once emptied, and ``job`` is ``None``.
+        library_sync: What the run found out about the library file: folders it added an entry for, and entries
+            with no folder. ``None`` for a preview, which writes nothing.
     """
 
     filed: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
@@ -55,6 +58,7 @@ class SortReport:
     folders_removed: list[Path] = field(default_factory=list)
     folders_kept: list[tuple[Path, str]] = field(default_factory=list)
     dry_run: bool = False
+    library_sync: LibrarySync | None = None
 
 
 def run_sort(
@@ -70,6 +74,9 @@ def run_sort(
     A unit is filed if it is confident enough (see ``config.classification.confidence_threshold``);
     the job is recorded by ``core.filer``. Anything below the threshold is returned in
     ``needs_review`` instead of being moved.
+
+    Unless this is a dry run, the library file is first brought in step with the folders (see
+    ``core.library.library_sync``), under the caller's run lock.
 
     Each unit is classified, then checked in this order, and the first check it fails holds it in the
     inbox: is its content already in the library or being filed this run (``duplicates``), then is
@@ -93,12 +100,14 @@ def run_sort(
         nothing was filed.
     """
 
+    report = SortReport(dry_run=dry_run)
+    if not dry_run:
+        report.library_sync = sync_library_file(library)  # before the classifier reads the library file
     taxonomy = library.taxonomy()
     classifier = Classifier.from_library(library, ai_classifier)
 
     claims = DestinationClaims(library)
     duplicates = DuplicateIndex(library)
-    report = SortReport(dry_run=dry_run)
     scan = scan_sorting_inbox(library, keep_folders=keep_folders)
     report.skipped_links = scan.skipped_links
     label = " (dry run)" if dry_run else ""

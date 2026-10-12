@@ -3,8 +3,10 @@
 from pathlib import Path
 
 import pytest
+from conftest import LinkMaker
 from core.config import ConfigError, MicroficheConfig, TomlConfigParseError, load_config
 from core.library.library import Library, ScopeOutsideLibraryError
+from core.library.library_file import FolderNode
 
 # region Test helpers
 
@@ -28,6 +30,118 @@ def _build(root: Path) -> Path:
     (root / "_sorting").mkdir()
     (root / ".microfiche").mkdir()
     return root
+
+
+def _tree(nodes: list[FolderNode]) -> dict[str, list[str]]:
+    """A structure's two levels as {group: [category, ...]}, for comparing."""
+
+    return {node.name: [child.name for child in node.children] for node in nodes}
+
+
+# endregion
+
+
+# region Structure
+
+
+def test_structure_lists_groups_and_categories_sorted(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Project Atlas" / "01 Requirements").mkdir(parents=True)
+    (root / "Project Phoenix" / "00 Admin").mkdir()
+
+    structure = Library(root).structure()
+
+    assert _tree(structure) == {
+        "Project Atlas": ["01 Requirements"],
+        "Project Phoenix": ["00 Admin", "01 Requirements", "02 Architecture"],
+    }
+
+
+def test_structure_nodes_carry_no_hints_or_rules(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+
+    structure = Library(root).structure()
+
+    assert all(not node.hints and not node.rules and node.description is None for node in structure)
+    assert all(not child.hints and not child.rules for node in structure for child in node.children)
+
+
+def test_structure_depth_two_ignores_third_level(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Project Phoenix" / "01 Requirements" / "attachments").mkdir()
+
+    structure = Library(root).structure()
+
+    assert _tree(structure) == {"Project Phoenix": ["01 Requirements", "02 Architecture"]}
+    assert all(not child.children for node in structure for child in node.children)
+
+
+def test_structure_depth_one_lists_groups_only(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    config = _defaults()
+    config.library_structure.depth = 1  # assigned past the validator: depth 1 is only supported from Stage 4.6
+
+    structure = Library(root, config=config).structure()
+
+    assert _tree(structure) == {"Project Phoenix": []}
+
+
+def test_structure_skips_inbox_state_folder_and_exclusions(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "_archive" / "old").mkdir(parents=True)
+    (root / "Project Phoenix" / "_scratch").mkdir()
+
+    structure = Library(root, config=_shipped()).structure()
+
+    assert _tree(structure) == {"Project Phoenix": ["01 Requirements", "02 Architecture"]}
+
+
+def test_structure_skips_files(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "notes.md").write_text("x", encoding="utf-8")
+    (root / "Project Phoenix" / "readme.md").write_text("x", encoding="utf-8")
+
+    structure = Library(root).structure()
+
+    assert _tree(structure) == {"Project Phoenix": ["01 Requirements", "02 Architecture"]}
+
+
+@pytest.mark.parametrize("maker", ["make_symlink", "make_junction"])
+def test_structure_skips_linked_folders(tmp_path: Path, maker: str, request: pytest.FixtureRequest) -> None:
+    make_link: LinkMaker = request.getfixturevalue(maker)
+    root = _build(tmp_path / "library")
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "01 Inside").mkdir(parents=True)
+    make_link(root / "Linked Group", elsewhere)
+    make_link(root / "Project Phoenix" / "03 Linked", elsewhere)
+
+    structure = Library(root).structure()
+
+    assert _tree(structure) == {"Project Phoenix": ["01 Requirements", "02 Architecture"]}
+
+
+def test_structure_lists_names_differing_only_by_case(tmp_path: Path) -> None:
+    """The library file refuses these as duplicates, but the folders are what they are: reading them must not fail."""
+
+    root = _build(tmp_path / "library")
+    (root / "Atlas").mkdir()
+    (root / "atlas").mkdir(exist_ok=True)
+    if len([p for p in root.iterdir() if p.name.casefold() == "atlas"]) < 2:
+        pytest.skip("this file system ignores case in folder names")
+
+    structure = Library(root).structure()
+
+    assert sorted(node.name for node in structure) == ["Atlas", "Project Phoenix", "atlas"]
+
+
+def test_structure_rebuilt_on_every_call(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    library = Library(root)
+    assert _tree(library.structure()) == {"Project Phoenix": ["01 Requirements", "02 Architecture"]}
+
+    (root / "Project Phoenix" / "03 Research").mkdir()
+
+    assert _tree(library.structure())["Project Phoenix"][-1] == "03 Research"
 
 
 # endregion
@@ -92,6 +206,25 @@ def test_taxonomy_rebuilt_on_every_call(tmp_path: Path) -> None:
     (root / "Project Atlas" / "01 Requirements").mkdir(parents=True)
 
     assert library.taxonomy().group_names == ["Project Atlas", "Project Phoenix"]
+
+
+def test_taxonomy_is_view_of_structure(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Project Atlas" / "01 Requirements").mkdir(parents=True)
+    library = Library(root, config=_shipped())
+
+    assert library.taxonomy().groups == _tree(library.structure())
+
+
+def test_taxonomy_linked_group_skipped(tmp_path: Path, make_junction: LinkMaker) -> None:
+    """A linked folder is never followed (the inbox scan's rule), so it is not a group either."""
+
+    root = _build(tmp_path / "library")
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "01 Inside").mkdir(parents=True)
+    make_junction(root / "Linked Group", elsewhere)
+
+    assert Library(root).taxonomy().group_names == ["Project Phoenix"]
 
 
 # endregion

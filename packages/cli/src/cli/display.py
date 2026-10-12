@@ -7,6 +7,8 @@ from typing import Any
 
 from core.config import MicroficheConfig
 from core.filer import FailedFiling
+from core.library.library_file import LIBRARY_FILENAME
+from core.library.library_sync import LibrarySync
 from core.models.job import Job
 from core.organizer import SortReport
 from core.reclassify import ReclassifyProposal
@@ -75,11 +77,46 @@ def render_sort_report(console: Console, report: SortReport) -> None:
     console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
     _render_units(console, report)
     _render_inbox_notes(console, report)
+    if report.library_sync is not None:
+        render_library_sync(console, report.library_sync)
     if report.dry_run:
         if report.filed:
             console.print("Run again without --dry-run to file these.")
     elif report.job is not None:
         _render_job(console, report.job)
+
+
+def render_library_sync(console: Console, sync: LibrarySync) -> None:
+    """Print what a library file sync did: the file created or the folders added, and the entries with no folder.
+
+    Prints nothing for a sync that found nothing to say.
+
+    Args:
+        console: Where to print.
+        sync: The result of the sync.
+    """
+
+    if sync.write_error is not None:
+        console.print(
+            f"[yellow]Could not update the library file ({escape(sync.write_error)}); "
+            f"{len(sync.added)} folder(s) have no entry in it yet.[/yellow]",
+            soft_wrap=True,
+        )
+    elif sync.created:
+        console.print(
+            f"[dim]Created {LIBRARY_FILENAME} listing {len(sync.added)} folder(s). "
+            "Add keyword hints to it to help match documents.[/dim]",
+            soft_wrap=True,
+        )
+    else:
+        for path in sync.added:
+            console.print(f"  [dim]Added {escape(path)} to {LIBRARY_FILENAME}[/dim]", soft_wrap=True)
+    renamed = dict(sync.possible_renames)
+    for path in sync.missing:
+        note = f" (renamed to {escape(renamed[path])}?)" if path in renamed else ""
+        console.print(
+            f"  [yellow]{escape(path)}[/yellow] is in {LIBRARY_FILENAME} but has no folder{note}", soft_wrap=True
+        )
 
 
 def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal], *, dry_run: bool) -> None:

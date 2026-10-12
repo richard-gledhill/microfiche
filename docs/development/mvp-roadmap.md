@@ -16,7 +16,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
 | `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. Also undoes `reclassify --apply` jobs, which go through the same `file_batch` path. |
-| `config` | Done | Prints the library's loaded configuration (`cli/display.py::render_config`). |
+| `config` | Done | Prints the library's loaded configuration (`cli/display.py::render_config`). `--sync` instead brings `microfiche-library.json` in step with the folders (Stage 4.10); it takes the run lock and, unlike plain `config`, writes. |
 
 ## Cross-cutting feature status
 
@@ -83,8 +83,8 @@ loader; the match strengths and group fuzzy threshold as `[classification]` sett
 hints and filing rules moved to `.microfiche/microfiche-library.json`; the unused `library_templates`, `levels` and
 `file_target_level` removed and `depth` validated; and `thefuzz` replaced by `rapidfuzz`.
 
-Not part of it: the library file is written by hand until
-[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) creates it from the folders and keeps it in step.
+Not part of it: the library file was written by hand until
+[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) (built, below) created it from the folders and kept it in step.
 
 [Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) is built, from
 [operations-review.md](operations-review.md). A name collision no longer crashes `sort`: the unit stays in the inbox
@@ -134,9 +134,16 @@ provisional and deferred if it hits a practical limit), [Stage 4.8](mvp-build-pl
 them) and [Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
 setting: `leaf_only` or `best_level`).
 
-[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) follows Stage 4.1's library file: it creates the file from the
-folders on the first run, finds folders the user adds on later runs, reports folders that disappear, and adds
-`microfiche config --sync`. The folders stay the authority on what exists. It is built after Stage 4.3.
+[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
+exclusion-aware, link-skipping walk of the folders to `depth`, and `taxonomy()` is a view of it. `sync_library_file`
+(`core/library/library_sync.py`) diffs it against the library file: the first real `sort` creates the file, later
+ones append an entry (no hints) for each new folder and report it once, and `config --sync` does the same without
+sorting. Entries with no folder are reported every run and kept; one gone and one new in the same place is flagged as
+a possible rename. Nothing the user wrote is changed, a `*` entry covers the folders at its level, and the file is
+written through a temporary file and a rename, only when something was added. A preview and plain `config` write
+nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview
+doesn't show what would be added, a `name_pattern` and the filed-bundle signal wait for
+[Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders), and the walk reads two levels until Stages 4.6 and 4.7.
 
 ## Future work and deferred beyond MVP
 

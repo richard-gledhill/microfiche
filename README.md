@@ -171,6 +171,8 @@ uv run microfiche sort --library ~/Documents/Library -v   # also show progress m
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Library
+uv run microfiche config --library ~/Documents/Library   # show the loaded configuration
+uv run microfiche config --library ~/Documents/Library --sync   # list new folders in microfiche-library.json
 uv run microfiche audit --library ~/Documents/Library
 uv run microfiche rollback --library ~/Documents/Library --job-id <id>
 ```

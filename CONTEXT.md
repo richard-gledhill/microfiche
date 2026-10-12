@@ -28,7 +28,7 @@ The hidden folder inside a library where microfiche keeps its config and its own
 _Avoid_: Data directory, config folder, logs folder
 
 **Library file**:
-The file in the state folder (`microfiche-library.json`) that describes the library's folders with the hints and filing rules that help match them. It describes folders; it never decides which exist.
+The file in the state folder (`microfiche-library.json`) that describes the library's folders with the hints and filing rules that help match them. It describes folders; it never decides which exist. A sync creates it from the folders and adds an entry for each new folder; it never changes an entry the user wrote.
 _Avoid_: Library config, taxonomy file, template
 
 **Taxonomy**:

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 from conftest import LinkMaker
 from core.ai.llm_classifier import LLMClassifier
-from core.config import MICROFICHE_DIRNAME
+from core.config import MICROFICHE_DIRNAME, ConfigError
 from core.filer import AUDIT_LOG_FILENAME, rollback_job
 from core.ledger import Ledger
 from core.library.library import Library
@@ -879,6 +879,84 @@ def test_run_sort_dry_run_still_asks_the_ai(tmp_path: Path) -> None:
 
     assert provider.calls == 1  # the preview classifies exactly as a real run would
     assert report.ai_unavailable == "ConnectionError: connection refused"
+
+
+# endregion
+
+
+# region Library file sync
+
+
+def _without_library_file(library: Path) -> Path:
+    """The mock library with no ``microfiche-library.json``, as a new library has; returns where it would be."""
+
+    path = library / MICROFICHE_DIRNAME / "microfiche-library.json"
+    path.unlink()
+    return path
+
+
+def test_run_sort_no_library_file_creates_it_from_the_folders(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    report = run_sort(Library(library))
+
+    assert report.library_sync is not None
+    assert report.library_sync.created
+    assert "Project Phoenix/03 Research" in report.library_sync.added
+    assert path.is_file()
+    assert (library / _PHOENIX_DESTINATION).exists()  # and the sort went ahead
+
+
+def test_run_sort_dry_run_writes_no_library_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    report = run_sort(Library(library), dry_run=True)
+
+    assert report.library_sync is None
+    assert not path.exists()
+
+
+def test_run_sort_new_folder_added_to_library_file_once(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _without_library_file(library)
+    run_sort(Library(library))
+    (library / "Project Phoenix" / "04 Retrospectives").mkdir()
+
+    first = run_sort(Library(library))
+    second = run_sort(Library(library))
+
+    assert first.library_sync is not None
+    assert first.library_sync.added == ["Project Phoenix/04 Retrospectives"]
+    assert second.library_sync is not None
+    assert second.library_sync.added == []
+
+
+@pytest.mark.usefixtures("library_file_locked")
+def test_run_sort_library_file_unwritable_warns_and_still_sorts(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _without_library_file(library)
+
+    report = run_sort(Library(library))
+
+    assert report.library_sync is not None
+    assert report.library_sync.write_error is not None
+    assert not path.exists()
+    assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]
+
+
+def test_run_sort_invalid_library_file_stops_before_moving_anything(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = library / MICROFICHE_DIRNAME / "microfiche-library.json"
+    path.write_text('{"groups": [{"name": "A", "bogus": 1}]}', encoding="utf-8")
+    before = _snapshot(library)
+
+    with pytest.raises(ConfigError):
+        run_sort(Library(library))
+
+    assert _snapshot(library) == before
+    assert path.read_text(encoding="utf-8") == '{"groups": [{"name": "A", "bogus": 1}]}'
 
 
 # endregion

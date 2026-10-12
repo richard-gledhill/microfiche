@@ -184,6 +184,49 @@ A library with no `microfiche-library.json` still works: documents are matched o
 category names alone. A mistake in the file (a misspelt key, say) stops `sort` and `reclassify`
 with a message saying where in the file the mistake is, and nothing is moved.
 
+#### Keeping the file in step with your folders
+
+You don't have to write the file's folder entries yourself. The first real `sort` in a library with no
+`microfiche-library.json` creates one that lists your group and category folders, with no hints, and says so:
+
+```text
+Created microfiche-library.json listing 4 folder(s). Add keyword hints to it to help match documents.
+```
+
+After that, each real `sort` adds an entry for any folder you have created since, and says so once. To do the same
+without sorting, run `config --sync`:
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche config --library ~/Documents/Library --sync
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche config --library "$HOME\Documents\Library" --sync
+    ```
+
+What it never does:
+
+- It never changes or removes an entry you wrote, or their order: new entries are added at the end.
+- It never creates or removes a folder. The folders decide what exists.
+- It writes only when it adds something. When it does, it saves the whole file in a standard layout (two-space
+  indent, keys in a fixed order, empty lists left out), so hand-made spacing is not kept; the content is.
+- A folder whose name can't be an entry (it contains `/` or `\`, starts or ends with a space, or differs from a
+  sibling only by case) is skipped with a warning.
+- An entry whose folder has gone is listed every time you sort, and kept. If exactly one entry went and one folder
+  appeared in the same place, the message suggests it was renamed. The new entry starts with no hints, so move
+  them across yourself.
+- An entry named `"*"` stands for every folder at its level that has no entry of its own, so where you have one,
+  no entries are added for those folders. A library file made only of `"*"` entries is left exactly as it is.
+- `sort --dry-run` and plain `config` write nothing.
+
+To leave a folder out of the library, list it under `[exclusions]` in the config; there is no per-entry setting
+for it. If microfiche can't write the file (it is read-only, or another program has it open), `sort` warns and
+carries on, and `config --sync` exits with an error.
+
 **Other taxonomies.** The same shape works for other kinds of library:
 
 | Use case | Group | Category | Example path |
@@ -707,6 +750,9 @@ microfiche is pre-release. At the moment:
   **Needs review** stays in the inbox for you to file by hand.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
   integration after the first release.
+- The library file is synced on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
+  list folders that would be added or entries with no folder. The sync reads only down to the library's depth (2).
+  A folder that is a link or junction is not a group or category.
 - `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
   again in the summary's **Needs review** list.
