@@ -16,10 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - layer packaged defaults under the library config [`f054737`](https://github.com/richard-gledhill/microfiche/commit/f054737)
 
 ### Bug Fixes
+- log a stale run lock when a run clears it [`ff19269`](https://github.com/richard-gledhill/microfiche/commit/ff19269)
 - reject microfiche's own file names for the log, and add the missing logging tests [`579b1a7`](https://github.com/richard-gledhill/microfiche/commit/579b1a7)
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`6af9f74`](https://github.com/richard-gledhill/microfiche/commit/6af9f74)
 - :robot: changelog file generated [`4593eb2`](https://github.com/richard-gledhill/microfiche/commit/4593eb2)
 - document logging, -v/-q and the progress bar (Stage 4.4) [`e96e663`](https://github.com/richard-gledhill/microfiche/commit/e96e663)
 - :robot: changelog file generated [`318160b`](https://github.com/richard-gledhill/microfiche/commit/318160b)
@@ -60,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #51 from richard-gledhill/fix/log-cleared-stale-lock [`c8dd46e`](https://github.com/richard-gledhill/microfiche/commit/c8dd46e)
 - Merge pull request #50 from richard-gledhill/fix/logging-follow-ups [`5a9128b`](https://github.com/richard-gledhill/microfiche/commit/5a9128b)
 - Merge pull request #49 from richard-gledhill/feat/add-logging-and-diagnostics [`a93fc5f`](https://github.com/richard-gledhill/microfiche/commit/a93fc5f)
 - feature: show a progress bar on long runs (Stage 4.4, slice 6) [`a34117a`](https://github.com/richard-gledhill/microfiche/commit/a34117a)
