@@ -1,0 +1,194 @@
+# Feature backlog
+
+Features taken out of the MVP on purpose, and ideas for beyond it, kept here with enough detail to bring them back.
+Entries are placeholders, not commitments: none is tied to a release or can block one, they are not in priority order,
+and each needs more specification and planning before it is built.
+
+## Where a deferred or future item goes
+
+Record an item once, in the first row that fits, and link to it from anywhere else.
+
+| The item is... | It goes in |
+|---|---|
+| A stage of the MVP's work | [mvp-build-plan.md](mvp-build-plan.md), which covers the MVP only |
+| A gap, an improvement to what is built, or a small postponed item (OCR, a lock timeout, watch mode) | [mvp-roadmap.md](mvp-roadmap.md#future-work-and-deferred-beyond-mvp) |
+| A feature outside the MVP with a design to keep, code removed from the MVP, or an idea that needs specifying | This file |
+
+An entry here moves to the build plan, as a stage, when it is picked up, and is removed from this file.
+
+Each entry says why it was deferred, what was removed and where to restore it from, the design to keep, and the
+questions to settle before building it again.
+
+- [Obsidian integration](#obsidian-integration)
+- [Plugin architecture](#plugin-architecture)
+
+---
+
+## Obsidian integration
+
+**Status:** removed from the MVP on 2026-10-12. It was implemented and unit-tested but never wired into `sort`, so no
+user-visible behaviour was lost. It was Stage 5 of [mvp-build-plan.md](mvp-build-plan.md) together with `review`;
+`review` stayed in the MVP and this half moved here.
+
+**Why deferred.** It widened the MVP past "classify, file, undo, and work the review queue". It is also one of what
+should be several integrations with other software, so it is better designed on top of the
+[plugin architecture](#plugin-architecture) than bolted onto `core`. Nothing in the sort loop depends on it.
+
+### What was removed, and where to get it back
+
+The last commit that contains all of it is `551eec9` on `main`. Merges there are plain merge commits, so the commit
+stays reachable.
+
+| What | Where it was |
+|---|---|
+| `index.md` writer | `packages/core/src/core/obsidian/index_writer.py` |
+| `TagIndex.md` parser and writer | `packages/core/src/core/obsidian/tag_index.py` |
+| Tag matcher | `packages/core/src/core/obsidian/tag_mapper.py` (and the package `__init__.py`) |
+| Tests | `tests/core/test_index_writer.py`, `tests/core/test_tag_governance.py` |
+| `[obsidian]` config section | `ObsidianConfig` and the `MicroficheConfig.obsidian` field in `core/config.py`; the section in `core/defaults/microfiche-config.toml`, in the template `microfiche/microfiche-config.toml`, and in the two test libraries' configs |
+| `index` command | `commands.index` and its registration in `cli/app.py` (a stub that always exited 1) |
+| Diagram entry | the `core/obsidian` line in `scripts/module_diagram.py`'s `SUBGRAPHS` |
+
+To read or restore a file:
+
+```bash
+git show 551eec9:packages/core/src/core/obsidian/tag_mapper.py
+git checkout 551eec9 -- packages/core/src/core/obsidian tests/core/test_index_writer.py tests/core/test_tag_governance.py
+```
+
+Restoring the files does not restore the config section or the command; those need the design questions below
+answered first.
+
+### What it did
+
+**`index.md` folder notes** (`index_writer.write_index(folder, entries)`). Writes `<folder>/index.md`, regenerated in
+full each time, from a list of `IndexEntry(file_name, tags, confidence, filed_on)`. The title is the folder's name;
+entries are sorted case-insensitively by file name. A Markdown file is linked as a wikilink and any other file as a
+relative link, so the notes read normally in Obsidian:
+
+```markdown
+# 01 Requirements
+
+- [[architecture_review]] — #requirements #phoenix (filed 2026-09-07, confidence 0.91)
+- [spec](spec.pdf) — #architecture (filed 2026-09-07, confidence 0.80)
+```
+
+The intent was to regenerate it for every folder touched by a sort, a reclassify or a rollback, so it always matches
+what is there. That call was never written.
+
+**`TagIndex.md` vocabulary** (`tag_index.TagIndex`). Reads the library's root `TagIndex.md`: a `# Tag Index` heading,
+then one `- #tag` line per canonical tag. Tags under a `## Proposed` heading are proposals awaiting a human, kept apart
+from the canonical list. `load` returns an empty index if the file is missing; `add_proposed` ignores a tag that is
+already canonical; `save` rewrites the file with canonical tags first and the proposed ones after.
+
+**Suggest-only tag governance** (`tag_mapper.map_tags(candidates, tag_index, mode)`). The decision, first recorded in
+[architecture.md §6](architecture.md#obsidian-integration): a tag with no close canonical match is still applied to
+the document and is added to `## Proposed`, never merged into the reviewed list. Three modes:
+
+| Mode | A close canonical match | No close match |
+|---|---|---|
+| `off` | candidates returned unchanged; the index is not read or written | |
+| `suggest` (default) | replaced by the canonical tag | kept, and proposed |
+| `strict` | replaced by the canonical tag | dropped |
+
+Matching used RapidFuzz `WRatio` with `utils.default_process` (lowercases and strips punctuation on both sides,
+keeps accents), `score_cutoff=89`, and a rounded score of at least 90 to count. So `Python` maps to `python` and
+`Machine_Learning` to `machine-learning`, `Café` maps to `café`, but `munchen` does not match `münchen` and `ber` does
+not match `über`. Whether to fold accents is still undecided.
+
+**Config** (all removed):
+
+```toml
+[obsidian]
+enabled = false
+tag_index_path = "TagIndex.md"
+tag_mode = "suggest"   # suggest | strict | off
+```
+
+`enabled` was never read, so it did nothing; `tag_mode` and `tag_index_path` were only read by tests.
+
+**Tests that existed.** `index.md` links Markdown as a wikilink and other files as relative links; the tag index
+round-trips through save and load; `suggest` normalises a near match and proposes a new tag; `strict` drops an
+unmatched tag; matching ignores case, punctuation (`Machine_Learning`) and keeps accents (`Café`, and `ber` against
+`über` does not match).
+
+### The old Stage 5 plan for it
+
+Kept from the build plan so the intent is not lost:
+
+- Define the suggest-only tag governance contract: what happens to a tag with no canonical match.
+- Design the `index.md` folder-note format (wikilinks for `.md` files, relative links for other formats).
+- Design the `TagIndex.md` parser and the `## Proposed` section convention for ungoverned tags.
+- Decide how tags with accents match (see above, and [fuzzy-matching-options.md](fuzzy-matching-options.md)).
+- Regenerate a touched folder's `index.md` after every sort, reclassify and rollback.
+- Fuzzy-match extracted keywords against `TagIndex.md` and append unmatched ones to `## Proposed`.
+- Add an `[obsidian]` settings section (enable switch, tag mode, tag index path, a tag match threshold).
+- Wire a `microfiche index [--scope PATH]` command that force-regenerates the notes.
+- Tests: `index.md` generation for a folder of mixed Markdown and other files; tag governance for a canonical match, a
+  fuzzy match and a fully novel tag.
+
+### Questions to settle before building it again
+
+- **Where do tags come from?** The modules only mapped tags handed to them. Nothing in microfiche extracts keywords
+  from a document, and the ledger has no `tags` field ([data-model.md](data-model.md)). Both are needed first, and
+  tag extraction may be useful beyond Obsidian.
+- **Generated files inside the library.** An `index.md` is a file microfiche writes among the user's documents, the
+  thing the ledger was introduced to avoid ([architecture.md §7](architecture.md#7-classification-ledger-replaces-per-file-sidecars)).
+  If it comes back, then `reclassify` (which walks every file under the library) and `DuplicateIndex` (which hashes
+  same-size library files) would both see it, so it must be recognised and skipped, and `rollback` must either record
+  its writes or regenerate it. The same applies to `TagIndex.md` at the library root.
+- **When it runs.** After `file_batch`, after `rollback_job`, and after `reclassify --apply`: a hook on a finished
+  job, receiving the job and the folders it touched. That is the first extension point of the plugin architecture.
+- **Failure.** A failed note write must not fail or undo a sort.
+- **Config name.** Probably under the plugin's own namespace rather than a top-level `[obsidian]`; decide with the
+  plugin architecture, not before.
+- **Accent folding** for tag matching (above).
+
+---
+
+## Plugin architecture
+
+**Status:** not started. Requirements only; there is no design and, deliberately, no code.
+
+**Why.** Obsidian is the first integration, and likely not the last (other note-taking or document tools). Integrating
+each of them by adding modules and a config section to `core` would grow `core` with every tool and make each one
+a permanent part of the product.
+
+**Why not now.** [AGENTS.md](../../AGENTS.md) says to add a seam only where something actually varies, and one
+implementation is not a seam. With zero integrations in the MVP there is nothing to vary, and a framework designed
+first would be shaped by guesses. Design it when the first integration is built, using that integration as the
+test of the interface, and check it against a second use before treating it as stable.
+
+### Requirements to design against
+
+- **`core` does not depend on any integration.** The dependency points one way: an integration depends on `core`.
+  The repo is already a uv workspace of `core` and `cli`, so an integration could be a third package (for example
+  `packages/obsidian`) without `core` changing. This is an option, not a decision.
+- **Extension points** the Obsidian work needs, in the order it needs them:
+  1. A hook when a job finishes: sort, `reclassify --apply` and `rollback`, receiving the job and the folders it touched.
+  2. A source of tag vocabulary, if tag governance returns.
+  3. Settings of its own, validated like the rest of the config (an unknown setting is an error), under a namespace
+     that cannot collide with core's sections.
+  4. Optionally, a command of its own (such as the old `index`), registered without editing `cli/app.py`.
+- **A plugin cannot break the core promise.** A plugin that fails must not fail, abort or half-apply a sort, and must
+  not make a job impossible to roll back. This follows the existing per-unit failure isolation.
+- **What a plugin writes must be accounted for.** Anything written into the library is either recorded in the job
+  (so `rollback` undoes it) or recognisably generated (so `reclassify` and the duplicate check ignore it).
+- **Off by default, explicit when on.** Same rule as the OpenAI provider: nothing that changes the library or sends
+  data elsewhere runs unless the user turned it on, and a run says so.
+- **Discovery.** How a plugin is found (a setting naming it, a Python entry point, or being installed at all) is
+  open. Prefer the simplest thing that works for one plugin in the same repo.
+
+### Tests it will need
+
+Restore the removed `index.md` and tag governance tests, and add tests that the hook runs after sort, reclassify and
+rollback, that a failing plugin does not fail a sort, and that `reclassify` and the duplicate check ignore generated
+notes.
+
+### Open questions
+
+- Is an integration a separate package, or a module behind an optional extra like `ai`?
+- Does the hook receive the `Job` model directly (coupling a plugin to its schema), or a smaller summary type?
+- Do plugins need ordering or dependencies, or is one at a time enough?
+- Should `review` (Stage 5) expose any hook, so that choices made there can feed a plugin? Probably not until a
+  plugin needs it.

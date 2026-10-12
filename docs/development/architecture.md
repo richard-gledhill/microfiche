@@ -281,27 +281,12 @@ automatically), or `conflict` (the destination file already exists, or another d
 there — left alone rather than overwritten).
 
 ### Obsidian integration
-```
-core/obsidian/
-    index_writer.py   # generates/refreshes index.md per touched folder (a folder-note / MOC)
-    tag_index.py       # parses the library's root TagIndex.md into a canonical tag vocabulary
-    tag_mapper.py      # maps extracted keywords to TagIndex.md tags
-```
-**Decision — tag governance: suggest-only.** `tag_mapper` fuzzy-matches extracted tags against `TagIndex.md`'s
-canonical list. A tag with no close match is still applied to the document, and is appended under a clearly
-separated `## Proposed` section in `TagIndex.md` (never silently merged into the reviewed list) plus logged to
-the audit trail, so a human can promote or reject it later.
 
-`../index.md` is regenerated for every folder touched by a sort, reclassify, or rollback — not just created once —
-so it always reflects current contents. Format:
-```markdown
-# 01 Requirements
-
-- [[architecture_review]] — #requirements #phoenix (filed 2026-09-07, confidence 0.91)
-- [[user_stories_q3]] — #requirements #backlog
-```
-Relative markdown links `[Title](file.ext)` are used for non-Markdown files (PDF/DOCX); `[[wikilinks]]` for
-`.md` notes, matching normal Obsidian conventions.
+**Not part of the MVP.** The `index.md` folder notes and the `TagIndex.md` tag governance (suggest-only) were never
+called from the pipeline, and were removed so the MVP stays at "classify, file, undo and review". They are to come back
+as a plugin rather than as code in `core`; the design, the code to restore and the open questions are in
+[feature-backlog.md](feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
+in the hidden `.microfiche/` folder (§7), so no file is added beside the user's documents.
 
 ## 7. Classification ledger (replaces per-file sidecars)
 
@@ -316,8 +301,8 @@ Why: sidecars doubled the file count of a vault, went stale when a file was rena
 left behind by rollback (nothing recorded them), and nothing ever read them. The ledger lives with the rest of
 microfiche's own state in the hidden `.microfiche/` folder, is keyed by **path + content hash** so a record can be
 found again after a move or rename, and is replayed to get the library's current state. Full schema and semantics:
-[data-model.md](data-model.md). Still to add: `tags`, and for a folder unit the per-document breakdown used to pick
-the dominant category.
+[data-model.md](data-model.md). Still to add: for a folder unit, the per-document breakdown used to pick the dominant
+category. A `tags` field is parked with the Obsidian integration (§6).
 
 ## 8. CLI surface (supersedes concept 1a's command list)
 
@@ -326,7 +311,6 @@ microfiche sort [--keep-folders | --keep-folders-off] [--use-ai] [--dry-run]    
 microfiche review                                    # work the low-confidence queue (stub - see mvp-roadmap.md)
 microfiche propose-categories                        # suggest category names from the inbox; print-only
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
-microfiche index [--scope PATH]                      # force-regenerate Obsidian index.md files (stub)
 microfiche audit                                     # show the audit log
 microfiche rollback --job-id ID                      # undo a job by id
 microfiche config                                    # show the library's loaded configuration
@@ -334,13 +318,18 @@ microfiche config                                    # show the library's loaded
 
 Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
 `-q`/`--quiet`. Scoping `propose-categories` to a library folder, and its `--use-ai`
-variant (§6), are designed but not built; see [mvp-roadmap.md](mvp-roadmap.md) for each command's status.
+variant (§6), are designed but not built; see [mvp-roadmap.md](mvp-roadmap.md) for each command's status. An `index`
+command, for regenerating Obsidian folder notes, was part of this surface and left the MVP with the Obsidian
+integration (§6).
 
 ## 9. Explicitly deferred (unchanged from concept 1b / the roadmap)
 
 No database, no vector store, no semantic search in this MVP — `ai/` is a fallback path for group/category
 resolution and for `propose-categories --use-ai`, not a always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
+
+Other deferred work is in [mvp-roadmap.md](mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and
+[feature-backlog.md](feature-backlog.md).
 
 ## 10. Configuration layout
 

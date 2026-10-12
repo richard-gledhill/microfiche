@@ -16,7 +16,7 @@ content, and where a document may land when only some levels are confident. It f
 | Records | The ledger and audit events store `group` and `category` |
 | Voting and reclassify | The folder vote and `reclassify`'s `keep` check key on a `(group, category)` pair |
 
-The ledger fields are persisted, so a change later is a schema change, and Stage 5 builds `review` and `index` on
+The ledger fields are persisted, so a change later is a schema change, and Stage 5 builds `review` on
 the same shape. That is why depth 1 is planned before Stage 5.
 
 ## Vocabulary
@@ -61,7 +61,8 @@ What goes wrong without a rule:
 - **`reclassify` splits a bundle.** It walks every file under the library and classifies each one, so the
   documents of a filed bundle are proposed separately. Today's code has no check for this.
 - **At depth 3 the bundle becomes a subcategory.** The taxonomy walk would read it as one.
-- **`propose-categories` and `index`** have to treat the folder as content.
+- **`propose-categories`** has to treat the folder as content, and so would any future integration that writes into
+  category folders (the Obsidian `index.md` notes, see [feature-backlog.md](feature-backlog.md)).
 
 Today the taxonomy walk stops at level 2, so at depth 2 the taxonomy itself is not affected.
 

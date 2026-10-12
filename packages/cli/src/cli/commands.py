@@ -47,7 +47,6 @@ _QUIET_OPTION = typer.Option(False, "--quiet", "-q", help="Show errors only on s
 _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, help="Path to the library root.")
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
-_SCOPE_OPTION = typer.Option(None, "--scope")
 
 # endregion
 
@@ -176,13 +175,6 @@ def reclassify(
         render_reclassify_result(console, proposals, job=None, dry_run=True)
     else:
         render_reclassify_result(console, proposals, job=result.job, failed=result.failed, dry_run=False)
-
-
-def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -> None:
-    """Not implemented yet: force-regenerate Obsidian index.md files for a folder (or the whole library)."""
-
-    console.print("[yellow]index regeneration is not wired up to a folder walk yet - see cli/commands.py.[/yellow]")
-    raise typer.Exit(code=1)
 
 
 def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:

@@ -17,7 +17,6 @@ from core.config import (
     LoggingConfig,
     MicroficheConfig,
     NamingRulesConfig,
-    ObsidianConfig,
     ParsingConfig,
     SortingConfig,
     TomlConfigParseError,
@@ -45,7 +44,6 @@ _TEMPLATE_MAY_DIFFER = {"exclusions.exclude"}
 _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("library_structure", LibraryStructureConfig),
     ("exclusions", ExclusionsConfig),
-    ("obsidian", ObsidianConfig),
     ("naming_rules", NamingRulesConfig),
     ("classification", ClassificationConfig),
     ("ai", AIConfig),
@@ -103,7 +101,6 @@ def test_load_config_reads_shipped_default_config() -> None:
     # dot-prefixed operational folder, which is what they're renamed to (see
     # microfiche-config [exclusions]).
     assert is_excluded(Path(".logs/audit.log"), config.exclusions.exclude)
-    assert config.obsidian.tag_mode == "suggest"
 
 
 # region Template and packaged defaults
@@ -162,26 +159,21 @@ def test_load_config_missing_files_fall_back_to_defaults(tmp_path: Path) -> None
     assert config.exclusions.exclude == []
 
 
-def test_load_config_missing_file_uses_packaged_defaults(tmp_path: Path) -> None:
-    # The packaged file turns Obsidian off; the model's own default used to say on.
-    assert load_config(tmp_path / "does-not-exist").obsidian.enabled is False
-
-
 def test_load_config_partial_table_keeps_other_defaults(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text('[obsidian]\ntag_mode = "strict"\n', encoding="utf-8")
+    (tmp_path / "microfiche-config.toml").write_text('[logging]\nlevel = "DEBUG"\n', encoding="utf-8")
 
     config = load_config(tmp_path)
 
-    assert config.obsidian.tag_mode == "strict"
+    assert config.logging.level == "DEBUG"
     # Not mentioned in the library's table, so it comes from the packaged defaults.
-    assert config.obsidian.enabled is False
-    assert config.obsidian.tag_index_path == "TagIndex.md"
+    assert config.logging.file == "microfiche.log"
+    assert config.logging.backup_count == 3
 
 
 def test_load_config_library_value_overrides_default(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text("[obsidian]\nenabled = true\n", encoding="utf-8")
+    (tmp_path / "microfiche-config.toml").write_text("[sorting]\nkeep_folders = false\n", encoding="utf-8")
 
-    assert load_config(tmp_path).obsidian.enabled is True
+    assert load_config(tmp_path).sorting.keep_folders is False
 
 
 def _with_packaged_defaults(monkeypatch: pytest.MonkeyPatch, **sections: dict[str, Any]) -> None:
@@ -208,7 +200,6 @@ def test_load_config_nested_table_merges_with_default(tmp_path: Path, monkeypatc
     config = load_config(tmp_path)
 
     assert config.naming_rules.rules == {"a": "1", "b": "2"}
-    assert config.obsidian.enabled is False
 
 
 def test_default_confidence_threshold_equals_keyword_hint_score() -> None:
@@ -548,10 +539,12 @@ def test_config_section_unknown_key_rejected(name: str, section: type[BaseModel]
         ('[library_templates]\nsoftware = ["A"]\n', "library_templates: unknown section"),
         ('[library_structure]\nlevels = ["group"]\n', "library_structure.levels: unknown setting"),
         ("[library_structure]\nfile_target_level = 2\n", "library_structure.file_target_level: unknown setting"),
+        ('[obsidian]\ntag_mode = "strict"\n', "obsidian: unknown section"),
     ],
 )
 def test_load_config_settings_moved_or_removed_rejected(tmp_path: Path, text: str, expected: str) -> None:
-    # Hints and rules moved to microfiche-library.json; the others had no effect and were dropped.
+    # Hints and rules moved to microfiche-library.json; the others had no effect and were dropped. The
+    # [obsidian] section went with the integration it configured (docs/development/feature-backlog.md).
     (tmp_path / "microfiche-config.toml").write_text(text, encoding="utf-8")
 
     with pytest.raises(ConfigError, match=expected):

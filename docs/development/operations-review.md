@@ -45,9 +45,3 @@ the same exercise is in [config-review.md](config-review.md).
 - **Order of the 4.x stages:** 4.1 first because the others add settings; 4.2 before 4.3 because turning
   `keep_folders` off makes collisions common; 4.4 last because it records what the others do, but it is small
   enough to move earlier if debugging needs it.
-
-## Deferred beyond the MVP
-
-Listed in the roadmap with the rest of the deferred work: OCR for scanned PDFs,
-a `doctor`/`verify` command, watch mode, `--json` output, ledger and `audit.log` rotation, dependency and
-security scanning, and a statement that there is no telemetry.

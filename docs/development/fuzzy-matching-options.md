@@ -1,6 +1,8 @@
 # Fuzzy matching options
 
-microfiche uses fuzzy string matching in two places. This page records what `thefuzz` actually is, how it
+microfiche uses fuzzy string matching to match group names. It also used it for tags, until the Obsidian integration
+was removed from the MVP ([feature-backlog.md](feature-backlog.md#obsidian-integration)); the tag parts below are
+kept as history. This page records what `thefuzz` actually is, how it
 compares with RapidFuzz and the other options, what was measured, and when in the build plan to switch. It feeds
 [Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation) of the build plan. The switch was made as the last Build step of Stage 4.1; the "Outcome" section at the end
 records what was done and what it showed.
@@ -10,7 +12,7 @@ records what was done and what it showed.
 | Where | Call | What for |
 |---|---|---|
 | `rules/group_rules.py` | `fuzz.partial_ratio(group, text)` for every group name, on every document | A near-miss of a group's name in the document text (`Projct Phoenix`), scored 0 to 100 and compared with `[classification] fuzzy_group_threshold` (85). This is on the `sort` path. |
-| `obsidian/tag_mapper.py` | `process.extractOne(candidate, canonical_tags)` | Map an extracted tag onto the library's `TagIndex.md` vocabulary. Not called from `sort` until Stage 5. |
+| `obsidian/tag_mapper.py` | `process.extractOne(candidate, canonical_tags)` | Map an extracted tag onto the library's `TagIndex.md` vocabulary. Never called from `sort`; removed with the Obsidian integration. |
 
 ## What `thefuzz` is
 
@@ -96,9 +98,10 @@ The switch was made with the rounding kept, so a raw score of 84.6 still counts 
   identical results.
 - **Speed:** the real group match, 30 groups against a 20,000-character document, went from 2.81 ms to 1.55 ms
   (1.8 times faster). The 3.7 times in the table above was a simplified loop, not this function.
-- **One deliberate behaviour change:** tag matching now keeps accents, as above. `tag_mapper` is not called from
-  `sort` until Stage 5, so no user has seen either behaviour. Whether to fold accents on purpose (so `munchen`
-  matches `münchen`) is a decision for the Stage 5 tag design; it is listed in the build plan.
+- **One deliberate behaviour change:** tag matching now keeps accents, as above. `tag_mapper` was never called from
+  `sort`, so no user saw either behaviour, and it has since been removed with the Obsidian integration. Whether to
+  fold accents on purpose (so `munchen` matches `münchen`) is still open and is listed in
+  [feature-backlog.md](feature-backlog.md#obsidian-integration).
 
 ## Recommendation and timing
 
@@ -109,8 +112,9 @@ Depend on `rapidfuzz` directly, and do it **as the last Build step of Stage 4.1*
    means users never see the meaning change.
 2. **The tools it needs now exist.** The calibration harness and the configurable threshold are both in place, so
    "the report is unchanged" is a test, not a hope.
-3. **It must land before Stage 5**, which wires `tag_mapper` into `sort` and adds a tag threshold under
-   `[obsidian]`. That is the one place where the preprocessing trap bites.
+3. **It had to land before the tag work**, which was to wire `tag_mapper` into `sort` under `[obsidian]`, the one
+   place where the preprocessing trap bites. That work left the MVP, so this reason no longer drives the timing;
+   reasons 1, 2 and 4 stand.
 4. **It is small and independent.** Two files change, apart from dependency metadata and docs, so a separate commit
    (or a separate branch, if the Stage 4.1 branch is already large) keeps the review easy.
 

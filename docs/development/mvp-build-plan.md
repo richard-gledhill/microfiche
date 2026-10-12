@@ -3,7 +3,8 @@
 A from-scratch, staged process for building microfiche to MVP, organized as six stages (plus the
 interim stages 4.1 to 4.10, added after review) that
 each ship a **testable version** — something you can actually run and demo, not just a set of
-merged PRs. Every stage is internally sequenced Plan → Design → Build → Test → Deploy.
+merged PRs. Every stage is internally sequenced Plan → Design → Build → Test → Deploy. This plan
+covers the MVP only; work beyond it is in [feature-backlog.md](feature-backlog.md).
 
 This is a different document from [mvp-roadmap.md](mvp-roadmap.md): that one is a bottom-up
 status report against the *current* codebase (what's done/partial/stub, right now). This one
@@ -181,7 +182,7 @@ library's category hints and filing rules live in `.microfiche/microfiche-librar
 behaviour settings in `microfiche-config.toml`. `microfiche sort` produces the same results as v0.1.4 on the
 calibration corpus, except that whole folders are now filed intact by default.
 
-Why before Stage 5: `review` and `index` add settings of their own (`[obsidian]`, a review section), and
+Why before Stage 5: `review` adds settings of its own (a review section), and
 should be built against the layered loader rather than adding to the hard-coded constants. Stages 4.2 to 4.4
 also add settings, so they build on it too. The reasoning is in [config-review.md](config-review.md); the
 target design is [architecture.md §10](architecture.md#10-configuration-layout).
@@ -214,7 +215,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout)
 - Replace `thefuzz` with `rapidfuzz` in `rules/group_rules.py` and `obsidian/tag_mapper.py`, as its own commit after the library file work: declare `rapidfuzz` in `core`'s `pyproject.toml`, remove `thefuzz` and its mypy override, and pass `score_cutoff` and `processor` as designed.
 
 **Test**
-- Write a test that the shipped template and the packaged defaults agree (the `[obsidian] enabled` mismatch is the known case).
+- Write a test that the shipped template and the packaged defaults agree (the `[obsidian] enabled` mismatch was the known case; the section has since been removed with the Obsidian integration).
 - Write config tests for the layered load: a missing file, a partial file, a list that replaces, and a range violation on each new score.
 - Write a test that each new setting changes the behaviour it names, using fake resolvers rather than the real rules.
 - Write a CLI test for `keep_folders` precedence: either flag, when passed, over config over default, and passing both is an error.
@@ -231,6 +232,9 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout)
 
 **Deferred:** an `init` command and a template catalog; a `command` AI provider (needs a decision on running
 commands from a config inside a shared library); per-group hint overrides.
+
+**Since removed:** the `obsidian/tag_mapper.py` part of the `rapidfuzz` switch, and its test, were built and later
+removed with the Obsidian integration. See [feature-backlog.md](feature-backlog.md#obsidian-integration).
 
 ---
 
@@ -315,7 +319,7 @@ duplicate than reported as a name clash. The reasoning is in [operations-review.
 
 **Deploy**
 - Update `docs/how-to-use.md` and the README (collisions, duplicates and how to resolve one, and what `keep_folders = false` does), `architecture.md` §4 and the "nothing is ever deleted" wording.
-- Add "duplicate" to [CONTEXT.md](../../CONTEXT.md), update `mvp-roadmap.md` (move duplicate detection out of "Deferred beyond MVP"), and update the Decisions in [operations-review.md](operations-review.md), which still lists recognising an exact duplicate as deferred.
+- Add "duplicate" to [CONTEXT.md](../../CONTEXT.md), update `mvp-roadmap.md` (move duplicate detection out of "Future work and deferred beyond MVP"), and update the Decisions in [operations-review.md](operations-review.md), which still lists recognising an exact duplicate as deferred.
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
 **Deferred:** renaming on collision (a suffix setting); moving duplicates to a `_sorting/duplicates/` folder to
@@ -479,7 +483,7 @@ The options, candidate models and adoption rules are in [ai-classifier-options.m
 the library's group folders only and files it straight into one. The ledger, `rollback` and `reclassify` work on
 a flat library as they do on a two-level one. The default stays 2.
 
-Why before Stage 5: `review` and `index` would otherwise be built on the group-then-category shape and have to
+Why before Stage 5: `review` would otherwise be built on the group-then-category shape and have to
 be reworked. The vocabulary, the depth model and the dependencies between 4.6 to 4.9 are in
 [library-depth.md](library-depth.md).
 
@@ -629,7 +633,7 @@ Alternatives considered (`strict`/`progressive`, `exact`/`partial`, `deepest_onl
 - Design how the ledger and audit record a unit filed above the leaf (the deeper fields are empty).
 - Design `reclassify` for a unit parked above the leaf: `keep` if the level is still the best match, and `move` deeper when a deeper level has since become confident (new hints, a new folder).
 - Design the folder-unit vote per level: the dominant group first, then the dominant category among the documents that voted for it.
-- Design how `review` and `index` show a unit that is not at the leaf (an input to Stage 5).
+- Design how `review` shows a unit that is not at the leaf (an input to Stage 5).
 
 **Build**
 - Add `[sorting] file_at` to the packaged defaults, with range validation.
@@ -697,38 +701,43 @@ and the run lock. Stages 4.6 and 4.7 reuse its structure walk for depths 1 and 3
 
 ---
 
-## Stage 5 — Obsidian Integration & Review Workflow
+## Stage 5 — Review Workflow
 
-**Milestone:** `v0.1.5 — Obsidian Integration & Review`
-**Testable version:** Filed folders get a regenerated `index.md`, extracted keywords are
-governed against a library's `TagIndex.md`, and a human can work the low-confidence review
-queue interactively via `microfiche review` — completing the CLI surface
-[architecture.md](architecture.md) describes.
+**Milestone:** `v0.1.5 — Review Workflow`
+**Testable version:** A human can work the units that `sort` left in `_sorting/` with `microfiche review`: each
+is shown with its reasons and best guesses, and the user accepts a suggestion, picks a group and category, creates a
+new category folder, or skips it. Accepted units are filed through `file_batch` as one rollback-able job. This
+completes the MVP's CLI surface, which no longer includes `index`.
+
+This stage used to be "Obsidian Integration & Review Workflow". The Obsidian half (`index.md` folder notes,
+`TagIndex.md` tag governance, the `[obsidian]` settings and the `index` command) was moved out of the MVP, because
+it extended the target and is better built on a plugin architecture than inside `core`. Its code and design are kept in
+[feature-backlog.md](feature-backlog.md#obsidian-integration). `review` stays: without it a unit below the confidence
+threshold has no way out of the inbox except filing it by hand.
 
 **Plan**
 - Define the review-queue interaction contract (accept / modify / create-new / skip) before writing the Typer prompt loop.
-- Define the "suggest-only" tag governance contract: what happens to a tag with no canonical match.
+- Decide where the queue comes from. `sort` keeps no queue: a unit below the threshold simply stays in the inbox, so the current `review` docstring ("from the most recent sort run") promises more than is stored. Either re-scan and re-classify the inbox, or save the last report under `.microfiche/`. The inbox is already the queue, so re-classifying is the simpler of the two; saving a report adds state that has to be kept in step with the inbox.
 
 **Design**
 - If a decision model is configured (Stage 4.5), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
-- Design the `index.md` folder-note format (wikilinks for `.md` files, relative links for other formats).
-- Design the `TagIndex.md` parser and the `## Proposed` section convention for ungoverned tags.
-- Decide how tags with accents match. `tag_mapper` now compares accents as written, so `munchen` does not match `münchen`; folding accents before matching would make it match, and `ber` still would not match `über` ([fuzzy-matching-options.md](fuzzy-matching-options.md)).
+- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is built, depth 3 (Stage 4.7), and for a unit that may be filed above the leaf (Stage 4.9).
+- Design "create new" as making a folder in the library. `propose-categories` never creates folders, so `review` would be the first command that does: decide whether it may, and require an explicit confirmation. Stage 4.10's library file sync then lists the new folder on the next run.
+- Design filing from `review` to take the same safeguards as `sort`: the run lock, the shared destination check and the duplicate check, and one `file_batch` job per session.
 
 **Build**
-- Implement folder-note generation that regenerates a touched folder's `index.md` after every sort/reclassify/rollback.
-- Implement tag governance that fuzzy-matches extracted keywords against `TagIndex.md` and appends unmatched ones to `## Proposed`.
 - Implement the interactive `review` command's accept/modify/create/skip loop over the low-confidence queue.
-- Wire the `index` and `review` commands to this new core logic.
+- Wire `review` to it, replacing the stub in `cli/commands.py` and the placeholder `cli/review.py`.
+- File the accepted units as one job and print its id and the undo hint, as `sort` does.
 - Implement `reclassify --apply`, reusing Stage 3's persistence path. *(Already shipped ahead of this stage.)*
 
 **Test**
-- Write unit tests for `index.md` generation against a folder with mixed Markdown and non-Markdown files.
-- Write unit tests for tag governance covering a canonical match, a fuzzy match, and a fully novel tag.
 - Write a CLI test driving the `review` loop through each of its four choices.
+- Write tests that a skipped unit stays in the inbox, that accepted units are one job `rollback` undoes, and that a collision or duplicate found at review time is reported and nothing is overwritten.
 
 **Deploy**
-- Tag `v0.1.5` — feature-complete against the documented CLI surface.
+- Update `docs/how-to-use.md` (a section on `review` in both the Bash and PowerShell tabs, and remove it from "Current limitations"), the Usage section of `README.md`, `docs/cli-reference.md` (`make docs-cli`), the `review` row in `mvp-roadmap.md`, `architecture.md` §8, and the note in `calibration.md` that `review` is a stub.
+- Tag `v0.1.5` — feature-complete against the MVP's CLI surface.
 
 ---
 
@@ -752,7 +761,7 @@ actual MVP.
 - Add a coverage-gated job to CI's test workflow.
 - Extend the release workflow to build the `core` and `cli` wheels, check that the packaged defaults file is inside them, and attach them to the GitHub release.
 - Add `microfiche --version`, `rollback --last` (so the job id needn't be copied from `audit`), and a documented list of exit codes.
-- Reconcile any remaining documentation drift between the README, `docs/how-to-use.md`, the architecture docs, and actual behavior.
+- Reconcile any remaining documentation drift between the README, `docs/how-to-use.md`, the architecture docs, and actual behavior, including that no shipped doc presents Obsidian folder notes or tag governance as present.
 
 **Test**
 - Run the full test suite across every supported Python version and confirm parity.
@@ -780,12 +789,11 @@ rather than in isolation:
    AI call is never destructive.
 4. **AI fourth** — the rules engine and CLI need to be stable before adding a fallback path
    that only fires when they fail.
-4.1. **Configuration consolidation before Obsidian/review** — Stage 5 adds `[obsidian]` and review
-   settings; building them on the layered defaults loader, with scores and the AI provider already
-   configurable, avoids adding a second batch of hard-coded constants.
+4.1. **Configuration consolidation before review** — Stage 5 adds review settings; building them on the layered
+   defaults loader, with scores and the AI provider already configurable, avoids adding a second batch of
+   hard-coded constants.
    The fuzzy-library switch is its last step: it must land before `v0.1.5` so the `fuzzy_group_threshold`
-   setting never changes meaning after release, and before Stage 5 wires `tag_mapper` (see
-   [fuzzy-matching-options.md](fuzzy-matching-options.md)).
+   setting never changes meaning after release (see [fuzzy-matching-options.md](fuzzy-matching-options.md)).
 4.2. **Folder handling and collisions next** — the `keep_folders` default changes in 4.1, and turning it off
    has to start descending into folders; a name collision must route to review before that makes
    collisions common.
@@ -796,8 +804,8 @@ rather than in isolation:
 4.5. **Decision-model classifier** — it needs the `[ai]` config (4.1), the safe
    AI-unavailable path (4.3) and logs (4.4), and it is gated on a measurement: if no candidate beats the chat
    model on the calibration corpus, the stage ends with that finding and Stage 5 proceeds unchanged.
-4.6. **Flat libraries before Stage 5** — `review` and `index` are built on the library's shape, so a one-level
-   library has to exist first or they are reworked.
+4.6. **Flat libraries before Stage 5** — `review` is built on the library's shape, so a one-level
+   library has to exist first or it is reworked.
 4.7. **Subcategories, provisional** — the largest change to the model, gated on a measurement; if it hits a
    practical limit it is deferred and nothing later depends on it.
 4.8. **Non-library folders** — numbered after 4.7, but 4.7 needs its rule for telling a subcategory from a filed
@@ -811,7 +819,9 @@ rather than in isolation:
    the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
    `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6 and 4.7, which reuse its structure
    walk for depths 1 and 3.
-5. **Obsidian/review fifth** — polish and completeness features that don't block earlier
-   stages from being independently useful.
+5. **Review fifth** — it is the other end of the sort loop: everything `sort` holds back lands in the queue it
+   works. It needs the earlier stages' safeguards (the collision and duplicate checks, the run lock, rollback) because
+   it files too. The Obsidian integration used to share this stage and was moved out of the MVP, so that it can be
+   designed as a plugin.
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs
    until the feature set has stopped changing underneath them.

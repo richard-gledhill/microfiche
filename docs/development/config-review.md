@@ -19,7 +19,8 @@ The code has two sources of defaults: the pydantic `Field` defaults in `core/con
 | `[obsidian] enabled` | `True` | `false` |
 | `[category_hints]`, `[filing_rules]` | empty | sample data (`01 Requirements`, ...) |
 
-One packaged defaults file (point 3) removes the drift.
+One packaged defaults file (point 3) removes the drift. (The `[obsidian]` section has since been removed from the
+MVP altogether; see [feature-backlog.md](feature-backlog.md#obsidian-integration).)
 
 ## 1. Hard-coded constants to config
 
@@ -32,7 +33,7 @@ Move the scoring and matching knobs:
 | `_FILENAME_MATCH_CONFIDENCE` | `rules/metadata_rules.py` | 0.95 |
 | `_AI_CONFIDENCE` | `ai/llm_classifier.py` | 0.7 |
 | `_FUZZY_MATCH_THRESHOLD` | `rules/group_rules.py` | 85 |
-| `_FUZZY_MATCH_THRESHOLD` | `obsidian/tag_mapper.py` | 90 |
+| `_FUZZY_MATCH_THRESHOLD` | `obsidian/tag_mapper.py` (since removed) | 90 |
 | `_MAX_DOCUMENT_CHARS` | `ai/llm_classifier.py` | 4000 |
 | `top_n` | `library/category_suggester.py` | 5 |
 
@@ -114,8 +115,9 @@ Worth doing in the MVP:
 - `[sorting] keep_folders` (point 2).
 - The signal strengths and fuzzy thresholds (point 1).
 - `[ai]` (point 4).
-- Wiring `[obsidian]` (`enabled`, `tag_mode`, `tag_index_path`) as part of Stage 5; the settings exist but
-  nothing calls them.
+- ~~Wiring `[obsidian]` (`enabled`, `tag_mode`, `tag_index_path`) as part of Stage 5.~~ Dropped: nothing called the
+  settings, so the section was removed with the Obsidian integration instead
+  ([feature-backlog.md](feature-backlog.md#obsidian-integration)).
 - A `word_boundary` toggle for group matching, so the roadmap's "`Car` matches `carrier`" fix can ship as a
   setting.
 
@@ -128,8 +130,8 @@ Added by the [operations review](operations-review.md), in Stages 4.3 and 4.4: `
 to skip, such as Office lock files), `[parsing] max_file_mb` (an oversize file goes to review) and `[logging]`
 (`level`, `file`, `max_bytes`, `backup_count`).
 
-Later: the ambiguity-check toggle, a `[review]` section, `index.md` generation settings. Define the Stage 5
-ones when `review` and `index` are built.
+Later: the ambiguity-check toggle and a `[review]` section. Define the Stage 5 ones when `review` is built. Settings
+for `index.md` generation went out of the MVP with the Obsidian integration.
 
 ## 6. Move templates and hints out of the config
 

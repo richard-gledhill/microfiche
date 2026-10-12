@@ -29,9 +29,8 @@ def test_cli_reference_matches_app(tmp_path: Path) -> None:
     )
 
 
-def test_stub_commands_say_not_implemented() -> None:
-    for command in ("review", "index"):
-        result = runner.invoke(app, [command, "--help"])
+def test_review_command_says_not_implemented() -> None:
+    result = runner.invoke(app, ["review", "--help"])
 
-        assert result.exit_code == 0
-        assert "Not implemented yet" in result.stdout
+    assert result.exit_code == 0
+    assert "Not implemented yet" in result.stdout

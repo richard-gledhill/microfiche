@@ -41,8 +41,10 @@ documents and sorts them with minimal manual effort. It's Obsidian-friendly, can
 - **Never deletes files** — every move is recorded and reversible with `microfiche rollback`. A name clash or an
   exact duplicate is left in the inbox with the reason, never overwritten. A file another program has open, or one
   that is too big, stays put without stopping the run, and `sort --dry-run` previews a run first.
-- **Obsidian-aware** — generates `index.md` folder notes and governs tags against a canonical
-  `TagIndex.md`, so a sorted library is immediately usable as a vault.
+- **Vault-friendly** — works on any folder tree, including an Obsidian vault: microfiche's own state lives in a hidden
+  `.microfiche/` folder and nothing is written next to your documents. Obsidian-specific features (folder notes,
+  tag governance) are planned as an optional integration after the MVP; see the
+  [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/feature-backlog.md).
 - **Fully offline-capable** — no cloud service is required; AI classification is opt-in.
 
 ## Requirements
@@ -196,7 +198,6 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `parsing` | `max_file_mb` (default 50): a file bigger than this is not read; it stays in the inbox for review, with the reason. |
 | `logging` | The diagnostic log, separate from the audit log. `level` (default `INFO`): how much the log file records. `file` (default `microfiche.log`): its name, kept in `.microfiche/`. `max_bytes` (default 1048576) and `backup_count` (default 3): when the file is rotated and how many backups are kept. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
-| `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
 
 Keyword hints and filename rules are not in the config. They live in `.microfiche/microfiche-library.json`, a tree of
@@ -248,7 +249,7 @@ two packages:
 ```text
 microfiche/
 ├── packages/
-│   ├── core/src/core/    # scanning, classification, filing, library/Obsidian logic
+│   ├── core/src/core/    # scanning, classification, filing, library logic
 │   └── cli/src/cli/      # the microfiche Typer CLI
 ├── microfiche/     # default per-library config, copied into a library's .microfiche/
 ├── tests/
