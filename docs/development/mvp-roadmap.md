@@ -117,9 +117,10 @@ was already told: the OpenAI and unlimited-size notices stay direct prints, so `
 logged to the file. The AI fallback logs its first failure at WARNING, and the sort report no longer prints a line of
 its own for it. Decisions are logged without document text (a test checks it). `sort` and `reclassify` show a
 progress bar (`cli/progress.py`) on a terminal, for 20 or more units or when the AI is used, fed by an optional
-`progress(done, total)` callback so `core` does not import Rich. Ruff's `LOG` and `G` rules are on. Still open: the
-run lock logs nothing, because it is taken before logging is set up and released after it is torn down, so a cleared
-stale lock is not recorded; and `-q` hides the AI-unavailable warning on screen.
+`progress(done, total)` callback so `core` does not import Rich. Ruff's `LOG` and `G` rules are on. The run lock logs
+nothing itself, because it is taken before logging is set up and released after it is torn down; instead `run_lock`
+yields the holder of a stale lock it cleared, `_locked` passes that on, and `_logging` logs it as a WARNING once logging
+is on. Still open: `-q` hides the AI-unavailable warning, and the stale-lock warning, on screen.
 
 One further step follows it, and it is not built:
 [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as

@@ -224,7 +224,9 @@ when the command ends, and a library whose config cannot be read still rolls bac
 Two kinds of record are kept apart: the ledger and `audit.log` are product data that `rollback` and `audit` read, and
 the log is for people and can change. A decision is logged by its names, scores and reasons, never the document's text.
 A message the user has already been told on screen is logged with `extra=FILE_ONLY`, which a filter on the console handler
-keeps off the screen. `run_lock` logs nothing, because it runs outside the logging window.
+keeps off the screen. `run_lock` logs nothing itself, because it runs outside the logging window; it yields the holder
+of a stale lock it cleared, `_locked` passes that to the command, and `_logging` logs it as a WARNING, so the lock-first
+order that keeps a refused run out of the log also leaves a way for the lock to be heard.
 
 **Decision — progress is a callback.** `run_sort` and `run_reclassify` take an optional `progress(done, total)`, called
 first with `(0, total)` and then as each unit finishes, so `core` reports progress without importing Rich. `cli/progress.py`
