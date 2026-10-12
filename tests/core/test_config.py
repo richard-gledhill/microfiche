@@ -12,6 +12,7 @@ from core.config import (
     ConfigError,
     ExclusionsConfig,
     LibraryStructureConfig,
+    LoggingConfig,
     MicroficheConfig,
     NamingRulesConfig,
     ObsidianConfig,
@@ -44,6 +45,7 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("ai", AIConfig),
     ("sorting", SortingConfig),
     ("parsing", ParsingConfig),
+    ("logging", LoggingConfig),
 ]
 
 
@@ -65,6 +67,11 @@ def _settings_in(toml_file: Path) -> dict[str, Any]:
 def _ai(**overrides: Any) -> AIConfig:
     """The packaged ``[ai]`` settings with ``overrides`` applied."""
     return AIConfig(**{**_packaged_defaults()["ai"], **overrides})
+
+
+def _logging(**overrides: Any) -> LoggingConfig:
+    """The packaged ``[logging]`` settings with ``overrides`` applied."""
+    return LoggingConfig(**{**_packaged_defaults()["logging"], **overrides})
 
 
 def _packaged_defaults() -> dict[str, Any]:
@@ -410,6 +417,72 @@ def test_load_config_max_file_mb_not_positive_rejected(tmp_path: Path, value: st
 
     with pytest.raises(ConfigError, match=r"parsing.max_file_mb"):
         load_config(tmp_path)
+
+
+def test_load_config_logging_defaults_to_info_in_microfiche_log() -> None:
+    settings = load_config(Path("does-not-exist")).logging
+
+    assert settings.level == "INFO"
+    assert settings.file == "microfiche.log"
+    assert settings.max_bytes == 1024 * 1024
+    assert settings.backup_count == 3
+
+
+def test_load_config_custom_logging_settings(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text('[logging]\nlevel = "DEBUG"\nbackup_count = 5\n', encoding="utf-8")
+
+    settings = load_config(tmp_path).logging
+
+    assert settings.level == "DEBUG"
+    assert settings.backup_count == 5
+    # Not mentioned, so the packaged default stands.
+    assert settings.file == "microfiche.log"
+
+
+@pytest.mark.parametrize("value", ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+def test_logging_config_level_name_accepted(value: str) -> None:
+    assert _logging(level=value).level == value
+
+
+@pytest.mark.parametrize("value", ["debug", "Info", "warning"])
+def test_logging_config_level_other_case_accepted_as_upper(value: str) -> None:
+    assert _logging(level=value).level == value.upper()
+
+
+@pytest.mark.parametrize("value", ["", "LOUD", "NOTSET", "10", "WARN", "FATAL", "INFOX", "XDEBUG"])
+def test_logging_config_level_not_a_level_rejected(value: str) -> None:
+    # NOTSET is a real name to Python but means "no level", which a log file cannot sensibly be set to.
+    # INFOX and XDEBUG only contain a level name: the whole value must be one.
+    with pytest.raises(ValidationError, match="is not a log level"):
+        _logging(level=value)
+
+
+@pytest.mark.parametrize("value", ["microfiche.log", "debug.log", "run"])
+def test_logging_config_file_plain_name_accepted(value: str) -> None:
+    assert _logging(file=value).file == value
+
+
+@pytest.mark.parametrize("value", ["", "  ", ".", "..", "logs/run.log", "..\\run.log", "C:run.log"])
+def test_logging_config_file_not_a_plain_name_rejected(value: str) -> None:
+    # Anything but a plain name could put the log outside the library's .microfiche/ folder.
+    with pytest.raises(ValidationError, match="not a valid log file name"):
+        _logging(file=value)
+
+
+@pytest.mark.parametrize("value", [0, -1])
+def test_logging_config_max_bytes_not_positive_rejected(value: int) -> None:
+    with pytest.raises(ValidationError, match="max_bytes"):
+        _logging(max_bytes=value)
+
+
+@pytest.mark.parametrize("value", [0, 3])
+def test_logging_config_backup_count_zero_or_more_accepted(value: int) -> None:
+    assert _logging(backup_count=value).backup_count == value
+
+
+def test_logging_config_backup_count_negative_rejected() -> None:
+    with pytest.raises(ValidationError, match="backup_count"):
+        _logging(backup_count=-1)
 
 
 # endregion

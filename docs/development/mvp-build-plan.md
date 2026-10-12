@@ -387,10 +387,26 @@ there is nothing to read afterwards. Stages 5 and 6 are easier to build and debu
 - Decide what is logged: scan results, each classification with its reasons, AI call outcome and timing, skipped items and why, filing and rollback steps. Never document contents or API keys.
 
 **Design**
-- Design logger names (`microfiche.<module>`) and the rule that only the CLI configures handlers, so `core` stays quiet when used as a library.
-- Design the levels: warnings and errors always; `-v` adds INFO to the console and DEBUG to the file; `-q` shows errors only.
-- Design a `[logging]` section (`level`, `file`, `max_bytes`, `backup_count`) with defaults in the packaged file.
-- Design progress output: shown only when attached to a terminal and when a run has many units or slow AI calls, so piped output stays clean.
+- Design logger names as plain `logging.getLogger(__name__)` (`core.<module>`, `cli.<module>`), not a `microfiche.` prefix: a helper that adds the prefix would only move one line into every module.
+  - Only the CLI configures handlers, and it attaches them to the `core` and `cli` loggers, not the root. Third-party loggers (the AI SDKs' HTTP clients) then stay out of the log, and `propagate` stays on so `caplog` works.
+  - `core/__init__.py` adds a `NullHandler` to the `core` logger, so `core` stays quiet when used as a library.
+- Design the levels: the logger sits at DEBUG and each handler filters. A handler's level is a threshold, so WARNING shows WARNING, ERROR and CRITICAL.
+  - The console (stderr) shows WARNING and above by default, INFO with `-v` and ERROR with `-q`. The file shows `[logging] level` (INFO by default) and DEBUG with `-v`.
+  - `-v` and `-q` are per-command options, defined once as shared constants like `--library`, on every command that opens a library. If both are passed `-q` wins, with no usage error, and `--help` says so.
+- Design a `[logging]` section, with defaults only in the packaged file and the template in `microfiche/` kept in step. The console level is set by the flags alone.
+  - `level`: the file's level when `-v` is not given; a level name checked with `logging.getLevelNamesMapping()`; default `"INFO"`.
+  - `file`: a plain file name kept inside `.microfiche/`, validated like `library_inbox` so it cannot point outside the state folder; default `"microfiche.log"`.
+  - `max_bytes`: greater than 0; default 1048576. `backup_count`: 0 or more; default 3.
+- Design when the file handler attaches: only in commands that hold the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`). A dry run then still writes no state folder (Stage 4.3), and only the lock holder rotates the file, which fails on Windows if two processes hold it. Other commands log to the console only.
+  - Setup goes through one helper that every command passes through (`rollback` and `audit` open the library without `_open_library` today).
+  - It is idempotent: it removes and closes the handlers it added before adding them again, so repeated invocations in one process do not duplicate lines or leave the file open.
+- Design how a condition the user is already told about is shown once.
+  - The OpenAI notice and the unlimited-`max_document_chars` notice stay direct prints, so they survive `-q`. They are also logged at WARNING, to the file only, through a filter on the console handler.
+  - `core` logs the AI-unavailable condition at WARNING, once per run, with the flag held on the run state, not in a module global. The report keeps `ai_unavailable` as data, and the CLI no longer prints a separate line for it.
+- Design progress output: shown on stderr, only when the console is a terminal, the run has many units or the AI is in use, and `-q` was not given, so piped output stays clean.
+  - It shares one stderr `Console` with the log handler, so log lines print above the bar.
+  - "Many units" is a constant in the code, not a setting.
+  - `core` cannot import Rich, so it reports progress through an optional callback parameter on `run_sort` and `run_reclassify`.
 
 **Build**
 - Replace `core/utils/logging.py::get_logger` with module loggers, and remove the unused `organization.log` writer.
@@ -405,7 +421,7 @@ there is nothing to read afterwards. Stages 5 and 6 are easier to build and debu
 - Write a test that piped output carries no progress control codes.
 
 **Deploy**
-- Update `docs/how-to-use.md` with a troubleshooting section (where the log is, what `-v` shows), the README and `docs/cli-reference.md`.
+- Update `docs/how-to-use.md` with a troubleshooting section (where the log is, what `-v` and `-q` show, and that a `--dry-run` or other read-only command writes no log file), the README and `docs/cli-reference.md`.
 - Merge to `main` without a new tag; the changes ship with `v0.1.5`.
 
 **Deferred:** structured (JSON) log output; log shipping.

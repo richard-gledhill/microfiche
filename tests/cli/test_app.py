@@ -1,6 +1,7 @@
 """Smoke test that the microfiche CLI exposes all expected commands."""
 
 import json
+import logging
 import os
 import re
 import shutil
@@ -992,6 +993,146 @@ def test_sort_bad_flags_fail_before_taking_the_lock(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert not (library / _LOCK).exists()
+
+
+# endregion
+
+
+# region Logging options
+
+
+_LOG_FILE = Path(".microfiche") / "microfiche.log"
+
+
+def _handlers_left_on(logger_name: str) -> list[logging.Handler]:
+    """The handlers on a logger other than the library's own quiet ``NullHandler``."""
+
+    return [h for h in logging.getLogger(logger_name).handlers if not isinstance(h, logging.NullHandler)]
+
+
+@pytest.mark.parametrize("command", ["sort", "reclassify", "propose-categories", "config", "audit"])
+@pytest.mark.parametrize("flag", ["-v", "-q", "--verbose", "--quiet"])
+def test_commands_verbose_and_quiet_flags_accepted(tmp_path: Path, command: str, flag: str) -> None:
+    result = runner.invoke(app, [command, "--library", str(_library(tmp_path)), flag])
+
+    assert result.exit_code == 0, result.stdout
+
+
+def test_sort_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "sort: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_dry_run_writes_no_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_reclassify_apply_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "reclassify: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_reclassify_preview_writes_no_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+@pytest.mark.parametrize("command", ["propose-categories", "config", "audit"])
+def test_read_only_commands_write_no_log_file(tmp_path: Path, command: str) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, [command, "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_rollback_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    job_id = _sort(library)
+    # Deleting the file also proves sort closed it: Windows will not delete a file that is still open.
+    (library / _LOG_FILE).unlink()
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert "rollback: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_rollback_invalid_config_works_without_log_file(tmp_path: Path) -> None:
+    # The log file's settings live in the config, so with an invalid one there is no log file, but undo still works.
+    library = _library(tmp_path)
+    job_id = _sort(library)
+    (library / _LOG_FILE).unlink()
+    _break_config(library)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_sort_default_hides_start_line_on_screen(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert "sort: library" not in result.stderr
+
+
+def test_sort_verbose_shows_start_line_on_stderr(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v"])
+
+    assert "sort: library" in result.stderr
+    assert "sort: library" not in result.stdout  # stdout stays clean for piping
+
+
+def test_sort_quiet_wins_over_verbose(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "sort: library" not in result.stderr
+
+
+@pytest.mark.parametrize("command", ["sort", "config"])
+def test_commands_leave_no_logging_handlers_behind(tmp_path: Path, command: str) -> None:
+    # Otherwise one command's log file stays open, and the next invocation in this process writes to it.
+    runner.invoke(app, [command, "--library", str(_library(tmp_path))])
+
+    assert _handlers_left_on("core") == []
+    assert _handlers_left_on("cli") == []
+
+
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    [("sort", []), ("reclassify", ["--apply"]), ("rollback", ["--job-id", "20260101-000000-abcdef"])],
+)
+def test_refused_run_leaves_no_log_trace(tmp_path: Path, command: str, arguments: list[str]) -> None:
+    # Only the run holding the lock may write the log file, so a run the lock refuses logs nothing at all,
+    # on screen (even with -v) or in the file. It still says why on stdout.
+    library = _library(tmp_path)
+
+    with _held(library):
+        result = runner.invoke(app, [command, "--library", str(library), "-v", *arguments])
+
+    assert result.exit_code == 1
+    assert f"{command}: library" not in result.stderr
+    assert not (library / _LOG_FILE).exists()
 
 
 # endregion

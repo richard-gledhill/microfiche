@@ -42,6 +42,8 @@ $ microfiche sort [OPTIONS]
 * `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library&#x27;s keep_folders setting says.
 * `--use-ai`: Fall back to the AI named in the library&#x27;s config (Ollama unless it says otherwise) for classifications the rules engine can&#x27;t resolve.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche review`
@@ -74,6 +76,8 @@ $ microfiche propose-categories [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche reclassify`
@@ -94,6 +98,8 @@ $ microfiche reclassify [OPTIONS]
 * `--library <directory>`: Path to the library root.  [required]
 * `--folder <path>`: Limit to this folder; defaults to the whole library.
 * `--apply`: Actually move files; without this it&#x27;s a dry run.
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche index`
@@ -125,6 +131,8 @@ $ microfiche audit [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche rollback`
@@ -141,6 +149,8 @@ $ microfiche rollback [OPTIONS]
 
 * `--library <directory>`: Path to the library root.  [required]
 * `--job-id <str>`: [required]
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche config`
@@ -156,4 +166,6 @@ $ microfiche config [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
