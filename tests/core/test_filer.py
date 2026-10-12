@@ -1,5 +1,6 @@
 """Tests for filing a batch of classified units and rolling the job back."""
 
+import logging
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -634,6 +635,93 @@ def test_destination_claims_existing_folder_refused(tmp_path: Path) -> None:
 
 
 # endregion
+
+
+# endregion
+
+
+# region Logging
+
+
+def test_file_batch_logs_each_move_and_a_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    units = [_file_unit(library, "a.md"), _file_unit(library, "b.md")]
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    job = file_batch(Library(library), [(unit, _classified()) for unit in units]).job
+
+    assert job is not None
+    assert f"moved _sorting/a.md -> {GROUP}/{REQUIREMENTS}/a.md" in caplog.messages
+    assert f"moved _sorting/b.md -> {GROUP}/{REQUIREMENTS}/b.md" in caplog.messages
+    assert f"filed 2 unit(s) as job {job.job_id}" in caplog.messages
+
+
+def test_file_batch_logs_a_removed_empty_folder(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    unit = _unit_from_folder(library, "pack/one.md")
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    file_batch(Library(library), [(unit, _classified())])
+
+    assert "removed empty folder _sorting/pack" in caplog.messages
+
+
+def test_file_batch_summary_is_info_and_moves_are_debug(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    caplog.set_level(logging.INFO, logger="core")
+
+    file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
+
+    assert any(message.startswith("filed 1 unit(s) as job") for message in caplog.messages)
+    assert not any(message.startswith("moved ") for message in caplog.messages)
+
+
+def test_file_batch_failed_move_is_logged_with_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    library = _library(tmp_path)
+    stuck = _file_unit(library, "stuck.docx")
+
+    def refuse(source: Path, destination: Path) -> None:
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr("core.filer.safe_move", refuse)
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    file_batch(Library(library), [(stuck, _classified())])
+
+    [record] = [r for r in caplog.records if r.name == "core.filer" and r.levelno >= logging.WARNING]
+    assert "stuck.docx" in record.getMessage()
+    assert "permission denied" in record.getMessage()  # the reason, as the report gives it
+
+
+def test_file_batch_failed_move_logs_no_move(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    library = _library(tmp_path)
+
+    def refuse(source: Path, destination: Path) -> None:
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr("core.filer.safe_move", refuse)
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    file_batch(Library(library), [(_file_unit(library, "stuck.docx"), _classified())])
+
+    assert not any(message.startswith(("moved ", "filed ")) for message in caplog.messages)
+
+
+def test_rollback_job_logs_start_each_move_and_finish(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
+    assert job is not None
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    rollback_job(Library(library), job.job_id)
+
+    assert f"rolling back job {job.job_id}: 1 recorded step(s)" in caplog.messages
+    assert f"moved back {GROUP}/{REQUIREMENTS}/a.md -> _sorting/a.md" in caplog.messages
+    assert f"rolled back job {job.job_id}: 1 step(s) reversed" in caplog.messages
 
 
 # endregion

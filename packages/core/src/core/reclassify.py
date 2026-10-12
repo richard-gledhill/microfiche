@@ -8,6 +8,8 @@ ledger and audit log and can be undone with ``rollback``.
 
 from __future__ import annotations
 
+import logging
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -20,6 +22,8 @@ from core.models.unit import SortableUnit
 from core.parsers import is_supported, read_documents
 
 ReclassifyAction = Literal["move", "keep", "review", "conflict"]
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -90,8 +94,19 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
         read = read_documents([file_path], max_bytes=library.config.parsing.max_file_bytes)
         unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
         classification = classifier.classify_unit(unit, taxonomy)
-        proposals.append(_plan(unit, classification, library, claims))
+        proposal = _plan(unit, classification, library, claims)
+        _logger.debug("%s: %s", library.relative(file_path), proposal.action)
+        proposals.append(proposal)
 
+    counts = Counter(proposal.action for proposal in proposals)
+    _logger.info(
+        "reclassify: checked %d document(s): %d move, %d keep, %d review, %d conflict",
+        len(proposals),
+        counts["move"],
+        counts["keep"],
+        counts["review"],
+        counts["conflict"],
+    )
     return proposals
 
 

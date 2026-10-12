@@ -1,8 +1,11 @@
 """Tests for the AI resolver, using a scripted provider instead of a real model."""
 
+import logging
+import re
 from pathlib import Path
 from typing import Any
 
+import pytest
 from core.ai.llm_classifier import LLMClassifier
 from core.config import AIConfig, load_config
 from core.models.category import Taxonomy
@@ -198,3 +201,16 @@ def test_llm_classifier_missing_optional_package_counts_as_unavailable() -> None
 
 
 # endregion
+
+
+def test_llm_classifier_logs_call_timing_not_prompt_or_answer(caplog: pytest.LogCaptureFixture) -> None:
+    marker = "UNIQUE-DOCUMENT-TEXT-MARKER"
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    LLMClassifier(ScriptedProvider("Acme Ltd"), _settings()).resolve_group(_document(marker), TAXONOMY)
+
+    [record] = [r for r in caplog.records if r.name == "core.ai.llm_classifier"]
+    assert record.levelno == logging.DEBUG
+    assert re.fullmatch(r"AI answered in \d+\.\d{2} s \(\d+ prompt chars\)", record.getMessage())
+    assert marker not in caplog.text  # the document's text is sent to the model, never to the log
+    assert "Acme Ltd" not in caplog.text  # nor is the model's answer

@@ -101,7 +101,7 @@ def run_sort(
         classification = classifier.classify_unit(unit, taxonomy)
         duplicate = duplicates.check(unit, classification)
         if duplicate is not None:
-            _logger.debug("%s: held as a duplicate", unit.source_path.name)
+            _logger.debug("%s: held as a duplicate (%s)", unit.source_path.name, duplicate.reason)
             report.duplicates.append(duplicate)
             continue
         classification = _reserve_destination(unit, classification, library, claims, duplicates)

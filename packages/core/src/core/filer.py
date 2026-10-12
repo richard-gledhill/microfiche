@@ -18,6 +18,7 @@ is reported back; it never stops the rest of the batch.
 
 from __future__ import annotations
 
+import logging
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -44,6 +45,8 @@ _ROLLBACK_DIRNAME = "rollback"
 _JOB_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 # Windows error codes for a file another program has open: a sharing violation and a lock violation.
 _FILE_IN_USE_WINERRORS = (32, 33)
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -163,7 +166,9 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
             try:
                 event, record = _file_unit(unit, classification, library, job.job_id)
             except OSError as err:
-                result.failed.append(FailedFiling(unit, _describe_move_failure(err)))
+                reason = _describe_move_failure(err)
+                result.failed.append(FailedFiling(unit, reason))
+                _logger.warning("could not move %s: %s", unit.source_path.name, reason)
                 continue
             moved.append(unit)
             job.moves.append(event)
@@ -174,6 +179,8 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
         if job.moves:
             save_job(state_dir, job)
     result.job = job if job.moves else None
+    if result.job is not None:
+        _logger.info("filed %d unit(s) as job %s", len(moved), job.job_id)
     return result
 
 
@@ -203,6 +210,7 @@ def rollback_job(library: Library, job_id: str) -> Job:
     job = load_job(state_dir, job_id)
     if job.rolled_back_at is not None:
         raise JobAlreadyRolledBackError(job.job_id, job.rolled_back_at)
+    _logger.info("rolling back job %s: %d recorded step(s)", job.job_id, len(job.moves))
 
     reversed_events: list[AuditEvent] = []
     records: list[LedgerRecord] = []
@@ -211,17 +219,22 @@ def rollback_job(library: Library, job_id: str) -> Job:
             if event.action == "remove_folder":
                 if not event.original_path.exists():  # already recreated by an earlier, interrupted rollback
                     event.original_path.mkdir(parents=True)
+                    _logger.debug("recreated folder %s", library.relative(event.original_path))
                     reversed_events.append(AuditEvent(original_path=event.original_path, action="restore_folder"))
                 continue
             if event.action != "move" or event.new_path is None:
                 continue
             if not event.new_path.exists():
                 if event.original_path.exists():
+                    _logger.debug("already back: %s", library.relative(event.original_path))
                     continue  # already put back by an earlier, interrupted rollback
                 raise JobMoveMissingError(event)
             content_hash = unit_hash(event.new_path)
             unit_type: Literal["file", "folder"] = "folder" if event.new_path.is_dir() else "file"
             safe_move(event.new_path, event.original_path)
+            _logger.debug(
+                "moved back %s -> %s", library.relative(event.new_path), library.relative(event.original_path)
+            )
             reversed_events.append(
                 AuditEvent(original_path=event.new_path, new_path=event.original_path, action="rollback")
             )
@@ -241,6 +254,7 @@ def rollback_job(library: Library, job_id: str) -> Job:
 
     job.rolled_back_at = datetime.now()
     save_job(state_dir, job)
+    _logger.info("rolled back job %s: %d step(s) reversed", job.job_id, len(reversed_events))
     return job
 
 
@@ -371,6 +385,7 @@ def _file_unit(
     destination = destination_for(library, group, category, unit.source_path.name)
     ensure_dir(destination.parent)
     safe_move(unit.source_path, destination)
+    _logger.debug("moved %s -> %s", library.relative(unit.source_path), library.relative(destination))
 
     event = AuditEvent(original_path=unit.source_path, new_path=destination, action="move")
     record = LedgerRecord(
@@ -424,6 +439,7 @@ def _remove_emptied_folders(library: Library, job: Job, units: list[SortableUnit
                 directory.rmdir()
             except OSError:
                 break
+            _logger.debug("removed empty folder %s", library.relative(directory))
             event = AuditEvent(original_path=directory, action="remove_folder")
             job.moves.append(event)
             _append_audit_lines(library, job.job_id, [event])

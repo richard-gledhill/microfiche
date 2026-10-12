@@ -928,3 +928,16 @@ def test_run_sort_info_level_leaves_out_unit_detail(tmp_path: Path, caplog: pyte
 
 
 # endregion
+
+
+def test_run_sort_duplicate_logged_with_its_reason(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    _copy(library / "_sorting" / _PHOENIX_NOTE, library, _PHOENIX_DESTINATION)  # the same note, filed earlier
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    run_sort(Library(library))
+
+    assert (
+        f"{_PHOENIX_NOTE}: held as a duplicate (identical to Project Phoenix/02 Architecture/{_PHOENIX_NOTE}, "
+        "already filed where this would go)"
+    ) in _sort_messages(caplog)

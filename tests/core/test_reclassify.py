@@ -1,6 +1,8 @@
 """Tests for reclassification (re-reviewing already-filed documents)."""
 
+import logging
 import shutil
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -322,6 +324,28 @@ def test_run_reclassify_unreadable_file_left_for_review(tmp_path: Path) -> None:
 
     assert (library / _RESEARCH / "broken.docx").exists()
     assert (library / _ARCHITECTURE / "misfiled.md").exists()
+
+
+# endregion
+
+
+# region Logging
+
+
+def test_run_reclassify_logs_each_action_and_a_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = Library(_library(tmp_path))
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    proposals = run_reclassify(library)
+
+    counts = Counter(proposal.action for proposal in proposals)
+    assert proposals
+    assert (
+        f"reclassify: checked {len(proposals)} document(s): {counts['move']} move, {counts['keep']} keep, "
+        f"{counts['review']} review, {counts['conflict']} conflict"
+    ) in caplog.messages
+    for proposal in proposals:
+        assert f"{library.relative(proposal.current_path)}: {proposal.action}" in caplog.messages
 
 
 # endregion
