@@ -49,7 +49,8 @@ max_file_mb = 50
 [logging]
 # How much the log file (.microfiche/<file>) records: DEBUG, INFO, WARNING, ERROR or CRITICAL.
 level = "INFO"
-# The log file's name, inside the library's .microfiche/ folder. A plain file name, not a path.
+# The log file's name, inside the library's .microfiche/ folder. A plain file name, not a path, and not the name of
+# one of microfiche's own files there (audit.log, ledger.jsonl and so on).
 file = "microfiche.log"
 # The file is rotated to a backup when it reaches this many bytes.
 max_bytes = 1048576

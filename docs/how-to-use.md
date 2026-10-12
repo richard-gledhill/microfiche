@@ -646,7 +646,7 @@ These are the settings, with their defaults (the `[logging]` table of `.microfic
 ```toml
 [logging]
 level = "INFO"            # what the file records: DEBUG, INFO, WARNING, ERROR or CRITICAL (-v makes it DEBUG)
-file = "microfiche.log"   # a file name inside .microfiche/, not a path
+file = "microfiche.log"   # a file name inside .microfiche/: not a path, and not one of microfiche's own files
 max_bytes = 1048576       # rotate when the file reaches this size
 backup_count = 3          # how many old files to keep; 0 never rotates, so the file grows without limit
 ```
@@ -703,6 +703,8 @@ microfiche is pre-release. At the moment:
 - A file open in another program is not retried: close it and run `sort` again.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
 - `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
+- A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
+  again in the summary's **Needs review** list.
 - The log file is written only by commands that change the library, and not by `rollback` when the config can't be
   read. When a leftover lock from a dead process is cleared, that is not recorded in the log.
 - The progress bar's threshold (20 documents, or any `--use-ai` run) is fixed; there is no setting for it.

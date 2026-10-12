@@ -56,8 +56,9 @@ max_file_mb = 50
 
 # The diagnostic log microfiche writes under .microfiche/ (separate from the audit log).
 # level: how much it records (DEBUG, INFO, WARNING, ERROR or CRITICAL). file: its name, a plain file
-# name, not a path. The file is rotated to a backup at max_bytes; backup_count is how many backups to
-# keep (0 never rotates, so the file grows without limit).
+# name, not a path, and not the name of one of microfiche's own files there (audit.log, ledger.jsonl and
+# so on). The file is rotated to a backup at max_bytes; backup_count is how many backups to keep (0 never
+# rotates, so the file grows without limit).
 [logging]
 level = "INFO"
 file = "microfiche.log"
