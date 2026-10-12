@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`53a23e1`](https://github.com/richard-gledhill/microfiche/commit/53a23e1)
 - :robot: changelog file generated [`3face28`](https://github.com/richard-gledhill/microfiche/commit/3face28)
 - :robot: changelog file generated [`600d7a2`](https://github.com/richard-gledhill/microfiche/commit/600d7a2)
 - :robot: changelog file generated [`551eec9`](https://github.com/richard-gledhill/microfiche/commit/551eec9)
@@ -66,6 +67,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #55 from richard-gledhill/feature/non-library-folders [`3656499`](https://github.com/richard-gledhill/microfiche/commit/3656499)
+- feature: keep filed folders whole when reclassifying; say what is below a reduced depth [`59b97ce`](https://github.com/richard-gledhill/microfiche/commit/59b97ce)
 - Merge pull request #54 from richard-gledhill/feature/flat-libraries [`85f1254`](https://github.com/richard-gledhill/microfiche/commit/85f1254)
 - Merge pull request #53 from richard-gledhill/feature/library-file-sync [`f6906e6`](https://github.com/richard-gledhill/microfiche/commit/f6906e6)
 - feature: flat libraries (depth 1): groups only, filed straight into a group [`91c0ff4`](https://github.com/richard-gledhill/microfiche/commit/91c0ff4)
