@@ -79,7 +79,7 @@ def test_structure_depth_two_ignores_third_level(tmp_path: Path) -> None:
 def test_structure_depth_one_lists_groups_only(tmp_path: Path) -> None:
     root = _build(tmp_path / "library")
     config = _defaults()
-    config.library_structure.depth = 1  # assigned past the validator: depth 1 is only supported from Stage 4.6
+    config.library_structure.depth = 1
 
     structure = Library(root, config=config).structure()
 
@@ -497,6 +497,44 @@ def test_paths_need_no_readable_library_file(tmp_path: Path) -> None:
 
     assert library.state_dir == tmp_path / ".microfiche"
     assert library.target_dir("G", "C") == tmp_path / "G" / "C"
+
+
+# endregion
+
+
+# region Flat library (depth 1)
+
+
+def test_taxonomy_carries_the_configured_depth(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    config = _defaults()
+    config.library_structure.depth = 1
+
+    taxonomy = Library(root, config=config).taxonomy()
+
+    assert taxonomy.depth == 1
+    assert taxonomy.groups == {"Project Phoenix": []}  # the category folders are not read
+
+
+def test_taxonomy_two_levels_by_default(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+
+    assert Library(root).taxonomy().depth == 2
+
+
+def test_target_dir_group_only(tmp_path: Path) -> None:
+    assert Library(tmp_path).target_dir("Household") == tmp_path / "Household"
+
+
+def test_filed_under_group_folder_and_below(tmp_path: Path) -> None:
+    library = Library(tmp_path)
+    group = tmp_path / "Household"
+
+    assert library.filed_under(group / "a.md", "Household")
+    assert library.filed_under(group / "bundle" / "a.md", "Household")
+    assert library.filed_under(group / "01 Bills" / "a.md", "Household")  # a sub-folder is still in the group
+    assert not library.filed_under(tmp_path / "Project Phoenix" / "a.md", "Household")
+    assert not library.filed_under(tmp_path / "_sorting" / "a.md", "Household")
 
 
 # endregion

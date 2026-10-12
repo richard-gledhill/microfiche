@@ -1035,6 +1035,112 @@ def test_config_sync_refused_while_lock_held(tmp_path: Path) -> None:
 # endregion
 
 
+# region Flat library (depth 1)
+
+
+_MOCK_FLAT_LIBRARY = Path(__file__).resolve().parents[1] / "mock_flat_library"
+
+
+def _flat_library(tmp_path: Path) -> Path:
+    """A copy of the flat mock library, without its inbox folder."""
+
+    library = tmp_path / "flat"
+    shutil.copytree(_MOCK_FLAT_LIBRARY, library)
+    shutil.rmtree(library / "_sorting" / "mixed-pack")
+    return library
+
+
+def test_sort_flat_library_files_into_group_folders_and_says_so(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Filed: 4" in output
+    assert "PhoenixDesignNotes.md -> Project Phoenix (confidence 1.00, via rules_engine)" in output
+    assert "electricity-march.md -> Household (confidence 0.75, via rules_engine)" in output
+    assert "None" not in output
+    assert (library / "Project Phoenix" / "PhoenixDesignNotes.md").is_file()
+    assert "HolidayIdeas.md" in output  # left for review, with a reason that names no category
+
+
+def test_sort_dry_run_flat_library_previews_the_group(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "AtlasBudget.md -> Project Atlas" in " ".join(result.stdout.split())
+    assert _tree(library) == before
+
+
+def test_sort_flat_library_rollback_restores_it(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    before = _tree(library)
+    job_id = _sort(library)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert _tree(library) == before
+
+
+def test_reclassify_flat_library_dry_run_lists_the_group_without_a_category(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    shutil.move(library / "Project Atlas" / "scope.md", library / "Household" / "scope.md")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Would move: 1" in output
+    assert "Project Atlas" in output
+    assert "None" not in output
+    assert "Proposed group" in output
+    assert "Proposed category" not in output  # a flat library has no categories
+
+
+def test_propose_categories_flat_library_says_there_are_none(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+
+    result = runner.invoke(app, ["propose-categories", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "no categories to propose" in " ".join(result.stdout.split())
+
+
+def test_config_sync_flat_library_lists_group_folders_only(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    (library / _LIBRARY_FILE).write_text(json.dumps({"groups": []}), encoding="utf-8")
+
+    result = runner.invoke(app, ["config", "--library", str(library), "--sync"])
+
+    assert result.exit_code == 0, result.stdout
+    output = " ".join(result.stdout.split())
+    assert "Added Household to microfiche-library.json" in output
+    assert "Added Project Atlas to microfiche-library.json" in output
+    assert "/" not in output.split("microfiche-library.json", 1)[0]  # no category entries (Group/Category)
+
+
+def test_sort_flat_library_library_file_with_categories_is_refused(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    (library / _LIBRARY_FILE).write_text(
+        json.dumps({"groups": [{"name": "Household", "children": [{"name": "Bills"}]}]}), encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 1
+    output = " ".join(result.stdout.split())
+    assert "describes 2 levels of folders, but the library's depth is 1" in output
+    assert "remove the entries below the top level, or raise the depth" in output
+
+
+# endregion
+
+
 # region Run lock
 
 

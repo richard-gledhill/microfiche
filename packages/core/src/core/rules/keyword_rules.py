@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from core.models.classification import CategoryMatch
+from core.models.classification import CategoryMatch, GroupMatch
 
 _LEADING_ORDER_PREFIX_RE = re.compile(r"^\d+\s*")
 
@@ -57,3 +57,38 @@ def match_category(
                 )
 
     return CategoryMatch(name=None, confidence=0.0, reason="No category keyword or name matched")
+
+
+def match_group_hints(text: str, hints: dict[str, list[str]], *, confidence: float) -> GroupMatch:
+    """Match ``text`` against the keyword hints of a flat library's groups.
+
+    A flat library has only its group folders to match on, so a group's name (see ``match_group``) is tried
+    first and these hints are the next best thing.
+
+    Args:
+        text: The text to be analyzed for matching.
+        hints: Keywords per group name.
+        confidence: The confidence of a match on a keyword hint.
+
+    Returns:
+        The group one of whose hints appears in the text, or a match with ``name=None`` if none did. If hints of
+        more than one group appear there is no basis to choose, so the match is unresolved and says which groups.
+    """
+
+    lowered = text.lower()
+    found = {
+        group_name: keyword
+        for group_name, keywords in hints.items()
+        for keyword in keywords
+        if keyword.lower() in lowered
+    }
+    if len(found) > 1:
+        which = ", ".join(f"'{group}' ('{keyword}')" for group, keyword in found.items())
+        return GroupMatch(name=None, confidence=0.0, reason=f"Keyword hints of several groups matched: {which}")
+    for group_name, keyword in found.items():
+        return GroupMatch(
+            name=group_name,
+            confidence=confidence,
+            reason=f"Keyword hint '{keyword}' matched for group '{group_name}'",
+        )
+    return GroupMatch(name=None, confidence=0.0, reason="No group keyword or name matched")

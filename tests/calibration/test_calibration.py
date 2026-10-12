@@ -10,6 +10,7 @@ from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from harness import (
     ADVERSARIAL_KINDS,
     CORPUS_ROOT,
+    FLAT_CORPUS_ROOT,
     UNFILED,
     Blend,
     Case,
@@ -334,6 +335,126 @@ def test_known_documents_cross_reference_misfiles_confidently() -> None:
     assert not case.correct
     assert case.predicted[0] == "Project Atlas"
     assert case.group_signal == "exact"
+
+
+# endregion
+
+
+# region Flat libraries (depth 1)
+
+
+def _flat_library(tmp_path: Path) -> Path:
+    library = tmp_path / "flat"
+    (library / ".microfiche").mkdir(parents=True)
+    (library / ".microfiche" / "microfiche-config.toml").write_text(
+        '[library_structure]\ndepth = 1\n\n[exclusions]\nexclude = ["_*", ".*"]\n', encoding="utf-8"
+    )
+    return library
+
+
+def test_harness_flat_library_truth_is_the_group_alone(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+    for relative, text in (
+        ("Project X/a.md", "Project X notes from the call."),
+        ("Project X/sub/deep.md", "Project X deeper notes."),  # nested below a group still belongs to it
+        ("Project Y/b.md", "Project Y budget."),
+        (f"{UNFILED}/c.md", "Nothing relevant here."),
+        ("_sorting/waiting.md", "Project X."),  # the inbox
+    ):
+        path = library / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    cases = {case.path: case for case in load_corpus(tmp_path)}
+
+    assert set(cases) == {"Project X/a.md", "Project X/sub/deep.md", "Project Y/b.md", f"{UNFILED}/c.md"}
+    assert cases["Project X/a.md"].truth == ("Project X", None)
+    assert cases["Project X/a.md"].predicted == ("Project X", None)
+    assert cases["Project X/a.md"].flat
+    assert cases["Project X/a.md"].resolved
+    assert cases["Project X/a.md"].correct
+    assert cases["Project X/sub/deep.md"].truth == ("Project X", None)
+    assert not cases[f"{UNFILED}/c.md"].resolved
+
+
+def test_case_flat_library_resolved_needs_no_category() -> None:
+    flat = Case("lib", "G/doc.md", "clear", ("G", None), ("G", None), 0.9, "exact", "none", flat=True)
+    two_level = Case("lib", "G/C/doc.md", "clear", ("G", "C"), ("G", None), 0.0, "exact", "none")
+
+    assert flat.resolved
+    assert not two_level.resolved
+    assert flat.signal == "group exact"
+    assert two_level.signal == "group exact / category none"
+
+
+FLAT_LIBRARIES = sorted(p for p in FLAT_CORPUS_ROOT.iterdir() if p.is_dir())
+
+
+@pytest.mark.parametrize("library_dir", FLAT_LIBRARIES, ids=lambda p: p.name)
+def test_flat_corpus_documents_sit_directly_in_a_group(library_dir: Path) -> None:
+    taxonomy = Library(library_dir).taxonomy()
+    kinds = json.loads((library_dir / "kinds.json").read_text(encoding="utf-8"))
+
+    assert taxonomy.is_flat
+    assert set(kinds) == {d.relative_to(library_dir).as_posix() for d in _documents(library_dir)}
+    assert set(kinds.values()) <= KNOWN_KINDS
+    for document in _documents(library_dir):
+        parts = document.relative_to(library_dir).parts
+        assert len(parts) == 2, document
+        assert parts[0] == UNFILED or parts[0] in taxonomy.group_names, document
+
+
+@pytest.fixture(scope="module")
+def flat_corpus() -> list[Case]:
+    return load_corpus(FLAT_CORPUS_ROOT)
+
+
+def test_flat_corpus_default_threshold_files_ordinary_documents_accurately(flat_corpus: list[Case]) -> None:
+    outcome = evaluate(_ordinary(flat_corpus), DEFAULT_CONFIDENCE_THRESHOLD)
+
+    assert outcome.coverage >= 0.90
+    assert outcome.misfile_rate <= 0.02
+
+
+def test_flat_corpus_group_hints_and_rules_score_as_signals_promise(flat_corpus: list[Case]) -> None:
+    by_found = {case.signal: case for case in flat_corpus if case.kind in {"hint", "rule", "clear"}}
+
+    assert by_found["group hint"].confidence == 0.75
+    assert by_found["group rule"].confidence == 0.95
+    assert by_found["group exact"].confidence == 1.0
+
+
+def test_flat_corpus_higher_threshold_files_fewer_not_more_accurately(flat_corpus: list[Case]) -> None:
+    """The two-level finding holds at depth 1: 0.8 switches the keyword hints off and filed no extra right."""
+
+    default = evaluate(_ordinary(flat_corpus), DEFAULT_CONFIDENCE_THRESHOLD)
+    stricter = evaluate(_ordinary(flat_corpus), 0.8)
+
+    assert stricter.filed_correct < 0.5 * default.filed_correct
+    assert stricter.misfile_rate <= default.misfile_rate  # and no safer to speak of: ordinary documents never missed
+
+
+def test_flat_corpus_short_group_name_inside_another_word_misfiles_confidently(flat_corpus: list[Case]) -> None:
+    """With group names the only signal, `Car` in `care` and `scarf` is wrong at 1.00: see calibration.md."""
+
+    shortnames = [case for case in flat_corpus if case.kind == "shortname"]
+
+    assert shortnames
+    assert all(case.predicted[0] == "Car" and not case.correct and case.confidence == 1.0 for case in shortnames)
+
+
+def test_flat_corpus_hints_of_two_groups_are_held_not_guessed(flat_corpus: list[Case]) -> None:
+    (collision,) = [case for case in flat_corpus if case.kind == "hintcollision"]
+
+    assert not collision.resolved
+    assert not collision.is_filed(0.0)
+
+
+def test_flat_corpus_report_renders_group_signals(flat_corpus: list[Case]) -> None:
+    report = format_report(flat_corpus, default_threshold=DEFAULT_CONFIDENCE_THRESHOLD)
+
+    assert "group hint" in report
+    assert "category" not in report.split("BY HOW THE ANSWER WAS FOUND")[1]  # a flat library has no category signal
 
 
 # endregion

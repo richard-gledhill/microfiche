@@ -243,8 +243,66 @@ carries on, and `config --sync` exits with an error.
 - Categories can use hints, so they don't need to appear literally.
 - A leading number such as `01 ` is ignored when matching names, so you can use it to order
   folders.
-- Exactly two levels (group, category) are supported today. Folders deeper than that aren't
-  part of the taxonomy.
+- One or two levels are supported: group and category, or groups alone (see
+  [a flat library](#a-flat-library-groups-only)). Folders deeper than that aren't part of the taxonomy.
+
+### A flat library (groups only)
+
+If you don't need categories, give the library one level of folders. Set the depth in the config:
+
+```toml
+[library_structure]
+depth = 1
+```
+
+```text
+Library/
+├── .microfiche/
+├── _sorting/
+├── Project Phoenix/        <- group: documents are filed straight into it
+├── Project Atlas/
+└── Household/
+```
+
+A document is filed into a group folder as soon as the group is found; there is no second step. With only the
+folder names to go on, give a group its own hints and filename rules in `.microfiche/microfiche-library.json`,
+on the group's entry (a flat library has no categories to put them on):
+
+```json
+{
+  "groups": [
+    {
+      "name": "Household",
+      "hints": ["invoice", "utility bill", "council tax"],
+      "rules": [{ "pattern": "statement-*.pdf" }]
+    }
+  ]
+}
+```
+
+A group is found by, in order: a filename rule on its entry (0.95), its name appearing in the document (1.00 for
+an exact match), then one of its hints (0.75). At the default threshold (0.75) all three file the document. If hints
+of two different groups appear in the same document, microfiche does not choose between them: it is left for review. A
+group entry may not have `children`: a library file that describes more levels than the depth is an error.
+
+`sort`, `rollback`, `reclassify` and `config --sync` all work as they do with categories; the output simply names the
+group. A folder dropped into the inbox is filed under the group most of its documents belong to; if two groups tie it
+goes to review. The AI fallback is asked for the group only.
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche sort --library ~/Documents/Library --dry-run
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche sort --library "$HOME\Documents\Library" --dry-run
+    ```
+
+Changing `depth` in a library that already has records is allowed, but nothing is moved for you: the ledger keeps
+each record as it was written, and `reclassify` will propose moves to the new shape.
 
 ### How sure microfiche has to be
 
@@ -750,6 +808,10 @@ microfiche is pre-release. At the moment:
   **Needs review** stays in the inbox for you to file by hand.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
   integration after the first release.
+- A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
+  inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
+  [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md#flat-libraries-depth-1).
+  `propose-categories` still prints category names, which a flat library does not use.
 - The library file is synced on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (2).
   A folder that is a link or junction is not a group or category.

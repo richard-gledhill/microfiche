@@ -131,17 +131,18 @@ def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal
     table = Table(title="Reclassify proposals (dry run)" if dry_run else "Reclassify proposals")
     table.add_column("Current path")
     table.add_column("Proposed group")
-    table.add_column("Proposed category")
+    flat = all(proposal.classification.category is None for proposal in proposals)  # a flat library has no categories
+    if not flat:
+        table.add_column("Proposed category")
     table.add_column("Confidence")
     table.add_column("Action")
     for proposal in proposals:
         style = _ACTION_STYLES[proposal.action]
+        cells = [escape(str(proposal.current_path)), escape(proposal.proposed_group or "—")]
+        if not flat:
+            cells.append(escape(proposal.proposed_category or "—"))
         table.add_row(
-            escape(str(proposal.current_path)),
-            escape(proposal.proposed_group or "—"),
-            escape(proposal.proposed_category or "—"),
-            f"{proposal.classification.overall_confidence:.2f}",
-            f"[{style}]{proposal.action}[/{style}]",
+            *cells, f"{proposal.classification.overall_confidence:.2f}", f"[{style}]{proposal.action}[/{style}]"
         )
     console.print(table)
 
@@ -177,7 +178,7 @@ def render_reclassify_result(
     for proposal in proposals:
         if proposal.classification.classified_by == "unreadable":
             console.print(
-                f"  [yellow]{escape(str(proposal.current_path))}[/yellow] — {escape(proposal.classification.category.reason)}",
+                f"  [yellow]{escape(str(proposal.current_path))}[/yellow] — {escape(proposal.classification.reason)}",
                 soft_wrap=True,
             )
         if proposal.action == "conflict":
@@ -224,12 +225,12 @@ def _render_units(console: Console, report: SortReport) -> None:
 
     for unit, classification in report.filed:
         console.print(
-            f"  {unit.source_path.name} -> {classification.group.name}/{classification.category.name} "
+            f"  {unit.source_path.name} -> {'/'.join(classification.folders or ())} "
             f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})"
         )
     for unit, classification in report.needs_review:
         console.print(
-            f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.category.reason)}",
+            f"  [yellow]{escape(unit.source_path.name)}[/yellow] — {escape(classification.reason)}",
             soft_wrap=True,
         )
     for duplicate in report.duplicates:

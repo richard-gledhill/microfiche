@@ -22,8 +22,8 @@ CONFIG_FILENAME = "microfiche-config.toml"
 # Per-library folder holding the config and everything microfiche writes about its own work
 # (ledger, audit log, rollback jobs). Dot-prefixed so Obsidian's file explorer hides it.
 MICROFICHE_DIRNAME = ".microfiche"
-# The library depths (levels of folders) the code supports. Stage 4.6 adds 1.
-SUPPORTED_DEPTHS = (2,)
+# The library depths (levels of folders) the code supports: 1 is groups only, 2 is group then category.
+SUPPORTED_DEPTHS = (1, 2)
 # The levels a log file can be set to. Not NOTSET (it means "no level") or the aliases WARN and FATAL.
 _LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 # The names of microfiche's own files and folder in the state folder, in lower case: the log file may be none of them,
@@ -58,8 +58,8 @@ class LibraryStructureConfig(_ConfigSection):
     Attributes:
         library_inbox (str): Name of the inbox folder at the library root (default ``"_sorting"``).
             A plain folder name, not a path, and not the state folder's name.
-        depth (int): How many levels of folders the library has: 2 is group then category, the only depth
-            supported today.
+        depth (int): How many levels of folders the library has: 1 is groups only (a flat library), 2 is group
+            then category.
     """
 
     library_inbox: str
@@ -308,7 +308,7 @@ class UnsupportedDepthError(ValueError):
         self.depth = depth
         supported = " or ".join(str(supported) for supported in SUPPORTED_DEPTHS)
         super().__init__(
-            f"depth {depth} is not supported yet: libraries are group and category folders, "
+            f"depth {depth} is not supported yet: libraries are group folders, or group and category folders, "
             f"so only {supported} is supported"
         )
 

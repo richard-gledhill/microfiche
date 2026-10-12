@@ -660,13 +660,14 @@ def test_load_config_bad_list_value_located_by_index(tmp_path: Path) -> None:
 # region Depth
 
 
-def test_load_config_depth_two_accepted(tmp_path: Path) -> None:
-    (tmp_path / "microfiche-config.toml").write_text("[library_structure]\ndepth = 2\n", encoding="utf-8")
+@pytest.mark.parametrize("depth", [1, 2])
+def test_load_config_supported_depth_accepted(tmp_path: Path, depth: int) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(f"[library_structure]\ndepth = {depth}\n", encoding="utf-8")
 
-    assert load_config(tmp_path).library_structure.depth == 2
+    assert load_config(tmp_path).library_structure.depth == depth
 
 
-@pytest.mark.parametrize("depth", [0, 1, 3, 4])
+@pytest.mark.parametrize("depth", [0, 3, 4])
 def test_load_config_depth_not_supported_yet_rejected(tmp_path: Path, depth: int) -> None:
     (tmp_path / "microfiche-config.toml").write_text(f"[library_structure]\ndepth = {depth}\n", encoding="utf-8")
 
@@ -677,7 +678,7 @@ def test_load_config_depth_not_supported_yet_rejected(tmp_path: Path, depth: int
 
 
 def test_unsupported_depth_error_names_the_supported_depths() -> None:
-    assert str(UnsupportedDepthError(1)).endswith("only 2 is supported")
+    assert str(UnsupportedDepthError(3)).endswith("only 1 or 2 is supported")
 
 
 # endregion

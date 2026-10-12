@@ -30,6 +30,7 @@ from core.models.unit import SortableUnit
 from core.parsers import read_documents
 
 CORPUS_ROOT = Path(__file__).parent / "corpus"
+FLAT_CORPUS_ROOT = Path(__file__).parent / "corpus_flat"  # depth-1 libraries: documents sit directly in a group
 UNFILED = "_unfiled"
 THRESHOLDS = (0.0, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0)
 
@@ -46,25 +47,29 @@ class Case:
         taxonomy: Which library of the corpus it belongs to.
         path: Its path inside that library, with forward slashes.
         kind: Why it was written (see the corpus module docs and ``ADVERSARIAL_KINDS``).
-        truth: The (group, category) it belongs to, or ``None`` if it belongs to no group.
-        predicted: What the classifier chose, ``(None, None)`` parts where it couldn't.
+        truth: The (group, category) it belongs to, or ``None`` if it belongs to no group. The category is
+            ``None`` in a flat library, which has none.
+        predicted: What the classifier chose, ``None`` parts where it couldn't.
         confidence: The classifier's overall confidence in that choice.
-        group_signal: How the group was found: ``exact``, ``fuzzy`` or ``none``.
+        group_signal: How the group was found: ``exact``, ``fuzzy``, ``rule``, ``hint`` or ``none``. (``rule``
+            and ``hint`` only in a flat library, where a group is also the destination.)
         category_signal: How the category was found: ``rule``, ``name``, ``hint`` or ``none``.
+        flat: Whether the library is flat (``depth`` 1), so there is no category to resolve.
     """
 
     taxonomy: str
     path: str
     kind: str
-    truth: tuple[str, str] | None
+    truth: tuple[str, str | None] | None
     predicted: tuple[str | None, str | None]
     confidence: float
     group_signal: str
     category_signal: str
+    flat: bool = False
 
     @property
     def resolved(self) -> bool:
-        return self.predicted[0] is not None and self.predicted[1] is not None
+        return self.predicted[0] is not None and (self.flat or self.predicted[1] is not None)
 
     @property
     def correct(self) -> bool:
@@ -72,6 +77,8 @@ class Case:
 
     @property
     def signal(self) -> str:
+        if self.flat:
+            return f"group {self.group_signal}"
         return f"group {self.group_signal} / category {self.category_signal}"
 
     def is_filed(self, threshold: float) -> bool:
@@ -152,10 +159,11 @@ def load_corpus(
                 continue
             if parts[0] == UNFILED:
                 truth = None
-            elif library.is_excluded(path) or len(parts) < 3:
+            elif library.is_excluded(path) or len(parts) < (2 if taxonomy.is_flat else 3):
                 continue  # the inbox, excluded folders, and loose files are not filed documents
             else:
-                truth = (parts[0], parts[1])  # deeper files belong to their category
+                # Deeper files belong to their category (or, in a flat library, to their group).
+                truth = (parts[0], None if taxonomy.is_flat else parts[1])
             read = read_documents([path])
             unit = SortableUnit(source_path=path, kind="file", documents=read.documents, unreadable=read.unreadable)
             result = classifier.classify_unit(unit, taxonomy)
@@ -165,10 +173,11 @@ def load_corpus(
                     path=relative.as_posix(),
                     kind=kinds.get(relative.as_posix(), "untagged"),
                     truth=truth,
-                    predicted=(result.group.name, result.category.name),
+                    predicted=(result.group.name, result.category.name if result.category else None),
                     confidence=result.overall_confidence,
                     group_signal=_group_signal(result.group.reason),
-                    category_signal=_category_signal(result.category.reason),
+                    category_signal=_category_signal(result.category.reason) if result.category else "none",
+                    flat=taxonomy.is_flat,
                 )
             )
     return cases
@@ -346,9 +355,15 @@ def _misfile_list(cases: Sequence[Case], threshold: float) -> str:
     if not wrong:
         return "  (none)"
     return "\n".join(
-        f"  {case.confidence:.2f}  {case.kind:<16} {case.taxonomy}/{case.path}  ->  {case.predicted[0]} / {case.predicted[1]}"
+        f"  {case.confidence:.2f}  {case.kind:<16} {case.taxonomy}/{case.path}  ->  {_where(case)}"
         for case in sorted(wrong, key=lambda c: (-c.confidence, c.taxonomy, c.path))
     )
+
+
+def _where(case: Case) -> str:
+    """Where the classifier would have filed the case, as ``group / category`` (or the group alone if flat)."""
+
+    return " / ".join(part for part in case.predicted if part is not None) or "(unresolved)"
 
 
 def _group_signal(reason: str) -> str:
@@ -356,6 +371,10 @@ def _group_signal(reason: str) -> str:
         return "exact"
     if reason.startswith("Fuzzy match"):
         return "fuzzy"
+    if reason.startswith("Filename matched"):
+        return "rule"
+    if reason.startswith("Keyword hint"):
+        return "hint"
     return "none"
 
 

@@ -28,6 +28,8 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
 - **`classified_by`** names the resolver(s) that decided the classification: `rules_engine`, `ai_fallback`,
   or `rules_engine+ai_fallback` when each decided a different stage. (`folder_vote` marks a tied folder
   left for review; it never reaches the ledger because nothing is filed.)
+- **`category` is `null` in a flat library** (`depth = 1`), which has no categories, and so is `category_reason`. A ledger
+  can therefore hold records of both shapes if a library's depth is changed; the records are read as they were written.
 - **Events.** `"filed"` is written when a unit is moved into the library. `"rolled_back"` is
   written when a rollback moves it out again; it carries only the identifying fields
   (`job_id`, `path`, `original_path`, `content_hash`, `unit_type`) and leaves the classification
@@ -89,7 +91,7 @@ class Job(BaseModel):
 
 `core/filer.py` provides both directions:
 
-- `file_batch(library, items)` — moves each unit into its `group/category` folder, then for
+- `file_batch(library, items)` — moves each unit into its `group/category` folder (its `group` folder in a flat library), then for
   every move appends to the ledger and the audit log, and saves the `Job`. The whole batch is
   checked for unresolved classifications before anything moves. A move is a plain rename
   (`core.utils.filesystem.safe_move`), so it either happens or changes nothing. If it fails (a file

@@ -3,7 +3,7 @@
 # The shape of the library: the name of its inbox, and the depth of the group/category hierarchy.
 # library_inbox: the one folder at the library root where new documents are dropped. It must be a
 # plain folder name, not a path.
-# Depth of the group/category hierarchy (default: 2 levels).
+# Depth of the folder hierarchy: 2 for group then category (the default), or 1 for groups only (a flat library).
 [library_structure]
 library_inbox = "_sorting"
 depth = 2

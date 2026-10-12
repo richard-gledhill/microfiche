@@ -125,7 +125,10 @@ class Classifier:
         """
 
         group, group_source = self._resolve(lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy))
-        if group.name is None:
+        category: CategoryMatch | None
+        if taxonomy.is_flat:
+            category, category_source = None, group_source  # a flat library has no categories to choose
+        elif group.name is None:
             category = CategoryMatch(name=None, confidence=0.0, reason="Group unresolved")
             category_source = self._rules
         else:
@@ -134,13 +137,13 @@ class Classifier:
                 lambda r: _known_category(r.resolve_category(document, group_name, taxonomy), group_name, taxonomy)
             )
 
-        overall = combine_confidence(group.confidence, category.confidence)
+        overall = group.confidence if category is None else combine_confidence(group.confidence, category.confidence)
         result = ClassificationResult(
             group=group,
             category=category,
             overall_confidence=overall,
             classified_by=self._label(group_source, category_source),
-            confident=group.name is not None and category.name is not None and overall >= self._threshold,
+            confident=_resolved(group, category) and overall >= self._threshold,
         )
 
         _logger.debug(
@@ -149,9 +152,9 @@ class Classifier:
             group.name,
             group.confidence,
             group.reason,
-            category.name,
-            category.confidence,
-            category.reason,
+            category.name if category else None,
+            category.confidence if category else 0.0,
+            category.reason if category else "no categories in a flat library",
             result.classified_by,
         )
 
@@ -179,13 +182,13 @@ class Classifier:
         """
 
         if not unit.documents:
-            return _nothing_to_classify(unit)
+            return _nothing_to_classify(unit, flat=taxonomy.is_flat)
 
         per_document = [self.classify_document(document, taxonomy) for document in unit.documents]
         if len(per_document) == 1:
             return per_document[0]
 
-        pair_votes = Counter((result.group.name, result.category.name) for result in per_document if result.group.name)
+        pair_votes = Counter(_vote(result) for result in per_document if result.group.name)
         if not pair_votes:
             # No document in the folder resolved a group at all - surface the first result's
             # reasoning so the review queue has something concrete to show the user.
@@ -194,11 +197,11 @@ class Classifier:
         ranked = pair_votes.most_common()
         leaders = [(pair, votes) for pair, votes in ranked if votes == ranked[0][1]]
         if len(leaders) > 1:
-            return _tied_vote(leaders)
+            return _tied_vote(leaders, flat=taxonomy.is_flat)
 
-        (group_name, category_name), _ = leaders[0]
+        winner, _ = leaders[0]
         return max(
-            (r for r in per_document if (r.group.name, r.category.name) == (group_name, category_name)),
+            (r for r in per_document if _vote(r) == winner),
             key=lambda result: result.overall_confidence,
         )
 
@@ -256,7 +259,19 @@ def _known_category(match: CategoryMatch, group: str, taxonomy: Taxonomy) -> Cat
     )
 
 
-def _nothing_to_classify(unit: SortableUnit) -> ClassificationResult:
+def _resolved(group: GroupMatch, category: CategoryMatch | None) -> bool:
+    """Whether every level the library has was resolved to a name (a flat library has no category to resolve)."""
+
+    return group.name is not None and (category is None or category.name is not None)
+
+
+def _vote(result: ClassificationResult) -> tuple[str | None, str | None]:
+    """What a document votes for: its group and, in a library with categories, its category."""
+
+    return result.group.name, result.category.name if result.category else None
+
+
+def _nothing_to_classify(unit: SortableUnit, *, flat: bool) -> ClassificationResult:
     """An unresolved result for a unit none of whose documents could be read."""
 
     reason = (
@@ -265,23 +280,24 @@ def _nothing_to_classify(unit: SortableUnit) -> ClassificationResult:
     )
     return ClassificationResult(
         group=GroupMatch(name=None, confidence=0.0, reason=reason),
-        category=CategoryMatch(name=None, confidence=0.0, reason=reason),
+        category=None if flat else CategoryMatch(name=None, confidence=0.0, reason=reason),
         overall_confidence=0.0,
         classified_by="unreadable",
         confident=False,
     )
 
 
-def _tied_vote(leaders: Sequence[tuple[tuple[str | None, str | None], int]]) -> ClassificationResult:
+def _tied_vote(leaders: Sequence[tuple[tuple[str | None, str | None], int]], *, flat: bool) -> ClassificationResult:
     """An unresolved result explaining which (group, category) pairs tied for the most votes."""
 
     breakdown = ", ".join(
-        f"{group}/{category or '(no category)'} ({votes} documents)" for (group, category), votes in leaders
+        f"{group} ({votes} documents)" if flat else f"{group}/{category or '(no category)'} ({votes} documents)"
+        for (group, category), votes in leaders
     )
     reason = f"Documents in this folder disagree: {breakdown}"
     return ClassificationResult(
         group=GroupMatch(name=None, confidence=0.0, reason=reason),
-        category=CategoryMatch(name=None, confidence=0.0, reason=reason),
+        category=None if flat else CategoryMatch(name=None, confidence=0.0, reason=reason),
         overall_confidence=0.0,
         classified_by="folder_vote",
         confident=False,

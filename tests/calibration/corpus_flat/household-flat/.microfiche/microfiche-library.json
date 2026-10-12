@@ -1,0 +1,49 @@
+{
+  "groups": [
+    {
+      "name": "Car",
+      "hints": [
+        "mot",
+        "brake",
+        "tyre",
+        "number plate"
+      ]
+    },
+    {
+      "name": "Garden",
+      "hints": [
+        "lawn",
+        "fence",
+        "compost"
+      ]
+    },
+    {
+      "name": "Health",
+      "hints": [
+        "prescription",
+        "physio",
+        "dentist",
+        "vaccination"
+      ],
+      "rules": [
+        {
+          "pattern": "nhs-*"
+        }
+      ]
+    },
+    {
+      "name": "Home",
+      "hints": [
+        "council tax",
+        "mortgage",
+        "boiler",
+        "energy bill"
+      ],
+      "rules": [
+        {
+          "pattern": "deeds-*"
+        }
+      ]
+    }
+  ]
+}

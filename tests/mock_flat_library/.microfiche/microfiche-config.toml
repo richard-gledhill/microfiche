@@ -1,0 +1,3 @@
+# A flat library: groups only, no categories.
+[library_structure]
+depth = 1

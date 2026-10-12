@@ -1,6 +1,7 @@
 """The library: the folder microfiche manages, and everything that depends on how it is laid out.
 
-A library is an inbox plus two levels of folders, group then category, with a hidden state folder
+A library is an inbox plus one or two levels of folders, group then category (or group alone, in a flat
+library), with a hidden state folder
 (``.microfiche``) holding its config and records. ``Library`` is the one place that knows which
 folder is which: where the inbox and state folder are, what counts as excluded, what the taxonomy
 is, and where a classified unit belongs. Everything else asks it.
@@ -105,34 +106,34 @@ class Library:
             The groups and, for each, its category names.
         """
 
-        return Taxonomy(groups={group.name: [child.name for child in group.children] for group in self.structure()})
+        groups = {group.name: [child.name for child in group.children] for group in self.structure()}
+        return Taxonomy(groups=groups, depth=self.config.library_structure.depth)
 
-    def target_dir(self, group: str, category: str) -> Path:
-        """The folder a unit classified as ``group``/``category`` is filed into.
+    def target_dir(self, *folders: str) -> Path:
+        """The folder a unit classified under ``folders`` is filed into.
 
         Args:
-            group: The unit's group.
-            category: The unit's category within ``group``.
+            *folders: The folder names down from the library root: the group, then the category in a
+                library that has them (see ``ClassificationResult.folders``).
 
         Returns:
-            ``<root>/<group>/<category>``.
+            ``<root>/<group>`` or ``<root>/<group>/<category>``.
         """
 
-        return self.root / group / category
+        return self.root.joinpath(*folders)
 
-    def filed_under(self, path: Path, group: str, category: str) -> bool:
-        """Whether ``path`` is in the ``group``/``category`` folder, or in a folder below it.
+    def filed_under(self, path: Path, *folders: str) -> bool:
+        """Whether ``path`` is in the ``folders`` folder, or in a folder below it.
 
         Args:
             path: A file or folder inside the library.
-            group: The unit's group.
-            category: The unit's category within ``group``.
+            *folders: The folder names down from the library root, as for ``target_dir``.
 
         Returns:
-            ``True`` if the path is directly in the category folder or anywhere beneath it.
+            ``True`` if the path is directly in that folder or anywhere beneath it.
         """
 
-        target = self.target_dir(group, category)
+        target = self.target_dir(*folders)
         return path.parent == target or target in path.parents
 
     def is_excluded(self, path: Path) -> bool:

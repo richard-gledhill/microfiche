@@ -1,0 +1,17 @@
+{
+  "groups": [
+    {
+      "name": "Household",
+      "hints": [
+        "invoice",
+        "utility bill",
+        "council tax"
+      ],
+      "rules": [
+        {
+          "pattern": "statement-*.md"
+        }
+      ]
+    }
+  ]
+}

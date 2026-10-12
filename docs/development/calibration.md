@@ -196,6 +196,36 @@ Recorded on the [roadmap](mvp-roadmap.md); none is implemented.
 4. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
    library you already trust, and re-check the default.
 
+## Flat libraries (depth 1)
+
+A flat library has groups only, so a group's name, a filename rule on the group and the group's hints are all there
+is to match on. A second, small corpus covers it: `tests/calibration/corpus_flat/` holds one library, `household-flat`
+(groups `Car`, `Garden`, `Health` and `Home`), 22 documents, 3 of which belong to no group and 5 of which are
+adversarial. Run it with `uv run python tests/calibration/report.py tests/calibration/corpus_flat`.
+
+| At the default (0.75) | Documents | Filed | Right | Wrong |
+|---|---|---|---|---|
+| Ordinary, belonging to a group | 15 | 15 | 15 | 0 |
+| Adversarial | 5 | 4 | 0 | 4 |
+
+By how the group was found, for the ordinary documents: an exact name (1.00) 4 of 4 right, a filename rule (0.95) 2 of
+2, a keyword hint (0.75) 9 of 9. Among the adversarial documents an exact name was wrong 4 of 4 times. Raising the threshold to 0.8 files only the 6 name and rule matches, so it files 9
+fewer correct documents and is no safer: the finding for two levels holds at depth 1. The default does not change.
+
+What goes wrong is the same weakness, and it bites harder: with group names the only name signal, `Car` is found inside
+`care` ("lawn care") and `scarf` at 1.00, a passing mention (`car park`) beats the real group, and of two groups named
+in one document the first one wins. Matching group names on word boundaries (see [Follow-ups](#follow-ups)) would
+remove the first two.
+
+The fifth adversarial document is a hint collision: `dentist` (a `Health` hint) and `MOT` (a `Car` hint) in one
+sentence. A first version of the flat matcher took the first group with a hint and filed it under `Car` at 0.75; found in
+review, it now leaves a document to review when hints of more than one group appear. That is stricter than the
+two-level matcher, which still lets the earlier category win (`hintcollision` in the table above): with a group as the
+only thing to match on, a wrong guess has no second stage to correct it.
+
+This is 22 short, synthetic documents in one library, so its absolute rates say little. The AI arm, and its saved
+answers, cover the two-level corpus only and were not re-run for depth 1.
+
 ## Limitations
 
 - **Synthetic and authored with knowledge of the rules.** Adversarial documents were written to trip
@@ -215,6 +245,7 @@ Recorded on the [roadmap](mvp-roadmap.md); none is implemented.
 
 ```bash
 uv run python tests/calibration/report.py                       # the rules-only report above
+uv run python tests/calibration/report.py tests/calibration/corpus_flat   # the flat-library corpus
 uv run python tests/calibration/ai_arm.py gemma4:26b            # needs a local Ollama server; resumable
 uv run python tests/calibration/ai_arm.py gemma4:26b --report-only
 ```

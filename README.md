@@ -70,7 +70,8 @@ This installs the `microfiche` CLI into the project's virtual environment, runna
 ## How a library is organised
 
 A library is a folder with two levels of subfolders — **library › group › category** — plus a
-`_sorting/` inbox where new documents are dropped:
+`_sorting/` inbox where new documents are dropped. (Prefer no categories? Set `depth = 1` for a flat library of
+groups only; see [Flat libraries](https://richard-gledhill.github.io/microfiche/how-to-use/#a-flat-library-groups-only).)
 
 ```text
 Library/
@@ -138,7 +139,7 @@ Things to keep in mind when choosing names:
   actually appear in your documents — project, client or course names usually do. A document that
   doesn't mention any group goes to **Needs review** and stays in the inbox.
 - **Categories can use hints**, so they don't need to appear literally in the text.
-- **Exactly two levels** are supported today; deeper folder trees aren't.
+- **One or two levels** are supported (`depth = 1` is a flat library of groups only); deeper folder trees aren't.
 
 See [How to use microfiche](https://richard-gledhill.github.io/microfiche/how-to-use/) for a
 walk-through.
@@ -193,7 +194,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 
 | Section | Purpose |
 |---|---|
-| `library_structure` | The group/category hierarchy (only the default two levels are implemented today) and `library_inbox`, the name of the inbox folder (default `"_sorting"`). |
+| `library_structure` | The group/category hierarchy (`depth` 2, the default, or 1 for a flat library of groups only) and `library_inbox`, the name of the inbox folder (default `"_sorting"`). |
 | `classification` | `confidence_threshold` (0–1, default 0.75, [measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md)): how sure microfiche must be to file a document without review. Keyword hints score 0.75 and AI answers 0.70, so the default files hints but not AI answers; raise it to hold hints for review, lower it to 0.7 to file AI answers. Also how sure each kind of match is — `name_match_confidence` (0.9), `filename_match_confidence` (0.95), `hint_match_confidence` (0.75) — and `fuzzy_group_threshold` (0–100, default 85), how close a near-miss must be to a group's name. |
 | `ai` | Which AI `sort --use-ai` asks: `provider` (`"ollama"`, the default and local, or `"openai"`, which sends document text to OpenAI), `model`, `host` (Ollama), `timeout`, and `api_key_env` (the *name* of the variable holding the OpenAI key; never the key). `ai_confidence` (0–1, default 0.70): how sure any answer is. `max_document_chars` (default 4000; `0` sends the whole document, with a warning): how much text is sent. |
 | `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` files the documents inside folders one by one for one run, then removes each folder once it is empty; `--keep-folders` does the opposite. `ignore` (default `~$*`, `.DS_Store`, `Thumbs.db`, `*.tmp`): file and folder names the inbox scan skips without comment. |

@@ -1,0 +1,6 @@
+# A flat library: household admin with groups only, no categories.
+[library_structure]
+depth = 1
+
+[exclusions]
+exclude = ["sorting*", "_sorting*", ".*", "_*"]

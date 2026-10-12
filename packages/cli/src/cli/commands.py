@@ -66,7 +66,7 @@ def sort(
     keep_folders: bool = typer.Option(
         False,
         "--keep-folders",
-        help="Sort whole folders from the inbox intact, filed by dominant category, for this run.",
+        help="Sort whole folders from the inbox intact, filed under the group or category most of their documents belong to, for this run.",
     ),
     keep_folders_off: bool = typer.Option(
         False,
@@ -130,6 +130,9 @@ def propose_categories(
     instead of the inbox isn't implemented yet.
     """
     opened = _open_library(library)
+    if opened.config.library_structure.depth == 1:
+        console.print("[yellow]This library is flat (depth = 1): it has groups and no categories to propose.[/yellow]")
+        return
     with _logging("propose-categories", opened, verbose=verbose, quiet=quiet, writes=False):
         units = scan_sorting_inbox(opened).units
         documents = [document for unit in units for document in unit.documents]
