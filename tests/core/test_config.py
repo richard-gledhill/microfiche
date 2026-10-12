@@ -7,6 +7,8 @@ from typing import Any
 
 import pytest
 from core.config import (
+    _STATE_FILE_NAMES,
+    CONFIG_FILENAME,
     AIConfig,
     ClassificationConfig,
     ConfigError,
@@ -22,7 +24,11 @@ from core.config import (
     UnsupportedDepthError,
     load_config,
 )
+from core.filer import _ROLLBACK_DIRNAME, AUDIT_LOG_FILENAME
+from core.ledger import LEDGER_FILENAME
+from core.library.library_file import LIBRARY_FILENAME
 from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
+from core.runlock import LOCK_FILENAME
 from core.utils.filesystem import is_excluded
 from pydantic import BaseModel, ValidationError
 
@@ -467,6 +473,38 @@ def test_logging_config_file_not_a_plain_name_rejected(value: str) -> None:
     # Anything but a plain name could put the log outside the library's .microfiche/ folder.
     with pytest.raises(ValidationError, match="not a valid log file name"):
         _logging(file=value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "audit.log",
+        "ledger.jsonl",
+        "lock",
+        "rollback",
+        "microfiche-config.toml",
+        "microfiche-library.json",
+        "microfiche-library.schema.json",
+        "README.md",
+        "Audit.LOG",  # Windows and macOS file systems do not tell this from audit.log
+    ],
+)
+def test_logging_config_file_a_microfiche_file_rejected(value: str) -> None:
+    # The rotating log handler appends to, and renames, the file it is given. Pointed at one of microfiche's own
+    # files it would add log lines to the audit log or the config, or rename them.
+    with pytest.raises(ValidationError, match="microfiche's own files"):
+        _logging(file=value)
+
+
+def test_reserved_log_file_names_cover_every_file_microfiche_keeps_in_its_state_folder() -> None:
+    # The names are written out in config.py because importing them there would be circular, so this keeps them in
+    # step with the modules that own them and with everything the shipped template puts in the state folder.
+    in_use = {CONFIG_FILENAME, AUDIT_LOG_FILENAME, LEDGER_FILENAME, LIBRARY_FILENAME, LOCK_FILENAME, _ROLLBACK_DIRNAME}
+    in_template = {path.name for path in _REPO_CONFIG_DIR.iterdir()}
+
+    missing = {name for name in in_use | in_template if name.casefold() not in _STATE_FILE_NAMES}
+
+    assert not missing
 
 
 @pytest.mark.parametrize("value", [0, -1])

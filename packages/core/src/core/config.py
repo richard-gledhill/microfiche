@@ -26,6 +26,20 @@ MICROFICHE_DIRNAME = ".microfiche"
 SUPPORTED_DEPTHS = (2,)
 # The levels a log file can be set to. Not NOTSET (it means "no level") or the aliases WARN and FATAL.
 _LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
+# The names of microfiche's own files and folder in the state folder, in lower case: the log file may be none of them,
+# because writing log lines to one would corrupt it. Compared without regard to case, since Windows and macOS file
+# systems do not tell "Audit.log" from "audit.log". They are written out here because importing the constants that
+# own them (filer, ledger, runlock, library_file) would be circular; a test keeps the two in step.
+_STATE_FILE_NAMES = frozenset({
+    "microfiche-config.toml",
+    "microfiche-library.json",
+    "microfiche-library.schema.json",
+    "readme.md",
+    "ledger.jsonl",
+    "audit.log",
+    "lock",
+    "rollback",
+})
 # What an environment variable name looks like. Real API keys contain characters this rejects.
 _ENV_VAR_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -226,7 +240,8 @@ class LoggingConfig(_ConfigSection):
         level (str): The log file's level when ``-v`` is not given: ``"DEBUG"``, ``"INFO"``,
             ``"WARNING"``, ``"ERROR"`` or ``"CRITICAL"``.
         file (str): The log file's name, kept inside the library's ``.microfiche/`` folder. A plain
-            file name, not a path.
+            file name, not a path, and not the name of one of microfiche's own files there (the audit
+            log, the ledger, the config and so on).
         max_bytes (int): Greater than 0. The size at which the log file is rotated to a backup.
         backup_count (int): At least 0. How many rotated backups to keep. At 0 the file is never
             rotated and grows without limit, because Python's rotating handler only rotates when
@@ -257,6 +272,8 @@ class LoggingConfig(_ConfigSection):
             raise InvalidLogFileNameError(value, "it must name a file inside the state folder")
         if ":" in value:
             raise InvalidLogFileNameError(value, "it cannot contain ':', which Windows reads as a drive")
+        if value.casefold() in _STATE_FILE_NAMES:
+            raise InvalidLogFileNameError(value, "that is one of microfiche's own files in the state folder")
         return value
 
 

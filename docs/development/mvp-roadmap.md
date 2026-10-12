@@ -189,6 +189,10 @@ Also postponed, after the review in [operations-review.md](operations-review.md)
 - **`--json` output** for scripting.
 - **Rotation or compaction** of the append-only ledger and `audit.log`.
 - **Structured (JSON) log output** and log shipping.
+- **Showing a failed move once.** A unit that can't be moved (a file open in Word) is reported twice on screen: as a
+  WARNING when it happens, which is also written to the log file, and again as its reason in the `sort` summary. The
+  warning could carry `extra=FILE_ONLY` so the screen shows only the summary; it is left as it is because the early
+  warning is useful on a long run. The same applies to `reclassify --apply`.
 - **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
 - **Telemetry:** none, and none is planned.
 - **Depth 4 and above.** Library creation functions are capped at depth 3, and Stage 4.7 may itself be deferred.

@@ -1186,6 +1186,29 @@ def test_refused_run_leaves_no_log_trace(tmp_path: Path, command: str, arguments
     assert not (library / _LOG_FILE).exists()
 
 
+def test_log_file_and_screen_never_hold_document_text(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    # Run every command that logs, with the most verbose settings and the AI on, over documents that carry a marker.
+    marker = "UNIQUE-DOCUMENT-TEXT-MARKER"
+    library = _library(tmp_path)
+    (library / "_sorting" / "known.md").write_text(
+        f"Project Phoenix architecture decisions. {marker}", encoding="utf-8"
+    )
+    (library / "_sorting" / "unknown.md").write_text(f"Nothing recognisable in here. {marker}", encoding="utf-8")
+
+    sorted_ = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-v"])
+    job = _JOB_LINE.search(sorted_.stdout)
+    assert job is not None, sorted_.stdout
+    reclassified = runner.invoke(app, ["reclassify", "--library", str(library), "--apply", "-v"])
+    rolled_back = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job.group(1), "-v"])
+
+    log = (library / _LOG_FILE).read_text(encoding="utf-8")
+    assert "known.md" in log  # something was logged, so the checks below are not trivially true
+    for result in (sorted_, reclassified, rolled_back):
+        assert result.exit_code == 0, result.stdout
+        assert marker not in result.stderr
+    assert marker not in log
+
+
 # endregion
 
 
