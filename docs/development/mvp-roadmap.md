@@ -145,11 +145,11 @@ category when the depth is raised. `name_pattern` was dropped in favour of the e
 bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
 [feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced), to be reviewed.
 
-Two more concern the library's shape, from [library-depth.md](library-depth.md); neither is built:
+One more concerns the library's shape, from [library-depth.md](library-depth.md), and is not built:
 [Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) (depth 3 with subcategories,
-provisional and deferred if it hits a practical limit) and
-[Stage 4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) (an optional `[sorting] file_at`
-setting: `leaf_only` or `best_level`).
+provisional and deferred if it hits a practical limit). The optional filing target mode that was Stage 4.9
+(a `[sorting] file_at` setting: `leaf_only` or `best_level`) is in the
+[feature backlog](feature-backlog.md#filing-target-mode-file_at), under review.
 
 [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
 exclusion-aware, link-skipping walk of the folders to `depth`, and `taxonomy()` is a view of it. `sync_library_file`
