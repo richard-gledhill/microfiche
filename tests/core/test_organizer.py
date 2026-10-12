@@ -941,3 +941,43 @@ def test_run_sort_duplicate_logged_with_its_reason(tmp_path: Path, caplog: pytes
         f"{_PHOENIX_NOTE}: held as a duplicate (identical to Project Phoenix/02 Architecture/{_PHOENIX_NOTE}, "
         "already filed where this would go)"
     ) in _sort_messages(caplog)
+
+
+# region Progress
+
+
+def test_run_sort_reports_progress_from_zero_to_the_total(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(_library(tmp_path)), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_progress_counts_a_held_duplicate_too(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _copy(library / "_sorting" / _PHOENIX_NOTE, library, _PHOENIX_DESTINATION)  # held, so its loop pass skips filing
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(library), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_dry_run_reports_progress_too(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(_library(tmp_path)), dry_run=True, progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_nothing_to_classify_reports_zero_of_zero(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(tmp_path), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 0)]
+
+
+# endregion

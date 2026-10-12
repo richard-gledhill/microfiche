@@ -5,8 +5,8 @@ import logging
 import os
 import re
 import shutil
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 
 import pytest
@@ -1184,6 +1184,77 @@ def test_refused_run_leaves_no_log_trace(tmp_path: Path, command: str, arguments
     assert result.exit_code == 1
     assert f"{command}: library" not in result.stderr
     assert not (library / _LOG_FILE).exists()
+
+
+# endregion
+
+
+# region Progress
+
+
+class _ProgressSpy:
+    """Stands in for the progress bar: remembers how it was asked for, and every progress call it was handed."""
+
+    def __init__(self) -> None:
+        self.settings: list[dict[str, bool]] = []
+        self.calls: list[tuple[int, int]] = []
+
+
+@pytest.fixture
+def progress_spy(monkeypatch: pytest.MonkeyPatch) -> _ProgressSpy:
+    spy = _ProgressSpy()
+
+    @contextmanager
+    def fake_progress_bar(**settings: bool) -> Iterator[Callable[[int, int], None]]:
+        spy.settings.append(settings)
+        yield lambda done, total: spy.calls.append((done, total))
+
+    monkeypatch.setattr("cli.commands.progress_bar", fake_progress_bar)
+    return spy
+
+
+def test_sort_reports_progress_through_the_bar(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": False, "ai": False}]
+    assert progress_spy.calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_sort_passes_use_ai_and_quiet_to_the_bar(
+    tmp_path: Path, built_with: list[AIConfig], progress_spy: _ProgressSpy
+) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "--use-ai", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": True, "ai": True}]
+
+
+def test_sort_dry_run_reports_progress_too(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.calls[-1] == (2, 2)
+
+
+def test_reclassify_reports_progress_through_the_bar(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["reclassify", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": False, "ai": False}]
+    total = progress_spy.calls[0][1]
+    assert total > 0
+    assert progress_spy.calls == [(done, total) for done in range(total + 1)]
+
+
+def test_sort_piped_output_carries_no_progress_control_codes(tmp_path: Path) -> None:
+    # Under the test runner nothing is a terminal, as when output is piped or redirected.
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "\x1b" not in result.stderr  # no colour or cursor codes
+    assert "\r" not in result.stderr  # no redraw of a bar
+    assert "\r" not in result.stdout
 
 
 # endregion

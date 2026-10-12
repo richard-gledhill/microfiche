@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -62,6 +63,7 @@ def run_sort(
     keep_folders: bool | None = None,
     ai_classifier: LLMClassifier | None = None,
     dry_run: bool = False,
+    progress: Callable[[int, int], None] | None = None,
 ) -> SortReport:
     """Scan the library's inbox, classify each unit, and file the confident ones as one job.
 
@@ -81,6 +83,10 @@ def run_sort(
         ai_classifier: An optional AI fallback for stages the rules can't answer confidently.
         dry_run: Classify and run every check as usual, but move nothing and write nothing: no job, ledger
             record or audit line. The report says what a real run would do. The AI, if given, is still asked.
+        progress: Told how far the classification has got, so a caller can show it. Called as
+            ``progress(done, total)``: first ``progress(0, total)`` before any unit is classified, then with the
+            running count as each unit finishes, ending on ``progress(total, total)``. Core knows nothing about
+            how it is shown.
 
     Returns:
         The report of what was filed and what needs review. ``SortReport.job`` is ``None`` if
@@ -96,8 +102,11 @@ def run_sort(
     scan = scan_sorting_inbox(library, keep_folders=keep_folders)
     report.skipped_links = scan.skipped_links
     label = " (dry run)" if dry_run else ""
-    _logger.info("sort%s: %d unit(s) to classify", label, len(scan.units))
-    for unit in scan.units:
+    total = len(scan.units)
+    _logger.info("sort%s: %d unit(s) to classify", label, total)
+    for done, unit in enumerate(scan.units):
+        if progress is not None:
+            progress(done, total)
         classification = classifier.classify_unit(unit, taxonomy)
         duplicate = duplicates.check(unit, classification)
         if duplicate is not None:
@@ -118,6 +127,8 @@ def run_sort(
                 "%s: left for review (confidence %.2f)", unit.source_path.name, classification.overall_confidence
             )
             report.needs_review.append((unit, classification))
+    if progress is not None:
+        progress(total, total)
 
     if not dry_run:
         _file_confident_units(library, report)

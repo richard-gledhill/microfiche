@@ -30,6 +30,7 @@ from rich.markup import escape
 
 from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
 from cli.logging import FILE_ONLY, configure_logging, reset_logging
+from cli.progress import progress_bar
 
 # region Constants and types
 
@@ -90,6 +91,7 @@ def sort(
     with (
         _locked(opened, "sort", needed=not dry_run),  # a preview only reads, so it can run beside a real run
         _logging("sort", opened, verbose=verbose, quiet=quiet, writes=not dry_run),  # after the lock: see _logging
+        progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
         ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
         report = run_sort(
@@ -97,6 +99,7 @@ def sort(
             keep_folders=_keep_folders_override(keep_folders, keep_folders_off),
             ai_classifier=ai_classifier,
             dry_run=dry_run,
+            progress=on_progress,
         )
     render_sort_report(console, report)
 
@@ -155,9 +158,10 @@ def reclassify(
     with (
         _locked(lib, "reclassify", needed=apply),  # held from planning to filing; the preview only reads
         _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply),
+        progress_bar(quiet=quiet, ai=False) as on_progress,
     ):
         try:
-            proposals = run_reclassify(lib, scope=folder)
+            proposals = run_reclassify(lib, scope=folder, progress=on_progress)
         except ScopeOutsideLibraryError as err:
             _fail(str(err))
         render_reclassify_table(console, proposals, dry_run=not apply)

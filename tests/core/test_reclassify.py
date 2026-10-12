@@ -349,3 +349,19 @@ def test_run_reclassify_logs_each_action_and_a_summary(tmp_path: Path, caplog: p
 
 
 # endregion
+
+
+# region Progress
+
+
+def test_run_reclassify_reports_progress_from_zero_to_the_total(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    proposals = run_reclassify(Library(_library(tmp_path)), progress=lambda done, total: calls.append((done, total)))
+
+    total = len(proposals)
+    assert total > 0
+    assert calls == [(done, total) for done in range(total + 1)]
+
+
+# endregion

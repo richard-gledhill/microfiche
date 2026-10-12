@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
@@ -64,7 +65,12 @@ class ReclassifyProposal:
         return self.classification.category.name
 
 
-def run_reclassify(library: Library, *, scope: Path | None = None) -> list[ReclassifyProposal]:
+def run_reclassify(
+    library: Library,
+    *,
+    scope: Path | None = None,
+    progress: Callable[[int, int], None] | None = None,
+) -> list[ReclassifyProposal]:
     """Classify already-filed documents and report where the classifier would file each now.
 
     Covers everything under ``scope``, or the whole library minus exclusions. Never moves
@@ -74,6 +80,8 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
     Args:
         library: The library whose filed documents to re-classify.
         scope: A folder inside the library to limit the run to; the whole library if omitted.
+        progress: Told how far the run has got, as ``progress(done, total)``: first ``progress(0, total)``, then
+            the running count as each document finishes, ending on ``progress(total, total)``.
 
     Returns:
         One proposal per supported filed document.
@@ -87,16 +95,19 @@ def run_reclassify(library: Library, *, scope: Path | None = None) -> list[Recla
 
     claims = DestinationClaims(library)
     proposals: list[ReclassifyProposal] = []
-    for file_path in library.files(scope):
-        if not is_supported(file_path):
-            continue
-
+    files = [path for path in library.files(scope) if is_supported(path)]
+    total = len(files)
+    for done, file_path in enumerate(files):
+        if progress is not None:
+            progress(done, total)
         read = read_documents([file_path], max_bytes=library.config.parsing.max_file_bytes)
         unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
         classification = classifier.classify_unit(unit, taxonomy)
         proposal = _plan(unit, classification, library, claims)
         _logger.debug("%s: %s", library.relative(file_path), proposal.action)
         proposals.append(proposal)
+    if progress is not None:
+        progress(total, total)
 
     counts = Counter(proposal.action for proposal in proposals)
     _logger.info(
