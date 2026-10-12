@@ -19,6 +19,8 @@ flowchart TD
         cli_commands["commands.py"]
         cli_display["display.py"]
         cli_review["review.py (stub)"]
+        cli_logging["logging.py"]
+        cli_progress["progress.py"]
     end
 
     subgraph CORE["core (top level)"]
@@ -89,7 +91,6 @@ flowchart TD
     subgraph UTILS["core/utils"]
         u_filesystem["filesystem.py"]
         u_hashing["hashing.py"]
-        u_logging["logging.py (unused)"]
         u_validation["validation.py (unused)"]
         u_errors["errors.py"]
     end
@@ -109,6 +110,8 @@ flowchart TD
     cli_commands --> a_factory
     cli_commands --> l_library
     cli_commands --> core_runlock
+    cli_commands --> cli_logging
+    cli_commands --> cli_progress
 
     cli_display --> core_config
     cli_display --> core_organizer
@@ -248,6 +251,11 @@ flowchart TD
 
     core_runlock --> l_library
     core_runlock --> u_errors
+
+    cli_logging --> core_config
+    cli_logging --> l_library
+
+    cli_progress --> cli_logging
 ```
 
 **Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py`, the `logging.py`

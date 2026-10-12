@@ -190,7 +190,8 @@ thing microfiche ever removes: no file is deleted, and the folder is empty when 
   nothing about failures.
 - The AI fallback: any exception from the provider (a connection failure, a timeout, a missing optional package) makes
   `LLMClassifier` stop asking for the rest of the run, answering "no match" so the rules' answers stand. The first failure
-  is kept (`failure`) and reported once in `SortReport.ai_unavailable`; `core` stays quiet and the CLI prints it.
+  is kept (`failure`), logged once at WARNING, and exposed as data in `SortReport.ai_unavailable`; the CLI prints no line
+  of its own for it, so the user sees the one warning (see "core emits, the CLI configures logging" below).
 - Inputs are filtered before they are read: names matching `[sorting] ignore` are skipped without comment, a symlink or
   Windows junction is skipped and listed (`is_link` checks the reparse *tag*, because OneDrive's on-demand placeholders are
   reparse points too), and a file over `[parsing] max_file_mb` is refused by `parse_document` before it is opened, so it
@@ -208,6 +209,28 @@ is stale and is cleared; a lock file that cannot be read counts as held and is n
 would let two runs through while deleting one file is an easy request to make. On Windows the process check uses the
 operating system's process API: `os.kill(pid, 0)` must not be used there, since it sends the process a Ctrl-C. Previews
 and read-only commands take no lock. A lock timeout and a `--force` override are deferred.
+
+**Decision — core emits, the CLI configures logging.** Every module that logs has `_logger = logging.getLogger(__name__)`
+(`core.*`, `cli.*`), and `core/__init__.py` adds a `NullHandler` to the `core` logger and nothing else, so `core` is quiet
+when used as a library. Only the CLI installs handlers (`cli/logging.py::configure_logging`), and only on the `core` and
+`cli` loggers, not the root, so a third party's records (the AI SDKs' HTTP clients) stay out and `propagate` stays on for
+`caplog`. The loggers pass every record on and each handler filters, so `-v` and `-q` can differ from the file: the console
+(stderr) shows WARNING and above, INFO with `-v`, errors only with `-q` (which wins); the file records `[logging] level`,
+or DEBUG with `-v`. The file is a rotating UTF-8 `.microfiche/microfiche.log`, opened lazily, and is attached only by a
+command that holds the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`), so a preview creates
+nothing and only the lock holder ever rotates it. The commands enter `_locked` before `_logging`: a run the lock refuses
+raises before logging starts and leaves no trace. `_logging` is a context manager so the handlers are always removed
+when the command ends, and a library whose config cannot be read still rolls back, logging to the screen only.
+Two kinds of record are kept apart: the ledger and `audit.log` are product data that `rollback` and `audit` read, and
+the log is for people and can change. A decision is logged by its names, scores and reasons, never the document's text.
+A message the user has already been told on screen is logged with `extra=FILE_ONLY`, which a filter on the console handler
+keeps off the screen. `run_lock` logs nothing, because it runs outside the logging window.
+
+**Decision — progress is a callback.** `run_sort` and `run_reclassify` take an optional `progress(done, total)`, called
+first with `(0, total)` and then as each unit finishes, so `core` reports progress without importing Rich. `cli/progress.py`
+turns it into a bar on the same stderr console as the log lines, and decides once, from the first call, whether to draw:
+only on a terminal, never with `-q`, only when there is something to count, and then for 20 or more units or when the AI
+is used.
 
 ## 5. Exclusions
 
@@ -307,7 +330,8 @@ microfiche rollback --job-id ID                      # undo a job by id
 microfiche config                                    # show the library's loaded configuration
 ```
 
-Every command also takes `--library PATH`. Scoping `propose-categories` to a library folder, and its `--use-ai`
+Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
+`-q`/`--quiet`. Scoping `propose-categories` to a library folder, and its `--use-ai`
 variant (§6), are designed but not built; see [mvp-roadmap.md](mvp-roadmap.md) for each command's status.
 
 ## 9. Explicitly deferred (unchanged from concept 1b / the roadmap)

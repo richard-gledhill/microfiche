@@ -165,12 +165,17 @@ Other commands:
 
 ```bash
 uv run microfiche sort --library ~/Documents/Library --dry-run   # preview a sort: nothing is moved or recorded
+uv run microfiche sort --library ~/Documents/Library -v   # also show progress messages (-q: errors only)
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Library
 uv run microfiche audit --library ~/Documents/Library
 uv run microfiche rollback --library ~/Documents/Library --job-id <id>
 ```
+
+By default only warnings and errors are shown, on stderr; `-v` adds progress messages and `-q` shows errors only. A
+command that changes the library also records what it did, and why, in `.microfiche/microfiche.log`; see
+[Troubleshooting](https://richard-gledhill.github.io/microfiche/how-to-use/#5-troubleshooting).
 
 Every command and option is listed in the [CLI reference](https://richard-gledhill.github.io/microfiche/cli-reference/).
 

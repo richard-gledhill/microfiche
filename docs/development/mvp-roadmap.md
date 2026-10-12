@@ -10,7 +10,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 | Command | Status | Notes |
 |---|---|---|
-| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). |
+| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). `-v`/`-q` set how much is shown, and a run is explained in `.microfiche/microfiche.log` (Stage 4.4). |
 | `review` | Stub | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
@@ -107,8 +107,21 @@ scan skips `[sorting] ignore` names, symlinks and junctions, and a file over `[p
 review unread. Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
 the inbox's `ignore` and link rules.
 
-Two further steps follow it; neither is built:
-[Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) (logging, `--verbose`/`--quiet`, progress) and
+[Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) is built. `core` emits records through module loggers
+(`_logger = logging.getLogger(__name__)`) and installs no handlers; `core/__init__.py` puts a `NullHandler` on its
+package logger. The CLI configures them (`cli/logging.py`): a Rich console handler on stderr (WARNING and above, INFO
+with `-v`, errors only with `-q`, which wins) and, for a command that holds the run lock, a rotating UTF-8
+`.microfiche/microfiche.log` (the `[logging]` settings; DEBUG with `-v`). The commands enter `_locked` before
+`_logging`, so a run the lock refuses leaves no trace. A `FILE_ONLY` marker keeps a record off the screen when the user
+was already told: the OpenAI and unlimited-size notices stay direct prints, so `-q` cannot hide them, and are also
+logged to the file. The AI fallback logs its first failure at WARNING, and the sort report no longer prints a line of
+its own for it. Decisions are logged without document text (a test checks it). `sort` and `reclassify` show a
+progress bar (`cli/progress.py`) on a terminal, for 20 or more units or when the AI is used, fed by an optional
+`progress(done, total)` callback so `core` does not import Rich. Ruff's `LOG` and `G` rules are on. Still open: the
+run lock logs nothing, because it is taken before logging is set up and released after it is torn down, so a cleared
+stale lock is not recorded; and `-q` hides the AI-unavailable warning on screen.
+
+One further step follows it, and it is not built:
 [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as
 Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
 calibration corpus; see [ai-classifier-options.md](ai-classifier-options.md)).

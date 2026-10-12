@@ -375,8 +375,9 @@ file held open by Obsidian or Word will fail a move. The reasoning is in [operat
 
 **Milestone:** `Stage 4.4 — Logging & Diagnostics` (an untagged update to `v0.1.4`)
 **Testable version:** `core` logs decisions through the standard `logging` module without installing any
-handlers; the CLI adds `-v/--verbose` and `-q/--quiet`, writes a rotating `.microfiche/microfiche.log`, and
-shows progress on long runs; `audit.log` is unchanged.
+handlers; the CLI adds `-v/--verbose` and `-q/--quiet`, writes a rotating `.microfiche/microfiche.log` (only
+from a command that holds the run lock, so a preview or a read-only command writes none), and shows progress on
+long runs; `audit.log` is unchanged.
 
 Why now: there is no logging today. `core/utils/logging.py::get_logger` is unused and writes
 `organization.log` outside the `.microfiche/` convention, so when a unit lands in review or an AI call fails

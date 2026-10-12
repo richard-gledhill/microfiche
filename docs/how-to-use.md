@@ -302,9 +302,10 @@ A file microfiche can't open (corrupt or truncated, say) doesn't stop the run: i
 as normal. Fix or replace the file and sort again.
 
 microfiche's own records live in the hidden `.microfiche/` folder inside your library: a ledger
-of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, and one rollback file
-per job. While a run is in progress there is also a `lock` file there (see
-[Two runs at once](#two-runs-at-once)). No extra files are written next to your documents.
+of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, one rollback file
+per job, and a diagnostic log (`microfiche.log`, see [The log file](#the-log-file)). While a run is in
+progress there is also a `lock` file there (see [Two runs at once](#two-runs-at-once)). No extra files
+are written next to your documents.
 
 A folder dropped in the inbox is kept together and filed whole, under the category most of its
 documents belong to. That is the default (`[sorting] keep_folders = true` in your config). To file the
@@ -414,8 +415,9 @@ max_document_chars = 4000         # how much of each document is sent; 0 = all o
 
 **Using OpenAI instead.** Set `provider = "openai"` and put your key in the environment variable named
 by `api_key_env`, not in the file (microfiche refuses a value that looks like a key). This sends the
-text of every document the AI is asked about to OpenAI, so `sort` says so each time it runs. If the
-variable is not set, `sort` stops with a message naming it before anything is moved.
+text of every document the AI is asked about to OpenAI, so `sort` says so each time it runs, even with `-q`,
+and records that in the log. If the variable is not set, `sort` stops with a message naming it before anything
+is moved.
 
 === "Bash"
 
@@ -433,12 +435,14 @@ variable is not set, `sort` stops with a message naming it before anything is mo
 
 **Sending whole documents.** `max_document_chars = 0` removes the limit. That uses more tokens
 (and with OpenAI, costs more) and takes longer, and a document longer than the model's context window
-may fail or be cut off, so `sort` prints a warning once before it starts.
+may fail or be cut off, so `sort` prints a warning once before it starts (even with `-q`) and records it in the log.
 
 **If the AI cannot be reached.** Ollama not running, a timeout, or the `ai` extra not installed does not stop
 the run. The first failure switches the AI off for the rest of that run (so a dead server is waited on once, not
-once per document), and `sort` prints one warning: `AI fallback unavailable: <reason>`. Everything the rules can
-decide is filed as usual. Anything only the AI could have answered stays under **Needs review**.
+once per document), and `sort` shows one warning on screen: `AI fallback unavailable (<reason>): the rest of the
+run uses the rules only, ...`. Everything the rules can decide is filed as usual. Anything only the AI could have
+answered stays under **Needs review**. With `-q` the warning is not shown on screen, but it is still in the log
+file (see [Troubleshooting](#5-troubleshooting)).
 
 ### Files that can't be sorted
 
@@ -584,6 +588,98 @@ same command again):
     uv run microfiche rollback --library "$HOME\Documents\Library" --job-id <id>
     ```
 
+## 5. Troubleshooting
+
+When a document didn't go where you expected, or a run did less than you thought, microfiche can tell you why.
+
+### What microfiche shows while it runs
+
+By default it shows only what needs your attention: warnings and errors. They are printed on screen (stderr), so the
+summary `sort` prints (stdout) stays clean to pipe or redirect. Two options, on `sort`, `reclassify`, `rollback`,
+`audit`, `config` and `propose-categories`, change how much you see:
+
+| Option | What you see |
+|---|---|
+| none | Warnings and errors |
+| `-v`, `--verbose` | Also progress messages, such as how many documents were found and how the run finished. The log file also records debugging detail. |
+| `-q`, `--quiet` | Errors only. If you pass both, `-q` wins. |
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche sort --library ~/Documents/Library -v
+    uv run microfiche sort --library ~/Documents/Library -q
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche sort --library "$HOME\Documents\Library" -v
+    uv run microfiche sort --library "$HOME\Documents\Library" -q
+    ```
+
+`-q` never hides a notice about what leaves your machine: the OpenAI and unlimited-size notices
+([The AI fallback](#the-ai-fallback)) are always printed.
+
+**A progress bar.** On a terminal, a run of 20 or more documents, or any run with `--use-ai`, shows a bar on stderr
+(`Classifying ━━━━━━╺━━━━━━ 12/48 0:00:07`) that disappears when the run ends. There is none with `-q`, and none
+when output is piped or redirected, so a script sees no control codes. The 20-document threshold is fixed; there is
+no setting for it.
+
+### The log file
+
+Every run that changes the library records what it did in `<library>/.microfiche/microfiche.log`. It is separate
+from `audit.log`: the audit log is the permanent record of moves, and the log is for explaining a run.
+
+- **Who writes it.** `sort`, `reclassify --apply` and `rollback`, the commands that take the lock. A preview
+  (`sort --dry-run`, `reclassify` without `--apply`) and the read-only commands (`audit`, `config`,
+  `propose-categories`) write nothing, and a preview never creates `.microfiche/`. A run that is refused because
+  another is in progress leaves no trace either.
+- **What is in it.** By default (level `INFO`), the number of documents found, each warning (a file that could
+  not be moved, the AI being unreachable) and a summary of how the run ended. With `-v` it also has one line for
+  each document saying where it was classified and why. It never contains the text of your documents.
+- **How big it gets.** It is rotated: when it reaches `max_bytes` it becomes `microfiche.log.1` and a new file
+  starts, keeping `backup_count` old ones.
+
+These are the settings, with their defaults (the `[logging]` table of `.microfiche/microfiche-config.toml`):
+
+```toml
+[logging]
+level = "INFO"            # what the file records: DEBUG, INFO, WARNING, ERROR or CRITICAL (-v makes it DEBUG)
+file = "microfiche.log"   # a file name inside .microfiche/, not a path
+max_bytes = 1048576       # rotate when the file reaches this size
+backup_count = 3          # how many old files to keep; 0 never rotates, so the file grows without limit
+```
+
+If the config can't be read, `rollback` still works (undoing a run must never be blocked), but it can't tell where
+the log file should go, so it warns on screen and writes no file.
+
+### Reading the log
+
+=== "Bash"
+
+    ```bash
+    tail -n 50 ~/Documents/Library/.microfiche/microfiche.log
+    grep WARNING ~/Documents/Library/.microfiche/microfiche.log
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    Get-Content "$HOME\Documents\Library\.microfiche\microfiche.log" -Tail 50
+    Select-String WARNING "$HOME\Documents\Library\.microfiche\microfiche.log"
+    ```
+
+To find out why a document went to review, sort with `-v` and look for its name. Each line gives the group and
+category microfiche chose with a confidence and the reason, and which method decided:
+
+```text
+2026-10-12 17:06:43,348 DEBUG core.classifier: research-summary.md: group Project Phoenix (1.00, Exact match on group name 'Project Phoenix'); category 03 Research (0.90, Category name '03 Research' found in document text); by rules_engine
+2026-10-12 17:06:43,349 DEBUG core.classifier: SolarConstructionNotes.md: group None (0.00, No known group name found in document text); category None (0.00, Group unresolved); by rules_engine
+2026-10-12 17:06:43,349 DEBUG core.organizer: SolarConstructionNotes.md: left for review (confidence 0.00)
+2026-10-12 17:06:43,354 INFO core.organizer: sort finished: 2 filed, 1 for review, 0 duplicate(s)
+```
+
 ## Current limitations
 
 microfiche is pre-release. At the moment:
@@ -606,6 +702,10 @@ microfiche is pre-release. At the moment:
   `[parsing] max_file_mb` but not those two.
 - A file open in another program is not retried: close it and run `sort` again.
 - `review` and `index` are placeholders and exit with a "not implemented" message.
+- `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
+- The log file is written only by commands that change the library, and not by `rollback` when the config can't be
+  read. When a leftover lock from a dead process is cleared, that is not recorded in the log.
+- The progress bar's threshold (20 documents, or any `--use-ai` run) is fixed; there is no setting for it.
 
 Every command and option is listed in the [CLI reference](cli-reference.md), or run
 `uv run microfiche <command> --help`.
