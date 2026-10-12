@@ -15,7 +15,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make signal strengths and fuzzy thresholds settings [`dda4103`](https://github.com/richard-gledhill/microfiche/commit/dda4103)
 - layer packaged defaults under the library config [`f054737`](https://github.com/richard-gledhill/microfiche/commit/f054737)
 
+### Bug Fixes
+- make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
+
 ### Documentation
+- :robot: changelog file generated [`f6c0f7a`](https://github.com/richard-gledhill/microfiche/commit/f6c0f7a)
 - :robot: changelog file generated [`fd008c5`](https://github.com/richard-gledhill/microfiche/commit/fd008c5)
 - point the docs at make module-diagram [`02fb118`](https://github.com/richard-gledhill/microfiche/commit/02fb118)
 - :robot: changelog file generated [`2425f64`](https://github.com/richard-gledhill/microfiche/commit/2425f64)
@@ -52,6 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #48 from richard-gledhill/feature/safe-runs-input-hardening [`2677922`](https://github.com/richard-gledhill/microfiche/commit/2677922)
+- feature: add dry run, run lock and per-unit failure isolation (Stage 4.3) [`62a46c0`](https://github.com/richard-gledhill/microfiche/commit/62a46c0)
 - Merge pull request #47 from richard-gledhill/feature/folder-handling-collisions [`72d5e13`](https://github.com/richard-gledhill/microfiche/commit/72d5e13)
 - feature: handle name collisions, duplicates and inbox folders (Stage 4.2) [`56e5b2a`](https://github.com/richard-gledhill/microfiche/commit/56e5b2a)
 - Merge pull request #46 from richard-gledhill/chore/module-diagram-target [`c7a642d`](https://github.com/richard-gledhill/microfiche/commit/c7a642d)
