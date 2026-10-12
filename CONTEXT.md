@@ -110,3 +110,7 @@ _Avoid_: Metadata, sidecar, index
 **Audit log**:
 The readable, line-per-move history of everything microfiche has done.
 _Avoid_: Changelog, history
+
+**Log**:
+The diagnostic record in `.microfiche/microfiche.log` that explains what a run did and why, for the person troubleshooting it. It never holds document text, and nothing reads it back, unlike the ledger and the audit log, which `rollback` and `audit` rely on.
+_Avoid_: Debug file, trace

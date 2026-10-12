@@ -46,6 +46,16 @@ ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
 # A file bigger than this many megabytes is not read: it stays in the inbox for review, with the reason.
 max_file_mb = 50
 
+[logging]
+# How much the log file (.microfiche/<file>) records: DEBUG, INFO, WARNING, ERROR or CRITICAL.
+level = "INFO"
+# The log file's name, inside the library's .microfiche/ folder. A plain file name, not a path.
+file = "microfiche.log"
+# The file is rotated to a backup when it reaches this many bytes.
+max_bytes = 1048576
+# How many rotated backups to keep. 0 never rotates, so the file grows without limit.
+backup_count = 3
+
 [exclusions]
 exclude = []
 

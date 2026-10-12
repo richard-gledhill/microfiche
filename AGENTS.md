@@ -193,6 +193,10 @@ it becomes a unit (or proposal) left for review, with the reason.
   published docs.
 - Use the [CONTEXT.md](CONTEXT.md) terms in code, docs and commits; add a term there when you
   introduce a domain concept.
+- Name a module's logger `_logger = logging.getLogger(__name__)`, among the module's constants below the imports.
+  The underscore marks it private: never import another module's logger, so a record is always attributed to the
+  module that emitted it. Only `cli` configures logging (handlers and levels); `core` just emits, and
+  `core/__init__.py` adds a `NullHandler` to the `core` logger and nothing else.
 - `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
   just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
 - Code must import and type-check on Linux (CI) and Windows. Some names exist on one only: `stat.IO_REPARSE_TAG_*`,

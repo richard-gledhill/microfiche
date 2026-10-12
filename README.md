@@ -165,12 +165,17 @@ Other commands:
 
 ```bash
 uv run microfiche sort --library ~/Documents/Library --dry-run   # preview a sort: nothing is moved or recorded
+uv run microfiche sort --library ~/Documents/Library -v   # also show progress messages (-q: errors only)
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Library
 uv run microfiche audit --library ~/Documents/Library
 uv run microfiche rollback --library ~/Documents/Library --job-id <id>
 ```
+
+By default only warnings and errors are shown, on stderr; `-v` adds progress messages and `-q` shows errors only. A
+command that changes the library also records what it did, and why, in `.microfiche/microfiche.log`; see
+[Troubleshooting](https://richard-gledhill.github.io/microfiche/how-to-use/#5-troubleshooting).
 
 Every command and option is listed in the [CLI reference](https://richard-gledhill.github.io/microfiche/cli-reference/).
 
@@ -189,6 +194,7 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `ai` | Which AI `sort --use-ai` asks: `provider` (`"ollama"`, the default and local, or `"openai"`, which sends document text to OpenAI), `model`, `host` (Ollama), `timeout`, and `api_key_env` (the *name* of the variable holding the OpenAI key; never the key). `ai_confidence` (0–1, default 0.70): how sure any answer is. `max_document_chars` (default 4000; `0` sends the whole document, with a warning): how much text is sent. |
 | `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` files the documents inside folders one by one for one run, then removes each folder once it is empty; `--keep-folders` does the opposite. `ignore` (default `~$*`, `.DS_Store`, `Thumbs.db`, `*.tmp`): file and folder names the inbox scan skips without comment. |
 | `parsing` | `max_file_mb` (default 50): a file bigger than this is not read; it stays in the inbox for review, with the reason. |
+| `logging` | The diagnostic log, separate from the audit log. `level` (default `INFO`): how much the log file records. `file` (default `microfiche.log`): its name, kept in `.microfiche/`. `max_bytes` (default 1048576) and `backup_count` (default 3): when the file is rotated and how many backups are kept. |
 | `exclusions` | Folders never treated as a category and never scanned into. |
 | `obsidian` | Turns Obsidian `index.md` generation on/off and sets tag governance mode. |
 | `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |

@@ -1,11 +1,12 @@
 """Smoke test that the microfiche CLI exposes all expected commands."""
 
 import json
+import logging
 import os
 import re
 import shutil
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 
 import pytest
@@ -781,10 +782,12 @@ def test_sort_use_ai_provider_down_warns_once_and_still_files(tmp_path: Path, mo
     result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
 
     assert result.exit_code == 0, result.stdout
-    output = " ".join(result.stdout.split())
-    assert output.count("AI fallback unavailable") == 1
-    assert "AI fallback unavailable: ConnectionError: connection refused." in output
-    assert "used the rules only" in output
+    # The warning is a log record now, shown once on stderr; the report no longer prints a line of its own.
+    assert "AI fallback unavailable" not in result.stdout
+    warning = " ".join(result.stderr.split())
+    assert warning.count("AI fallback unavailable") == 1
+    assert "ConnectionError: connection refused" in warning
+    assert "uses the rules only" in warning
     assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).exists()
 
 
@@ -992,6 +995,266 @@ def test_sort_bad_flags_fail_before_taking_the_lock(tmp_path: Path) -> None:
 
     assert result.exit_code == 1
     assert not (library / _LOCK).exists()
+
+
+# endregion
+
+
+# region Logging options
+
+
+_LOG_FILE = Path(".microfiche") / "microfiche.log"
+
+
+def _handlers_left_on(logger_name: str) -> list[logging.Handler]:
+    """The handlers on a logger other than the library's own quiet ``NullHandler``."""
+
+    return [h for h in logging.getLogger(logger_name).handlers if not isinstance(h, logging.NullHandler)]
+
+
+@pytest.mark.parametrize("command", ["sort", "reclassify", "propose-categories", "config", "audit"])
+@pytest.mark.parametrize("flag", ["-v", "-q", "--verbose", "--quiet"])
+def test_commands_verbose_and_quiet_flags_accepted(tmp_path: Path, command: str, flag: str) -> None:
+    result = runner.invoke(app, [command, "--library", str(_library(tmp_path)), flag])
+
+    assert result.exit_code == 0, result.stdout
+
+
+def test_sort_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert "sort: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_dry_run_writes_no_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_reclassify_apply_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "reclassify: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_reclassify_preview_writes_no_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+@pytest.mark.parametrize("command", ["propose-categories", "config", "audit"])
+def test_read_only_commands_write_no_log_file(tmp_path: Path, command: str) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, [command, "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_rollback_records_start_in_log_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    job_id = _sort(library)
+    # Deleting the file also proves sort closed it: Windows will not delete a file that is still open.
+    (library / _LOG_FILE).unlink()
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert "rollback: library" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_rollback_invalid_config_works_without_log_file(tmp_path: Path) -> None:
+    # The log file's settings live in the config, so with an invalid one there is no log file, but undo still works.
+    library = _library(tmp_path)
+    job_id = _sort(library)
+    (library / _LOG_FILE).unlink()
+    _break_config(library)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", job_id])
+
+    assert result.exit_code == 0, result.stdout
+    assert not (library / _LOG_FILE).exists()
+
+
+def test_sort_default_hides_start_line_on_screen(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert "sort: library" not in result.stderr
+
+
+def test_sort_verbose_shows_start_line_on_stderr(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v"])
+
+    assert "sort: library" in result.stderr
+    assert "sort: library" not in result.stdout  # stdout stays clean for piping
+
+
+def test_sort_quiet_wins_over_verbose(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "sort: library" not in result.stderr
+
+
+@pytest.mark.parametrize("command", ["sort", "config"])
+def test_commands_leave_no_logging_handlers_behind(tmp_path: Path, command: str) -> None:
+    # Otherwise one command's log file stays open, and the next invocation in this process writes to it.
+    runner.invoke(app, [command, "--library", str(_library(tmp_path))])
+
+    assert _handlers_left_on("core") == []
+    assert _handlers_left_on("cli") == []
+
+
+def test_sort_use_ai_openai_notice_stays_on_stdout_and_goes_to_log_file_only(
+    tmp_path: Path, built_with: list[AIConfig]
+) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert "sent to OpenAI" in result.stdout  # the direct print stays
+    assert "sent to OpenAI" not in result.stderr  # and the log does not repeat it on screen
+    assert "sent to OpenAI" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_use_ai_unlimited_notice_stays_on_stdout_and_goes_to_log_file_only(
+    tmp_path: Path, built_with: list[AIConfig]
+) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, "max_document_chars = 0\n")
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert "no limit" in result.stdout
+    assert "no limit" not in result.stderr
+    assert "no limit" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+def test_sort_use_ai_openai_notice_survives_quiet(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    # A notice about what leaves the machine is a consent matter, so -q must not hide it.
+    library = _library(tmp_path)
+    _set_ai(library, 'provider = "openai"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
+
+    assert "sent to OpenAI" in result.stdout
+
+
+def test_sort_use_ai_provider_down_warning_is_in_log_file_and_hidden_by_quiet(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("cli.commands.build_provider", lambda config: _DownProvider())
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "AI fallback unavailable" not in result.stderr  # -q shows errors only
+    assert "AI fallback unavailable" in (library / _LOG_FILE).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    ("command", "arguments"),
+    [("sort", []), ("reclassify", ["--apply"]), ("rollback", ["--job-id", "20260101-000000-abcdef"])],
+)
+def test_refused_run_leaves_no_log_trace(tmp_path: Path, command: str, arguments: list[str]) -> None:
+    # Only the run holding the lock may write the log file, so a run the lock refuses logs nothing at all,
+    # on screen (even with -v) or in the file. It still says why on stdout.
+    library = _library(tmp_path)
+
+    with _held(library):
+        result = runner.invoke(app, [command, "--library", str(library), "-v", *arguments])
+
+    assert result.exit_code == 1
+    assert f"{command}: library" not in result.stderr
+    assert not (library / _LOG_FILE).exists()
+
+
+# endregion
+
+
+# region Progress
+
+
+class _ProgressSpy:
+    """Stands in for the progress bar: remembers how it was asked for, and every progress call it was handed."""
+
+    def __init__(self) -> None:
+        self.settings: list[dict[str, bool]] = []
+        self.calls: list[tuple[int, int]] = []
+
+
+@pytest.fixture
+def progress_spy(monkeypatch: pytest.MonkeyPatch) -> _ProgressSpy:
+    spy = _ProgressSpy()
+
+    @contextmanager
+    def fake_progress_bar(**settings: bool) -> Iterator[Callable[[int, int], None]]:
+        spy.settings.append(settings)
+        yield lambda done, total: spy.calls.append((done, total))
+
+    monkeypatch.setattr("cli.commands.progress_bar", fake_progress_bar)
+    return spy
+
+
+def test_sort_reports_progress_through_the_bar(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": False, "ai": False}]
+    assert progress_spy.calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_sort_passes_use_ai_and_quiet_to_the_bar(
+    tmp_path: Path, built_with: list[AIConfig], progress_spy: _ProgressSpy
+) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "--use-ai", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": True, "ai": True}]
+
+
+def test_sort_dry_run_reports_progress_too(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "--dry-run"])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.calls[-1] == (2, 2)
+
+
+def test_reclassify_reports_progress_through_the_bar(tmp_path: Path, progress_spy: _ProgressSpy) -> None:
+    result = runner.invoke(app, ["reclassify", "--library", str(_library(tmp_path))])
+
+    assert result.exit_code == 0, result.stdout
+    assert progress_spy.settings == [{"quiet": False, "ai": False}]
+    total = progress_spy.calls[0][1]
+    assert total > 0
+    assert progress_spy.calls == [(done, total) for done in range(total + 1)]
+
+
+def test_sort_piped_output_carries_no_progress_control_codes(tmp_path: Path) -> None:
+    # Under the test runner nothing is a terminal, as when output is piped or redirected.
+    result = runner.invoke(app, ["sort", "--library", str(_library(tmp_path)), "-v"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "\x1b" not in result.stderr  # no colour or cursor codes
+    assert "\r" not in result.stderr  # no redraw of a bar
+    assert "\r" not in result.stdout
 
 
 # endregion

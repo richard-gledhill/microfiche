@@ -1,7 +1,9 @@
 """Tests for scanning the library's inbox into sortable units."""
 
+import logging
 from pathlib import Path
 
+import pytest
 from conftest import LinkMaker
 from core.library.library import Library
 from core.scanner import scan_sorting_inbox
@@ -369,6 +371,64 @@ def test_scan_sorting_inbox_oversize_file_inside_folder_listed_unreadable(tmp_pa
 
     assert [document.file_name for document in unit.documents] == ["good.md"]
     assert [u.file_path.name for u in unit.unreadable] == ["big.txt"]
+
+
+# endregion
+
+
+# region Logging
+
+
+def test_scan_sorting_inbox_logs_counts(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    _write(tmp_path / "_sorting" / "a.md")
+    _write(tmp_path / "_sorting" / "b.md")
+    caplog.set_level(logging.INFO, logger="core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "scanned _sorting: 2 unit(s) to classify, 0 link(s) skipped" in caplog.messages
+
+
+def test_scan_sorting_inbox_logs_skipped_link(
+    tmp_path: Path, make_symlink: LinkMaker, caplog: pytest.LogCaptureFixture
+) -> None:
+    outside = _write(tmp_path / "elsewhere" / "outside.md")
+    _write(tmp_path / "_sorting" / "real.md")
+    make_symlink(tmp_path / "_sorting" / "linked.md", outside)
+    caplog.set_level(logging.INFO, logger="core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "skipped link linked.md: links are never followed" in caplog.messages
+    assert "scanned _sorting: 1 unit(s) to classify, 1 link(s) skipped" in caplog.messages
+
+
+def test_scan_sorting_inbox_logs_ignored_name_at_debug(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    _write(tmp_path / "_sorting" / "~$draft.docx")
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "ignored ~$draft.docx: it matches [sorting] ignore" in caplog.messages
+
+
+def test_scan_sorting_inbox_info_level_leaves_out_ignored_names(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _write(tmp_path / "_sorting" / "~$draft.docx")
+    caplog.set_level(logging.INFO, logger="core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert not any("ignored" in message for message in caplog.messages)
+
+
+def test_scan_sorting_inbox_missing_inbox_logs_it(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "inbox _sorting does not exist; nothing to scan" in caplog.messages
 
 
 # endregion

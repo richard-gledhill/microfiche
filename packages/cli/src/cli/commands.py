@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
@@ -28,11 +29,21 @@ from rich.console import Console
 from rich.markup import escape
 
 from cli.display import render_config, render_reclassify_result, render_reclassify_table, render_sort_report
+from cli.logging import FILE_ONLY, configure_logging, reset_logging
+from cli.progress import progress_bar
 
 # region Constants and types
 
 console = Console()
+_logger = logging.getLogger(__name__)
 
+_VERBOSE_OPTION = typer.Option(
+    False,
+    "--verbose",
+    "-v",
+    help="Also show progress messages on screen, and record debugging detail in the log file.",
+)
+_QUIET_OPTION = typer.Option(False, "--quiet", "-q", help="Show errors only on screen. Wins over --verbose.")
 _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, help="Path to the library root.")
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
@@ -69,19 +80,26 @@ def sort(
         help="Preview what would be filed and what would need review, without moving or recording anything. "
         "Classification, including any --use-ai calls, runs as usual.",
     ),
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
 ) -> None:
     """Process the library's inbox: classify and file everything above the confidence threshold."""
 
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library, uses_hints=True)
-    with _locked(opened, "sort", needed=not dry_run):  # a preview only reads, so it can run beside a real run
+    with (
+        _locked(opened, "sort", needed=not dry_run),  # a preview only reads, so it can run beside a real run
+        _logging("sort", opened, verbose=verbose, quiet=quiet, writes=not dry_run),  # after the lock: see _logging
+        progress_bar(quiet=quiet, ai=use_ai) as on_progress,
+    ):
         ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
         report = run_sort(
             opened,
             keep_folders=_keep_folders_override(keep_folders, keep_folders_off),
             ai_classifier=ai_classifier,
             dry_run=dry_run,
+            progress=on_progress,
         )
     render_sort_report(console, report)
 
@@ -93,15 +111,19 @@ def review() -> None:
     raise typer.Exit(code=1)
 
 
-def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
+def propose_categories(
+    library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION
+) -> None:
     """Suggest new category folder names from common terms across documents in the sorting inbox.
 
     Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-    units = scan_sorting_inbox(_open_library(library)).units
-    documents = [document for unit in units for document in unit.documents]
-    suggestions = suggest_categories(documents)
+    opened = _open_library(library)
+    with _logging("propose-categories", opened, verbose=verbose, quiet=quiet, writes=False):
+        units = scan_sorting_inbox(opened).units
+        documents = [document for unit in units for document in unit.documents]
+        suggestions = suggest_categories(documents)
     if not suggestions:
         console.print("[yellow]No suggestions - the sorting inbox is empty or has no supported documents.[/yellow]")
         return
@@ -111,16 +133,20 @@ def propose_categories(library: Path = _LIBRARY_OPTION) -> None:
         )
 
 
-def config(library: Path = _LIBRARY_OPTION) -> None:
+def config(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:
     """Library configuration."""
 
-    render_config(console, _open_library(library).config)
+    opened = _open_library(library)
+    with _logging("config", opened, verbose=verbose, quiet=quiet, writes=False):
+        render_config(console, opened.config)
 
 
 def reclassify(
     library: Path = _LIBRARY_OPTION,
     folder: Path | None = _FOLDER_OPTION,
     apply: bool = _APPLY_OPTION,
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
 ) -> None:
     """Re-review already-filed documents and report where the classifier would file them now.
 
@@ -129,9 +155,13 @@ def reclassify(
     """
 
     lib = _open_library(library, uses_hints=True)
-    with _locked(lib, "reclassify", needed=apply):  # held from planning to filing; the preview only reads
+    with (
+        _locked(lib, "reclassify", needed=apply),  # held from planning to filing; the preview only reads
+        _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply),
+        progress_bar(quiet=quiet, ai=False) as on_progress,
+    ):
         try:
-            proposals = run_reclassify(lib, scope=folder)
+            proposals = run_reclassify(lib, scope=folder, progress=on_progress)
         except ScopeOutsideLibraryError as err:
             _fail(str(err))
         render_reclassify_table(console, proposals, dry_run=not apply)
@@ -149,23 +179,30 @@ def index(library: Path = _LIBRARY_OPTION, scope: Path | None = _SCOPE_OPTION) -
     raise typer.Exit(code=1)
 
 
-def audit(library: Path = _LIBRARY_OPTION) -> None:
+def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:
     """Show the audit log."""
 
-    log_path = Library(library).state_dir / AUDIT_LOG_FILENAME
-    if not log_path.exists():
-        console.print("[yellow]No audit log found yet.[/yellow]")
-        return
-    # markup=False: audit lines contain file paths, and "[...]" in a name must not be read as markup.
-    console.print(log_path.read_text(encoding="utf-8"), markup=False, highlight=False, soft_wrap=True)
+    lib = Library(library)
+    with _logging("audit", lib, verbose=verbose, quiet=quiet, writes=False):
+        log_path = lib.state_dir / AUDIT_LOG_FILENAME
+        if not log_path.exists():
+            console.print("[yellow]No audit log found yet.[/yellow]")
+            return
+        # markup=False: audit lines contain file paths, and "[...]" in a name must not be read as markup.
+        console.print(log_path.read_text(encoding="utf-8"), markup=False, highlight=False, soft_wrap=True)
 
 
-def rollback(library: Path = _LIBRARY_OPTION, job_id: str = typer.Option(..., "--job-id")) -> None:
+def rollback(
+    library: Path = _LIBRARY_OPTION,
+    job_id: str = typer.Option(..., "--job-id"),
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
     """Undo a filing job by id (the id `sort` prints)."""
 
     lib = Library(library)
     try:
-        with _locked(lib, "rollback"):
+        with _locked(lib, "rollback"), _logging("rollback", lib, verbose=verbose, quiet=quiet, writes=True):
             job = rollback_job(lib, job_id)
     except (JobNotFoundError, JobAlreadyRolledBackError) as err:
         _fail(str(err))
@@ -204,6 +241,35 @@ def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
 
 
 @contextmanager
+def _logging(command: str, library: Library, *, verbose: bool, quiet: bool, writes: bool) -> Iterator[None]:
+    """Set up logging for a command that has opened ``library``, and record that the command started.
+
+    A command that changes the library enters this inside ``_locked``, not outside it. Only the run holding the
+    lock may write the log file, so a run the lock refuses leaves no trace in it (nor on screen).
+
+    Args:
+        command: The command's name, written to the log's first line.
+        library: The library the command works on.
+        verbose: ``-v``: show progress messages too, and record debugging detail in the log file.
+        quiet: ``-q``: show errors only on screen. Wins over ``verbose``.
+        writes: Whether the command holds the run lock, and so also records to the library's log file. A preview
+            or a read-only command passes ``False`` and leaves no log file behind.
+    """
+
+    try:
+        configure_logging(verbose=verbose, quiet=quiet, library=library if writes else None)
+    except ConfigError:
+        # rollback must still work with an invalid config, so log to the screen only
+        configure_logging(verbose=verbose, quiet=quiet)
+        _logger.warning("Not writing a log file: the library's config can't be read")
+    _logger.info("%s: library %s", command, library.root)
+    try:
+        yield
+    finally:
+        reset_logging()
+
+
+@contextmanager
 def _locked(library: Library, command: str, *, needed: bool = True) -> Iterator[None]:
     """Hold the library's run lock around the block, or exit with a message if another run holds it.
 
@@ -234,18 +300,18 @@ def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
     except ConfigError as err:
         _fail(str(err))
     if settings.provider == "openai":
-        console.print(
-            "[yellow]AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI.[/yellow]",
-            soft_wrap=True,
-        )
+        notice = "AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI."
+        console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
+        _logger.warning(notice, extra=FILE_ONLY)
     if settings.max_document_chars == 0:
         billing = " OpenAI bills for the tokens used." if settings.provider == "openai" else ""
-        console.print(
-            "[yellow]max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
+        notice = (
+            "max_document_chars = 0: there is no limit on how much of each document is sent to the AI. "
             "This uses more tokens and takes longer, and a document longer than the model's context window "
-            f"may fail or be cut off.{billing}[/yellow]",
-            soft_wrap=True,
+            f"may fail or be cut off.{billing}"
         )
+        console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
+        _logger.warning(notice, extra=FILE_ONLY)
     return LLMClassifier(provider, settings)
 
 

@@ -54,6 +54,16 @@ ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
 [parsing]
 max_file_mb = 50
 
+# The diagnostic log microfiche writes under .microfiche/ (separate from the audit log).
+# level: how much it records (DEBUG, INFO, WARNING, ERROR or CRITICAL). file: its name, a plain file
+# name, not a path. The file is rotated to a backup at max_bytes; backup_count is how many backups to
+# keep (0 never rotates, so the file grows without limit).
+[logging]
+level = "INFO"
+file = "microfiche.log"
+max_bytes = 1048576
+backup_count = 3
+
 # Folder name/glob patterns never treated as a category and never descended into by
 # taxonomy discovery or `reclassify`. Extend this with your own non-category folders
 # (templates, attachments, archives you don't want touched, etc).

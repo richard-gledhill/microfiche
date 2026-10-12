@@ -1,5 +1,6 @@
 """Tests for the `sort` pipeline: scan -> classify -> file as one job, leaving the rest for review."""
 
+import logging
 import shutil
 from collections.abc import Callable
 from pathlib import Path
@@ -878,6 +879,105 @@ def test_run_sort_dry_run_still_asks_the_ai(tmp_path: Path) -> None:
 
     assert provider.calls == 1  # the preview classifies exactly as a real run would
     assert report.ai_unavailable == "ConnectionError: connection refused"
+
+
+# endregion
+
+
+# region Logging
+
+
+def _sort_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [record.getMessage() for record in caplog.records if record.name == "core.organizer"]
+
+
+def test_run_sort_logs_unit_count_and_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="core")
+
+    run_sort(Library(_library(tmp_path)))
+
+    messages = _sort_messages(caplog)
+    assert "sort: 2 unit(s) to classify" in messages
+    assert "sort finished: 1 filed, 1 for review, 0 duplicate(s)" in messages
+
+
+def test_run_sort_dry_run_summary_is_labelled(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="core")
+
+    run_sort(Library(_library(tmp_path)), dry_run=True)
+
+    assert "sort (dry run) finished: 1 filed, 1 for review, 0 duplicate(s)" in _sort_messages(caplog)
+
+
+def test_run_sort_logs_each_unit_outcome_at_debug(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    run_sort(Library(_library(tmp_path)))
+
+    messages = _sort_messages(caplog)
+    assert f"{_PHOENIX_NOTE}: to be filed under Project Phoenix / 02 Architecture" in messages
+    assert any(message.startswith(f"{_SOLAR_NOTE}: left for review") for message in messages)
+
+
+def test_run_sort_info_level_leaves_out_unit_detail(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="core")
+
+    run_sort(Library(_library(tmp_path)))
+
+    assert not any("to be filed under" in message for message in _sort_messages(caplog))
+
+
+# endregion
+
+
+def test_run_sort_duplicate_logged_with_its_reason(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    _copy(library / "_sorting" / _PHOENIX_NOTE, library, _PHOENIX_DESTINATION)  # the same note, filed earlier
+    caplog.set_level(logging.DEBUG, logger="core")
+
+    run_sort(Library(library))
+
+    assert (
+        f"{_PHOENIX_NOTE}: held as a duplicate (identical to Project Phoenix/02 Architecture/{_PHOENIX_NOTE}, "
+        "already filed where this would go)"
+    ) in _sort_messages(caplog)
+
+
+# region Progress
+
+
+def test_run_sort_reports_progress_from_zero_to_the_total(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(_library(tmp_path)), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_progress_counts_a_held_duplicate_too(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _copy(library / "_sorting" / _PHOENIX_NOTE, library, _PHOENIX_DESTINATION)  # held, so its loop pass skips filing
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(library), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_dry_run_reports_progress_too(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(_library(tmp_path)), dry_run=True, progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 2), (1, 2), (2, 2)]
+
+
+def test_run_sort_nothing_to_classify_reports_zero_of_zero(tmp_path: Path) -> None:
+    calls: list[tuple[int, int]] = []
+
+    run_sort(Library(tmp_path), progress=lambda done, total: calls.append((done, total)))
+
+    assert calls == [(0, 0)]
 
 
 # endregion

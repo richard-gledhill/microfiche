@@ -24,6 +24,8 @@ CONFIG_FILENAME = "microfiche-config.toml"
 MICROFICHE_DIRNAME = ".microfiche"
 # The library depths (levels of folders) the code supports. Stage 4.6 adds 1.
 SUPPORTED_DEPTHS = (2,)
+# The levels a log file can be set to. Not NOTSET (it means "no level") or the aliases WARN and FATAL.
+_LOG_LEVELS = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 # What an environment variable name looks like. Real API keys contain characters this rejects.
 _ENV_VAR_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
@@ -214,6 +216,50 @@ class ParsingConfig(_ConfigSection):
         return int(self.max_file_mb * 1024 * 1024)
 
 
+class LoggingConfig(_ConfigSection):
+    """How microfiche writes its diagnostic log, ``.microfiche/microfiche.log`` by default.
+
+    The log is for people finding out what a run did. It is separate from the audit log and the
+    ledger, which ``rollback`` reads. The console's level is set by the ``-v`` and ``-q`` options alone.
+
+    Attributes:
+        level (str): The log file's level when ``-v`` is not given: ``"DEBUG"``, ``"INFO"``,
+            ``"WARNING"``, ``"ERROR"`` or ``"CRITICAL"``.
+        file (str): The log file's name, kept inside the library's ``.microfiche/`` folder. A plain
+            file name, not a path.
+        max_bytes (int): Greater than 0. The size at which the log file is rotated to a backup.
+        backup_count (int): At least 0. How many rotated backups to keep. At 0 the file is never
+            rotated and grows without limit, because Python's rotating handler only rotates when
+            this is above 0.
+    """
+
+    level: str
+    file: str
+    max_bytes: int = Field(gt=0)
+    backup_count: int = Field(ge=0)
+
+    @field_validator("level")
+    @classmethod
+    def _level_is_a_level_name(cls, value: str) -> str:
+        level = value.upper()
+        if level not in _LOG_LEVELS:
+            raise InvalidLogLevelError(value)
+        return level
+
+    @field_validator("file")
+    @classmethod
+    def _file_is_a_file_name(cls, value: str) -> str:
+        if not value.strip():
+            raise InvalidLogFileNameError(value, "it is empty")
+        if "/" in value or "\\" in value:
+            raise InvalidLogFileNameError(value, "it must be a single file name, not a path")
+        if value in (".", ".."):
+            raise InvalidLogFileNameError(value, "it must name a file inside the state folder")
+        if ":" in value:
+            raise InvalidLogFileNameError(value, "it cannot contain ':', which Windows reads as a drive")
+        return value
+
+
 class MicroficheConfig(_ConfigSection):
     """Configuration container for Microfiche.
 
@@ -234,6 +280,7 @@ class MicroficheConfig(_ConfigSection):
         ai (AIConfig): Configuration for the AI fallback.
         sorting (SortingConfig): Configuration for how the inbox is sorted.
         parsing (ParsingConfig): Configuration for how documents are read.
+        logging (LoggingConfig): Configuration for the diagnostic log file.
     """
 
     library_structure: LibraryStructureConfig
@@ -244,6 +291,7 @@ class MicroficheConfig(_ConfigSection):
     ai: AIConfig
     sorting: SortingConfig
     parsing: ParsingConfig
+    logging: LoggingConfig
 
 
 # endregion
@@ -304,6 +352,22 @@ class MissingApiKeyError(ConfigError):
             f"[ai] provider is 'openai' but the environment variable {variable} is not set. "
             "Set it to your OpenAI API key, or use provider = 'ollama'."
         )
+
+
+class InvalidLogFileNameError(ValueError):
+    """Raised when ``[logging] file`` isn't a usable log file name."""
+
+    def __init__(self, value: str, reason: str) -> None:
+        self.value = value
+        super().__init__(f"[logging] file {value!r} is not a valid log file name: {reason}")
+
+
+class InvalidLogLevelError(ValueError):
+    """Raised when ``[logging] level`` isn't a log level name."""
+
+    def __init__(self, value: str) -> None:
+        self.value = value
+        super().__init__(f"[logging] level {value!r} is not a log level: use DEBUG, INFO, WARNING, ERROR or CRITICAL")
 
 
 class TomlConfigParseError(ConfigError):

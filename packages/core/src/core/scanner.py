@@ -5,6 +5,7 @@ Per the ADR, the inbox is a single, library-wide folder at the library root - no
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +14,8 @@ from core.library.library import Library
 from core.models.unit import SortableUnit
 from core.parsers import is_supported, read_documents
 from core.utils.filesystem import is_link, name_matches
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -68,6 +71,7 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
     scan = InboxScan()
     inbox = library.inbox
     if not inbox.exists():
+        _logger.info("inbox %s does not exist; nothing to scan", inbox.name)
         return scan
     config = library.config
     if keep_folders is None:
@@ -76,9 +80,10 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
 
     for entry in sorted(inbox.iterdir()):
         if name_matches(entry.name, ignore):
+            _logger.debug("ignored %s: it matches [sorting] ignore", entry.name)
             continue
         if is_link(entry):
-            scan.skipped_links.append(entry)
+            _skip_link(entry, scan.skipped_links)
         elif entry.is_file():
             if is_supported(entry):
                 scan.units.append(_file_unit(entry, max_bytes))
@@ -86,6 +91,9 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
             inside = _files_under(entry, ignore, scan.skipped_links)
             scan.units.extend(_folder_units(entry, inside, keep_folders, max_bytes))
 
+    _logger.info(
+        "scanned %s: %d unit(s) to classify, %d link(s) skipped", inbox.name, len(scan.units), len(scan.skipped_links)
+    )
     return scan
 
 
@@ -125,17 +133,26 @@ def _files_under(folder: Path, ignore: list[str], skipped_links: list[Path]) -> 
         kept_folders: list[str] = []
         for name in sorted(folders):
             if name_matches(name, ignore):
+                _logger.debug("ignored %s: it matches [sorting] ignore", name)
                 continue
             if is_link(here / name):
-                skipped_links.append(here / name)
+                _skip_link(here / name, skipped_links)
             else:
                 kept_folders.append(name)
         folders[:] = kept_folders  # os.walk only descends into what is left in this list
         for name in names:
             if name_matches(name, ignore):
+                _logger.debug("ignored %s: it matches [sorting] ignore", name)
                 continue
             if is_link(here / name):
-                skipped_links.append(here / name)
+                _skip_link(here / name, skipped_links)
             else:
                 files.append(here / name)
     return sorted(files)
+
+
+def _skip_link(link: Path, skipped_links: list[Path]) -> None:
+    """Note a symbolic link or junction as skipped, and say why."""
+
+    skipped_links.append(link)
+    _logger.info("skipped link %s: links are never followed", link.name)

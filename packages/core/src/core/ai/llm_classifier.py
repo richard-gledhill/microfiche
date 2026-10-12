@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import time
+
 from core.ai.base import AIProvider
 from core.ai.prompts import CATEGORY_RESOLUTION_PROMPT, GROUP_RESOLUTION_PROMPT
 from core.config import AIConfig
@@ -9,6 +12,8 @@ from core.models.category import Taxonomy
 from core.models.classification import CategoryMatch, GroupMatch
 from core.models.document import Document
 from core.utils.errors import describe_error
+
+_logger = logging.getLogger(__name__)
 
 
 class LLMClassifier:
@@ -103,11 +108,20 @@ class LLMClassifier:
 
         if self._failure is not None:
             return None
+        started = time.perf_counter()
         try:
-            return self._provider.complete(prompt).strip()
+            answer = self._provider.complete(prompt).strip()
         except Exception as err:
             self._failure = describe_error(err)
+            _logger.warning(
+                "AI fallback unavailable (%s): the rest of the run uses the rules only, "
+                "so anything only the AI could answer goes to review",
+                self._failure,
+            )
             return None
+        # Only how long and how much: neither the prompt nor the answer, which can hold the document's text.
+        _logger.debug("AI answered in %.2f s (%d prompt chars)", time.perf_counter() - started, len(prompt))
+        return answer
 
     def _clip(self, text: str) -> str:
         """The part of ``text`` the AI is sent: all of it when ``max_document_chars`` is 0."""
