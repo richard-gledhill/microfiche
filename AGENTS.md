@@ -140,7 +140,9 @@ workspace `.venv`.
   already-filed documents and plans each one: `move` / `keep` (already under the right category) /
   `review` (unresolved or below threshold) / `conflict` (destination taken). Dry-run by default;
   `--apply` files the `move`s through `filer.py::file_batch` as one rollback-able job — how
-  classification drift gets reconciled after rule changes.
+  classification drift gets reconciled after rule changes. A folder the ledger records as filed whole
+  (`Ledger.folder_units()`) is one unit, proposed whole and never split; other folders are read file by file,
+  and `[exclusions]` keeps a folder out.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
   scope; never creates folders itself (requires explicit `--apply` at the CLI layer).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are

@@ -97,6 +97,15 @@ class Ledger:
             by_path[record.path] = record
         return list(by_path.values())
 
+    def folder_units(self) -> set[str]:
+        """The library-relative paths of the folders currently filed whole (``keep_folders``).
+
+        These are content, not parts of the library's structure: a folder microfiche filed as one unit.
+        The ledger is read once, however many paths are then tested against the result.
+        """
+
+        return {record.path for record in self.current() if record.unit_type == "folder"}
+
     def lookup(self, path: str, content_hash: str) -> LedgerRecord | None:
         """Find the current record for the unit at ``path`` with ``content_hash``.
 

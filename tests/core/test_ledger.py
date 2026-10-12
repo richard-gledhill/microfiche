@@ -181,3 +181,34 @@ def test_blank_lines_ignored(tmp_path: Path) -> None:
         fh.write("\n   \n")
 
     assert len(ledger.read_all()) == 1
+
+
+def _folder_record(path: str, *, job_id: str = "job1", original_path: str = "_sorting/pack") -> LedgerRecord:
+    return _record(path, job_id=job_id, original_path=original_path).model_copy(update={"unit_type": "folder"})
+
+
+def test_folder_units_lists_only_folders_filed_whole(tmp_path: Path) -> None:
+    ledger = Ledger(tmp_path / ".microfiche")
+    ledger.append([_record("G/C/a.md"), _folder_record("G/C/pack")])
+
+    assert ledger.folder_units() == {"G/C/pack"}
+
+
+def test_folder_units_rolled_back_folder_is_gone(tmp_path: Path) -> None:
+    ledger = Ledger(tmp_path / ".microfiche")
+    ledger.append([_folder_record("G/C/pack")])
+    ledger.append([_record("G/C/pack", event="rolled_back", original_path="_sorting/pack")])
+
+    assert ledger.folder_units() == set()
+
+
+def test_folder_units_moved_folder_replaces_its_old_path(tmp_path: Path) -> None:
+    ledger = Ledger(tmp_path / ".microfiche")
+    ledger.append([_folder_record("G/Old/pack", job_id="job1")])
+    ledger.append([_folder_record("G/New/pack", job_id="job2", original_path="G/Old/pack")])
+
+    assert ledger.folder_units() == {"G/New/pack"}
+
+
+def test_folder_units_no_ledger_empty(tmp_path: Path) -> None:
+    assert Ledger(tmp_path / ".microfiche").folder_units() == set()

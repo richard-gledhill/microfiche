@@ -66,19 +66,33 @@ What goes wrong without a rule:
 
 Today the taxonomy walk stops at level 2, so at depth 2 the taxonomy itself is not affected.
 
-Signals, in the order they apply:
+The principle (settled when Stage 4.8 was built): *a folder within the depth is a filing target unless a rule
+excludes it; a folder beyond the depth is content.* Signals, in the order they apply:
 
-1. **The existing exclusion patterns** (`.*`, `_*` and any the user adds), matched on every path component.
-2. **The ledger.** A path recorded as a filed folder unit is content. This is exact for what microfiche filed.
-3. **A name pattern per level.** An optional regular expression in `microfiche-library.json` that the whole folder
-   name must match at that level (for example `^\d{2} .+` for numbered categories). With none, any name is
-   accepted, as now. A template carries the pattern for its convention when a library is created, which is how
-   the template is referred to without making the template the taxonomy. The library is still the source of
-   truth for which folders exist (see [architecture.md §1](architecture.md)); a pattern only narrows which of
-   them count.
+1. **The existing exclusion patterns** (`.*`, `_*` and any the user adds), matched on every path component. This is
+   how a user skips a folder "tagged" a certain way, such as `[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*` for
+   `yyyymmdd_` folders. It is a deny-list and applies at every level, and to files too.
+2. **The ledger.** A path recorded as a filed folder unit is content: `reclassify` treats it as one unit, and
+   `Library.structure()` never reads it as a group, category or subcategory. This is exact for what microfiche filed.
 
-A folder the user made, and the ledger does not know about, is left alone by `reclassify`, and the run says so.
-Folders moved by hand are not recognised beyond the name pattern; that is deferred.
+An allow-list `name_pattern` per level in `microfiche-library.json` (the whole folder name must match, for example
+`^\d{2} .+` for numbered categories) was proposed and dropped: it changes the schema and couples the taxonomy walk to
+the library file, and the deny-list covers the need. It could return if a convention-following library asks for it.
+
+A folder the user made below a category, and the ledger does not know about, is not a filing target and not skipped: its
+files are read one by one, as they always were. To keep it out, exclude it. Folders moved by hand are not recognised
+by the ledger; that is deferred.
+
+### When the depth is reduced
+
+Reducing `depth` (2 to 1 now, 3 to 2 if Stage 4.7 is built) turns the old category folders into plain folders inside
+their group. Nothing moves: `filed_under` accepts any depth below the target, so `reclassify` keeps an item that is
+still in the folder it belongs to, and it says how many filed items now sit below the depth (counted from the ledger's
+paths, with no stored "previous depth"). Considered and rejected: moving everything automatically when the config
+changes (a configuration edit should not move files, and the change cannot be detected without more state).
+Considered and deferred: an explicit, opt-in flatten, recorded in
+[feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced) to be reviewed. Increasing the depth
+needs nothing special: the existing items sit one level too high and `reclassify` proposes moves into the new level.
 
 ## Filing target mode
 

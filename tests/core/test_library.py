@@ -5,8 +5,10 @@ from pathlib import Path
 import pytest
 from conftest import LinkMaker
 from core.config import ConfigError, MicroficheConfig, TomlConfigParseError, load_config
+from core.ledger import Ledger
 from core.library.library import Library, ScopeOutsideLibraryError
 from core.library.library_file import FolderNode
+from core.models.ledger import LedgerRecord
 
 # region Test helpers
 
@@ -535,6 +537,57 @@ def test_filed_under_group_folder_and_below(tmp_path: Path) -> None:
     assert library.filed_under(group / "01 Bills" / "a.md", "Household")  # a sub-folder is still in the group
     assert not library.filed_under(tmp_path / "Project Phoenix" / "a.md", "Household")
     assert not library.filed_under(tmp_path / "_sorting" / "a.md", "Household")
+
+
+# endregion
+
+
+# region Folders filed whole are content, not structure
+
+
+def _filed_whole_record(path: str) -> LedgerRecord:
+    return LedgerRecord(
+        event="filed",
+        job_id="job1",
+        path=path,
+        original_path="_sorting/pack",
+        content_hash="hash",
+        unit_type="folder",
+        group="Project Phoenix",
+    )
+
+
+def test_structure_skips_a_folder_the_ledger_records_as_filed_whole(tmp_path: Path) -> None:
+    """After the depth is raised, a bundle filed at Group/pack must not become a category."""
+
+    root = _build(tmp_path / "library")
+    (root / "Project Phoenix" / "pack").mkdir()
+    Ledger(root / ".microfiche").append([_filed_whole_record("Project Phoenix/pack")])
+
+    taxonomy = Library(root).taxonomy()
+
+    assert taxonomy.categories_for("Project Phoenix") == ["01 Requirements", "02 Architecture"]
+
+
+def test_structure_lists_a_folder_the_ledger_does_not_know(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Project Phoenix" / "attachments").mkdir()
+    Ledger(root / ".microfiche").append([_filed_whole_record("Project Phoenix/pack")])
+
+    assert "attachments" in Library(root).taxonomy().categories_for("Project Phoenix")
+
+
+def test_structure_unreadable_ledger_warns_and_lists_every_folder(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    root = _build(tmp_path / "library")
+    (root / ".microfiche" / "ledger.jsonl").write_text("not json\n", encoding="utf-8")
+
+    with caplog.at_level("WARNING", logger="core.library.library"):
+        taxonomy = Library(root).taxonomy()
+
+    assert taxonomy.categories_for("Project Phoenix") == ["01 Requirements", "02 Architecture"]
+    assert "the ledger can't be read" in caplog.text
 
 
 # endregion

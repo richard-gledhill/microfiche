@@ -136,6 +136,12 @@ core/models/unit.py
         documents: list[Document]   # one entry for a file, many for a folder
 ```
 
+**Decision — a folder that was filed whole is content, not structure.** A folder within the depth is a filing target
+unless `[exclusions]` skips it; a folder beyond the depth is content. The ledger (`unit_type: "folder"`,
+`Ledger.folder_units()`) says which folders microfiche filed whole, and `reclassify` classifies each as one unit and
+proposes it whole, so a filed bundle is never split; `Library.structure()` skips it, so it never becomes a category if
+the depth is raised. Any other folder below a category is read file by file; the user keeps one out with `[exclusions]`.
+
 **Decision — mixed-category folders:** dominant category wins. Every document inside a folder unit is
 classified individually (both stages); the folder is filed as a whole under whichever `(group, category)` pair
 has the most votes across its documents, represented by that pair's most confident document. Per-document

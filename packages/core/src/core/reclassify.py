@@ -12,11 +12,12 @@ import logging
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal
 
 from core.classifier import Classifier
 from core.filer import DestinationClaims, FilingResult, destination_for, file_batch
+from core.ledger import Ledger
 from core.library.library import Library
 from core.models.classification import ClassificationResult
 from core.models.unit import SortableUnit
@@ -77,6 +78,11 @@ def run_reclassify(
     anything. Pass the result to ``apply_reclassification`` to act on the proposals whose action
     is ``"move"``.
 
+    A folder that microfiche filed whole (``keep_folders``, recorded in the ledger) is one unit, classified by the
+    dominant pair across its documents and proposed as a whole, so a filed bundle is never split. Any other folder
+    below a category is just a place files sit: its files are classified one by one. To leave such a folder alone,
+    list it under ``[exclusions]``.
+
     Args:
         library: The library whose filed documents to re-classify.
         scope: A folder inside the library to limit the run to; the whole library if omitted.
@@ -84,10 +90,11 @@ def run_reclassify(
             the running count as each document finishes, ending on ``progress(total, total)``.
 
     Returns:
-        One proposal per supported filed document.
+        One proposal per supported filed document, or per filed bundle.
 
     Raises:
         ScopeOutsideLibraryError: if ``scope`` is given but isn't inside the library.
+        LedgerCorruptError: if the ledger can't be read, so the filed bundles are not known.
     """
 
     taxonomy = library.taxonomy()
@@ -95,16 +102,19 @@ def run_reclassify(
 
     claims = DestinationClaims(library)
     proposals: list[ReclassifyProposal] = []
-    files = [path for path in library.files(scope) if is_supported(path)]
-    total = len(files)
-    for done, file_path in enumerate(files):
+    items = _filed_items(library, scope)
+    total = len(items)
+    max_bytes = library.config.parsing.max_file_bytes
+    for done, item in enumerate(items):
         if progress is not None:
             progress(done, total)
-        read = read_documents([file_path], max_bytes=library.config.parsing.max_file_bytes)
-        unit = SortableUnit(source_path=file_path, kind="file", documents=read.documents, unreadable=read.unreadable)
+        read = read_documents(item.files, max_bytes=max_bytes)
+        unit = SortableUnit(
+            source_path=item.source, kind=item.kind, documents=read.documents, unreadable=read.unreadable
+        )
         classification = classifier.classify_unit(unit, taxonomy)
         proposal = _plan(unit, classification, library, claims)
-        _logger.debug("%s: %s", library.relative(file_path), proposal.action)
+        _logger.debug("%s: %s", library.relative(unit.source_path), proposal.action)
         proposals.append(proposal)
     if progress is not None:
         progress(total, total)
@@ -137,6 +147,67 @@ def apply_reclassification(library: Library, proposals: list[ReclassifyProposal]
 
     items = [(proposal.unit, proposal.classification) for proposal in proposals if proposal.action == "move"]
     return file_batch(library, items)
+
+
+def items_below_depth(library: Library) -> int:
+    """How many filed items sit in folders below the library's depth.
+
+    The ledger records where every item was filed, so this needs no scan of the library. After the depth is
+    reduced (say from 2 to 1) the folders that were categories are plain folders, and the items filed in them
+    are counted here; they are left where they are. A bundle counts once.
+
+    Args:
+        library: The library to check.
+
+    Returns:
+        The number of filed items deeper than ``[library_structure] depth`` allows (0 if none, or none filed).
+
+    Raises:
+        LedgerCorruptError: if the ledger can't be read.
+    """
+
+    depth = library.config.library_structure.depth
+    # An item is filed inside its target folder: one name deeper than the number of levels. One that has since been
+    # moved or deleted by hand is not there to count.
+    return sum(
+        1
+        for record in Ledger(library.state_dir).current()
+        if len(PurePosixPath(record.path).parts) > depth + 1 and (library.root / record.path).exists()
+    )
+
+
+@dataclass(frozen=True)
+class _Filed:
+    """Something to classify: one file, or a filed bundle with the supported files inside it."""
+
+    source: Path
+    kind: Literal["file", "folder"]
+    files: list[Path]
+
+
+def _filed_items(library: Library, scope: Path | None) -> list[_Filed]:
+    """What to classify under ``scope``: each filed bundle as one item, every other supported file by itself.
+
+    Nothing is read here, so the caller can report progress while the documents are parsed.
+    """
+
+    bundles = {library.root / path for path in Ledger(library.state_dir).folder_units()}
+    items: list[_Filed] = []
+    seen_bundles: set[Path] = set()
+    for file_path in library.files(scope):
+        if not is_supported(file_path):
+            continue
+        bundle = None
+        for parent in file_path.parents:  # nearest first, so the last one found is the outermost
+            if parent in bundles:
+                bundle = parent
+        if bundle is None:
+            items.append(_Filed(file_path, "file", [file_path]))
+        elif bundle not in seen_bundles:
+            seen_bundles.add(bundle)
+            # Every document in the bundle votes, even if ``scope`` covers only part of it: it is never split.
+            items.append(_Filed(bundle, "folder", [path for path in library.files(bundle) if is_supported(path)]))
+    return items
 
 
 def _plan(

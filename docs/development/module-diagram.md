@@ -108,6 +108,7 @@ flowchart TD
     cli_commands --> cli_logging
     cli_commands --> cli_progress
     cli_commands --> l_library_sync
+    cli_commands --> core_ledger
 
     cli_display --> core_config
     cli_display --> core_organizer
@@ -163,6 +164,7 @@ flowchart TD
     core_reclassify --> m_classification
     core_reclassify --> m_unit
     core_reclassify --> p_init
+    core_reclassify --> core_ledger
 
     m_unit --> m_document
 
@@ -227,6 +229,7 @@ flowchart TD
     l_library --> m_category
     l_library --> u_filesystem
     l_library --> l_library_file
+    l_library --> core_ledger
 
     l_suggester --> m_document
 
