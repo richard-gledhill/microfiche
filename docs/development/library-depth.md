@@ -3,7 +3,9 @@
 A review of how many levels a library may have, how microfiche tells a library folder from a folder that is just
 content, and where a document may land when only some levels are confident. It feeds Stages
 [4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) to
-[4.9](mvp-build-plan.md#stage-49--filing-target-mode-optional) of the build plan. Depth 1 (Stage 4.6) is built; the rest is not.
+[4.8](mvp-build-plan.md#stage-48--non-library-folders) of the build plan. Depth 1 (Stage 4.6) and non-library folders (Stage 4.8) are built; depth 3 (Stage 4.7) is not.
+The filing target mode it once covered is in the [feature backlog](feature-backlog.md#filing-target-mode-file_at),
+under review.
 
 ## Where depth 2 was built in
 
@@ -96,38 +98,11 @@ needs nothing special: the existing items sit one level too high and `reclassify
 
 ## Filing target mode
 
-This is the optional Stage 4.9. Two behaviours were proposed:
-
-- Only the deepest folder: the document (or folder, with `keep_folders`) is filed only when every level is
-  confident, and otherwise goes to review. This is today's behaviour.
-- Level by level: starting at the top level, the document is filed into the deepest level that is confident.
-
-"Flat" and "recursive" were the first names. "Flat" also reads as a depth-1 library, and "recursive" as scanning
-subfolders, so the setting names where the file lands instead:
-
-| Option | `[sorting] file_at` value | Meaning |
-|---|---|---|
-| Chosen | `leaf_only` / `best_level` | Names where the file ends up |
-| Considered | `strict` / `progressive` | Describes attitude, not outcome |
-| Considered | `exact` / `partial` | Suggests a match quality |
-| Considered | `deepest_only` / `descending` | Close, but "descending" describes the walk, not the result |
-
-`best_level` rules:
-
-- The confidence at a level is the minimum of the levels down to it. Descend while a level resolves and that
-  confidence reaches the threshold. File at the deepest level reached. If the top level fails, the unit goes to
-  review.
-- A folder's documents vote level by level: the dominant group first, then the dominant category among the
-  documents that voted for that group. A tie at a level stops the folder one level up, where `leaf_only` sends
-  it to review.
-- A unit parked above the leaf is not stuck: `reclassify` keeps it while nothing deeper is confident and moves it
-  deeper once a deeper level is (a new hint, a new folder).
-- At depth 1 the two modes are identical, so the setting matters from depth 2. It is independent of Stage 4.7.
-
-`leaf_only` stays the default, because filing nothing is safer than filing into a level the user didn't expect.
+Moved to the [feature backlog](feature-backlog.md#filing-target-mode-file_at), where it is under review. It was to
+be an optional `[sorting] file_at` setting (`leaf_only`, today's behaviour, or `best_level`, which files at the deepest
+confident level); the proposal, the names considered and the rules are kept there.
 
 ## Order of the work
 
 4.6 first (before Stage 5), then 4.8, because 4.7 needs its rule for telling a subcategory from a filed bundle,
-then 4.9 (optional, works at depth 2), then 4.7 (provisional). The numbering follows the order the stages were
-proposed; renumber if the build order should show in the labels.
+then 4.7 (provisional). The numbering follows the order the stages were proposed; the number 4.9 is not reused.

@@ -29,7 +29,9 @@ and a structure meant to be dropped directly into a GitHub Project. Read
   baseline. Each stage's Deploy step tags the next patch version: Stage 1 is `v0.1.1`, Stage 2 `v0.1.2`,
   Stage 3 `v0.1.3`, Stage 4 `v0.1.4`, Stage 5 `v0.1.5` and Stage 6 `v0.1.6`, the MVP release. An interim stage
   numbered with a decimal (Stages 4.1 to 4.10) is an update to the stage before it and gets no tag of its own;
-  its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does.
+  its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does. There is no
+  Stage 4.9: it was moved to the [feature backlog](feature-backlog.md#filing-target-mode-file_at) while under review,
+  and the number is not reused.
 - **Definition of done per stage:** every issue in the milestone is closed *and* the stage's
   "Testable version" statement is true when you check it out and run it.
 
@@ -484,7 +486,7 @@ the library's group folders only and files it straight into one. The ledger, `ro
 a flat library as they do on a two-level one. The default stays 2.
 
 Why before Stage 5: `review` would otherwise be built on the group-then-category shape and have to
-be reworked. The vocabulary, the depth model and the dependencies between 4.6 to 4.9 are in
+be reworked. The vocabulary, the depth model and the dependencies between 4.6 to 4.8 are in
 [library-depth.md](library-depth.md).
 
 **Plan**
@@ -636,50 +638,6 @@ line: `reclassify` reads their files as it always did, and the user keeps a fold
 
 ---
 
-## Stage 4.9 — Filing Target Mode (optional)
-
-**Milestone:** `Stage 4.9 — Filing Target Mode` (an untagged update to `v0.1.4`; optional)
-**Testable version:** A setting, `[sorting] file_at`, chooses where a document (or a folder, with `keep_folders`
-on) lands. `leaf_only`, the default and today's behaviour, files only into the deepest level and only when
-every level is confident. `best_level` walks the levels from the top and files into the deepest level that is
-confident, so a document whose group is clear but whose category is not stays in the group folder instead of
-going to review. It is meaningful from depth 2, so it does not wait for Stage 4.7.
-
-**Names.** "Flat" and "recursive" were the first suggestions, but "flat" also reads as a depth-1 library and
-"recursive" as scanning folders. The setting names where the file lands instead: `leaf_only` and `best_level`.
-Alternatives considered (`strict`/`progressive`, `exact`/`partial`, `deepest_only`/`descending`) are in
-[library-depth.md](library-depth.md).
-
-**Plan**
-- Decide whether to build this at all: it is optional, and independent of 4.7, so it can be built before it or left out.
-- Decide the rule: the path's confidence at a level is the minimum up to that level; descend while the level resolves and that confidence reaches the threshold; file at the deepest level reached; if the first level fails, the unit goes to review.
-- Decide how a tie in a folder's vote behaves: in `leaf_only` it goes to review, as now; in `best_level` the folder stops at the level above the tie.
-
-**Design**
-- Design the walk in `Classifier`, and the `ClassificationResult` field that records the level reached.
-- Design how the ledger and audit record a unit filed above the leaf (the deeper fields are empty).
-- Design `reclassify` for a unit parked above the leaf: `keep` if the level is still the best match, and `move` deeper when a deeper level has since become confident (new hints, a new folder).
-- Design the folder-unit vote per level: the dominant group first, then the dominant category among the documents that voted for it.
-- Design how `review` shows a unit that is not at the leaf (an input to Stage 5).
-
-**Build**
-- Add `[sorting] file_at` to the packaged defaults, with range validation.
-- Implement the level walk and the per-level folder vote.
-- Allow files directly inside a group (or category) folder through the filer, the ledger and `reclassify`.
-- Show the level reached in the `sort` summary.
-
-**Test**
-- Write tests with fake resolvers: all levels confident files at the leaf in both modes; a confident group with an unresolved category files in the group folder under `best_level` and goes to review under `leaf_only`; an unresolved group goes to review in both.
-- Write folder-vote tests for the tie behaviour in each mode.
-- Write `reclassify` tests: a parked unit is `keep` while nothing deeper is confident and `move` when something is.
-- Re-run the calibration report in both modes and record the auto-filed and misfiled rates for each in [calibration.md](calibration.md).
-
-**Deploy**
-- Update `docs/how-to-use.md` (when to choose each mode), the README, `docs/cli-reference.md`, `architecture.md` §3 and §10, and `CONTEXT.md`.
-- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
-
----
-
 ## Stage 4.10 — Library File Sync
 
 **Milestone:** `Stage 4.10 — Library File Sync` (an untagged update to `v0.1.4`)
@@ -755,7 +713,7 @@ threshold has no way out of the inbox except filing it by hand.
 
 **Design**
 - If a decision model is configured (Stage 4.5), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
-- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is built, depth 3 (Stage 4.7), and for a unit that may be filed above the leaf (Stage 4.9).
+- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is built, depth 3 (Stage 4.7).
 - Design "create new" as making a folder in the library. `propose-categories` never creates folders, so `review` would be the first command that does: decide whether it may, and require an explicit confirmation. Stage 4.10's library file sync then lists the new folder on the next run.
 - Design filing from `review` to take the same safeguards as `sort`: the run lock, the shared destination check and the duplicate check, and one `file_batch` job per session.
 
@@ -845,10 +803,10 @@ rather than in isolation:
 4.8. **Non-library folders** — numbered after 4.7, but 4.7 needs its rule for telling a subcategory from a filed
    bundle, so build 4.8 first. It is useful on its own at depth 2, where `reclassify` would otherwise split a
    filed bundle.
-4.9. **Filing target mode, optional** — meaningful from depth 2, so it does not wait for 4.7; it can be built
-   after 4.6 or left out.
+   (4.9, an optional filing target mode, was moved to the backlog while under review; see
+   [feature-backlog.md](feature-backlog.md#filing-target-mode-file_at).)
 
-   Suggested build order for the 4.6 to 4.9 group: 4.6, 4.8, 4.9, then 4.7.
+   Suggested build order for the 4.6 to 4.8 group: 4.6, 4.8, then 4.7.
 4.10. **Library file sync, after 4.3** — the library file arrives in 4.1 as a hand-written file; this makes it follow
    the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
    `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6 and 4.7, which reuse its structure

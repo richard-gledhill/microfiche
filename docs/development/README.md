@@ -26,7 +26,8 @@ Internal planning/design docs — not published to the user-facing docs site (se
 - **[fuzzy-matching-options.md](fuzzy-matching-options.md)** — planned work. What `thefuzz` is (a wrapper over
   RapidFuzz), what was measured, the traps in switching, and why to switch as the last step of Stage 4.1.
 - **[library-depth.md](library-depth.md)** — planned work. Library depth (one, two or three levels), non-library
-  folders such as bundles filed by `keep_folders`, and an optional filing target mode. Feeds Stages 4.6 to 4.9.
+  folders such as bundles filed by `keep_folders`. Feeds Stages 4.6 to 4.8; the optional filing target mode it
+  once covered is in the feature backlog, under review.
 - **[calibration.md](calibration.md)** — current. How the default confidence threshold was measured: the
   corpus and harness in `tests/calibration/`, the results, what they mean, and how to repeat them on your
   own documents.
