@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
 
 ### Documentation
+- :robot: changelog file generated [`e6d1d78`](https://github.com/richard-gledhill/microfiche/commit/e6d1d78)
 - :robot: changelog file generated [`99c79a4`](https://github.com/richard-gledhill/microfiche/commit/99c79a4)
 - reconcile the docs with shipped behaviour (Stage 6 drift pass) [`d4a2aba`](https://github.com/richard-gledhill/microfiche/commit/d4a2aba)
 - remove the footer link to a PyPI page microfiche does not have [`e9650e5`](https://github.com/richard-gledhill/microfiche/commit/e9650e5)
@@ -31,9 +32,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - keep LF endings on shell scripts and the Makefile [`c96017c`](https://github.com/richard-gledhill/microfiche/commit/c96017c)
 
 ### Refactor
+- remove dead code and duplication found by the Stage 6 review [`d954f92`](https://github.com/richard-gledhill/microfiche/commit/d954f92)
 - import core and cli as microfiche.core and microfiche.cli [`a88e02e`](https://github.com/richard-gledhill/microfiche/commit/a88e02e)
 
 ### Other
+- Merge pull request #66 from richard-gledhill/refactor/stage-6-simplify [`ee7f2bf`](https://github.com/richard-gledhill/microfiche/commit/ee7f2bf)
 - Merge pull request #65 from richard-gledhill/fix/stage-6-review-bugs [`ba24b1d`](https://github.com/richard-gledhill/microfiche/commit/ba24b1d)
 - Merge pull request #64 from richard-gledhill/docs/stage-6-drift-pass [`862adbe`](https://github.com/richard-gledhill/microfiche/commit/862adbe)
 - Merge pull request #63 from richard-gledhill/docs/install-from-a-release [`d7dde62`](https://github.com/richard-gledhill/microfiche/commit/d7dde62)
