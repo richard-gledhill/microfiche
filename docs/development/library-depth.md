@@ -3,7 +3,8 @@
 A review of how many levels a library may have, how microfiche tells a library folder from a folder that is just
 content, and where a document may land when only some levels are confident. It feeds Stages
 [4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) to
-[4.8](mvp-build-plan.md#stage-48--non-library-folders) of the build plan. Depth 1 (Stage 4.6) and non-library folders (Stage 4.8) are built; depth 3 (Stage 4.7) is not.
+[4.8](mvp-build-plan.md#stage-48--non-library-folders) of the build plan. Depth 1 (Stage 4.6) and non-library folders (Stage 4.8) are built; depth 3 is in the
+[feature backlog](feature-backlog.md#subcategories-depth-3), under review.
 The filing target mode it once covered is in the [feature backlog](feature-backlog.md#filing-target-mode-file_at),
 under review.
 
@@ -37,8 +38,8 @@ categories.
 
 ## Depth 3 and the limits on it
 
-Stage 4.7 is provisional. If implementing it hits a practical limitation, it is deferred, the finding is
-recorded here, and depth stays 1 or 2. Limits to watch:
+Depth 3 is in the [feature backlog](feature-backlog.md#subcategories-depth-3), under review (it was Stage 4.7). If
+implementing it hits a practical limitation, the finding is recorded here and depth stays 1 or 2. Limits to watch:
 
 - **Confidence falls with every level.** The path's confidence is the minimum across levels, so a third level can
   only send more documents to review.
@@ -50,7 +51,7 @@ recorded here, and depth stays 1 or 2. Limits to watch:
   `init` make at most three levels. The classifier is written level-generic so depth 4 is not a rewrite, but
   only depth 3 is specified and tested, and depth 4 and above is not planned.
 
-The go/no-go numbers are set in Stage 4.7's Plan, against a three-level library added to the calibration corpus.
+The go/no-go numbers would be set in the backlog entry, against a three-level library added to the calibration corpus.
 
 ## Non-library folders
 
@@ -87,7 +88,7 @@ by the ledger; that is deferred.
 
 ### When the depth is reduced
 
-Reducing `depth` (2 to 1 now, 3 to 2 if Stage 4.7 is built) turns the old category folders into plain folders inside
+Reducing `depth` (2 to 1 now, 3 to 2 if depth 3 is ever built) turns the old category folders into plain folders inside
 their group. Nothing moves: `filed_under` accepts any depth below the target, so `reclassify` keeps an item that is
 still in the folder it belongs to, and it says how many filed items now sit below the depth (counted from the ledger's
 paths, with no stored "previous depth"). Considered and rejected: moving everything automatically when the config
@@ -104,5 +105,6 @@ confident level); the proposal, the names considered and the rules are kept ther
 
 ## Order of the work
 
-4.6 first (before Stage 5), then 4.8, because 4.7 needs its rule for telling a subcategory from a filed bundle,
-then 4.7 (provisional). The numbering follows the order the stages were proposed; the number 4.9 is not reused.
+4.6 first (before Stage 5), then 4.8, which depth 3 would need for telling a subcategory from a filed bundle. Depth 3
+(4.7) and the filing target mode (4.9) are in the backlog; the numbering follows the order the stages were proposed, and
+the numbers 4.5, 4.7 and 4.9 are not reused.

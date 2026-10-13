@@ -23,6 +23,8 @@ questions to settle before building it again.
 - [Plugin architecture](#plugin-architecture)
 - [Opt-in flatten when the depth is reduced](#opt-in-flatten-when-the-depth-is-reduced)
 - [Filing target mode (`file_at`)](#filing-target-mode-file_at)
+- [Decision-model classifier](#decision-model-classifier)
+- [Subcategories (depth 3)](#subcategories-depth-3)
 
 ---
 
@@ -204,7 +206,7 @@ notes.
 [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders); it needs specifying before it is planned.
 
 **The situation.** A user reduces `[library_structure] depth` (from 2 to 1 today, and from 3 to 2 if
-[Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) is built). The folders that were categories
+[depth 3](#subcategories-depth-3) is ever built). The folders that were categories
 are now plain folders inside a group, and the items filed in them sit below the library's depth.
 
 **What happens now.** Nothing moves. `reclassify` treats a file in such a folder as already in place while it is in
@@ -255,7 +257,7 @@ moved here on 2026-10-12 and the number is not reused. Nothing was built: there 
 - `best_level`: walk the levels from the top and file into the deepest level that is confident, so a document whose
   group is clear but whose category is not stays in the group folder instead of going to review.
 
-It is meaningful from depth 2 and independent of [Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional).
+It is meaningful from depth 2 and independent of [depth 3](#subcategories-depth-3).
 At depth 1 the two modes are identical. `leaf_only` would stay the default, because filing nothing is safer than filing
 into a level the user didn't expect.
 
@@ -294,3 +296,100 @@ as scanning subfolders, so the setting would name where the file lands:
 - Is the confidence rule (the minimum down to the level) the right one, and what does the user see for a parked unit?
 - Tests it would need: fake resolvers for each combination of confident levels in both modes, folder-vote ties in each
   mode, `reclassify` for a parked unit, and the calibration report in both modes.
+
+
+---
+
+## Decision-model classifier
+
+**Status:** under review. It was Stage 4.5 of [mvp-build-plan.md](mvp-build-plan.md); it was moved here on 2026-10-13
+and the number is not reused. Nothing was built.
+
+**Why it is under review.** It was gated on a measurement and has not been started, and the gate cannot be run from the
+repository alone: the candidates (Jev, Clef, Nimble) came from an unverified web search, a model has to be run somewhere
+to be measured (a GPU model locally, or a hosted account), and a hosted one sends document text off the machine. The
+AI fallback is only asked where the rules are unsure, and the calibration already shows it adds little as built
+([calibration.md](calibration.md)), so the expected gain for the first release is small. The research, with its sources
+and the rules for adopting a model, is in [ai-classifier-options.md](ai-classifier-options.md).
+
+**The proposal.** `sort --use-ai` could use either a chat model (as today) or a **decision model**, a classifier that
+takes text and a fixed list of options and returns one option with a probability. Both would sit behind `Classifier` as
+resolvers. The model's own probability would become the confidence instead of a flat `0.70`, and the calibration report
+would show on the same corpus how each performs, so the choice is a measurement. It also shortens a path to ranked
+suggestions for [`review`](mvp-build-plan.md#stage-5--review-workflow), which today offers only the classifier's best guess.
+
+### The design to keep
+
+- **A separate seam.** A `ChoiceModel` protocol, `choose(text, question, options) -> Choice`, with the chosen option or
+  none, its probability and the ranked alternatives. It is separate from `AIProvider` because the two vary: one returns
+  free text to be parsed, the other returns a bounded choice with a score.
+- **A second resolver.** `ChoiceClassifier` beside `LLMClassifier`, with the taxonomy's names plus "none" as the options.
+  `Classifier` still checks the answer against the taxonomy and applies the threshold. `run_sort`, the CLI's
+  `_build_ai_classifier` and `SortReport.ai_unavailable` are typed to `LLMClassifier` today and would be generalised, and
+  the "stop asking after the first failure" logic in `LLMClassifier._ask` would be shared, not copied.
+- **A mapping from probability to confidence** (direct, or scaled and clamped) as a setting, since a model's
+  probabilities are not automatically calibrated.
+- **Config.** `[ai] kind = "chat" | "choice"` alongside `provider`, `model` and `endpoint`. One kind at a time.
+- **Privacy.** A hosted model is treated like `OpenAIProvider`: chosen explicitly, the run says so, any key comes from an
+  environment variable.
+- **The adoption gate.** Adopt a decision model only if, on the calibration corpus, it is no less precise than the chat
+  model at the same coverage and its probabilities separate right answers from wrong ones. If none passes, record that and
+  stop.
+- **Where it lives.** `ai/choice_classifier.py`, one backend (the best verified candidate) behind `build_provider`, with any
+  new dependency in the `ai` extra, and saved decision-model answers in `tests/calibration/` as for the chat model's.
+
+### Questions to settle before building it
+
+- Can any candidate be run on a Windows machine without a GPU, and is it licensed for this use? Check each against its own
+  documentation or model card (the summaries in `ai-classifier-options.md` are unverified).
+- Is the gain worth a new dependency and a second AI setting, given how rarely the AI is asked?
+- Tests it would need: a fake `ChoiceModel` (an option chosen, "none" chosen, an option outside the taxonomy treated as
+  unresolved, a probability below the threshold going to review), the probability mapping and its bounds, a backend test
+  against a mocked response (the suite uses no network and no model), and the calibration report with both kinds.
+- Deferred with it: training a small classifier on the library's own ledger, chaining models, and downloading or managing
+  model files for the user.
+
+---
+
+## Subcategories (depth 3)
+
+**Status:** under review. It was Stage 4.7 of [mvp-build-plan.md](mvp-build-plan.md), provisional from the start; it was
+moved here on 2026-10-13 and the number is not reused. Nothing was built: `depth` accepts 1 and 2.
+
+**Why it is under review.** It is the largest change to the model, it was gated on a measurement that has not been run, and
+depth 3 is not needed for the first release. Its prerequisites are built: [Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1)
+made the category optional, and [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders) gave the rule for telling a
+subcategory from a filed bundle (`Library.structure()` already skips folders the ledger records as filed whole). The
+vocabulary, the limits and the depth model are in [library-depth.md](library-depth.md).
+
+**The proposal.** With `depth = 3`, `sort` would classify group, then category, then subcategory, and file into the
+subcategory folder. The ledger, `rollback` and `reclassify` would handle three levels, and the library creation functions
+(`create_library_group` and any future template catalog or `init`) would create up to three.
+
+### The design to keep
+
+- **The go/no-go gate, with numbers.** Measure on the calibration corpus extended with a three-level library: how far
+  auto-filing may fall and how far misfiling may rise, against the same documents at depth 2. If the gate fails, record the
+  finding in `library-depth.md` and keep depth at 1 or 2.
+- **Likely limits to watch.** The minimum-across-levels confidence sends more documents to review; the AI fallback costs one
+  call per level (ask for a level only when the rules are unsure at it, so the common case is no more calls than at depth 2);
+  `review` needs a choice at each level; and the ledger schema changes again.
+- **The cap.** Library creation supports at most depth 3; depth 4 and above is not planned. Write the classifier to be
+  level-generic so it is not a rewrite, but specify and test depth 3 only.
+- **The model.** `Taxonomy` as a tree read to `depth`, and `Library.target_dir` taking the path of levels. One resolver step
+  per level, taking the path so far and the level, in place of `resolve_group` and `resolve_category` (the adapters
+  `RulesEngine` and `LLMClassifier` follow). The path's confidence is the minimum across levels, as now.
+- **Records.** Ledger and audit fields for the subcategory (optional, or a list of levels), and the folder-unit vote on the
+  full path. The library file reads hints and rules for level-3 nodes.
+- **`review`.** One more prompt per level; `ReviewSession` and `cli/review.py` take a `depth` already.
+- **Vocabulary.** *Subcategory* is the third level.
+
+### Questions to settle before building it
+
+- What are the gate's numbers, and is there a real library that needs three levels?
+- Does a deeper path make `review` unusable (three lists to answer for every unit), and is there a better prompt?
+- Tests it would need: a three-level fixture (`tests/mock_deep_library`) with end-to-end sort, rollback and reclassify, unit
+  tests for the per-level step, the minimum-across-levels confidence and the AI being asked only where the rules could
+  not answer, library creation making three levels and refusing four, and the calibration report on the three-level library.
+- Docs it would touch: README, `how-to-use.md`, `architecture.md`, `data-model.md` and `CONTEXT.md` (add *subcategory*).
+- Deferred with it: depth 4 and above.

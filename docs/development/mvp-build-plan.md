@@ -30,8 +30,9 @@ and a structure meant to be dropped directly into a GitHub Project. Read
   Stage 3 `v0.1.3`, Stage 4 `v0.1.4`, Stage 5 `v0.1.5` and Stage 6 `v0.1.6`, the MVP release. An interim stage
   numbered with a decimal (Stages 4.1 to 4.10) is an update to the stage before it and gets no tag of its own;
   its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does. There is no
-  Stage 4.9: it was moved to the [feature backlog](feature-backlog.md#filing-target-mode-file_at) while under review,
-  and the number is not reused.
+  Stage 4.5, 4.7 or 4.9: they were moved to the [feature backlog](feature-backlog.md) while under review (the
+  [decision-model classifier](feature-backlog.md#decision-model-classifier), [depth 3](feature-backlog.md#subcategories-depth-3)
+  and the [filing target mode](feature-backlog.md#filing-target-mode-file_at)), and the numbers are not reused.
 - **Definition of done per stage:** every issue in the milestone is closed *and* the stage's
   "Testable version" statement is true when you check it out and run it.
 
@@ -200,7 +201,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout)
 - Design the packaged defaults file and the load order: defaults, then the library's file, deep-merged (tables merge, lists replace), then validated.
 - Design the `[classification]` additions (signal strengths, fuzzy thresholds) with range validation, and how they reach `RulesEngine` and `LLMClassifier` by constructor.
 - Design `[sorting] keep_folders` (default on) and the CLI precedence: `--keep-folders` or `--keep-folders-off` (passing both is an error), then library config, then packaged default. What the setting does when off is Stage 4.2.
-- Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, Stage 4.5) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
+- Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, now in the [backlog](feature-backlog.md#decision-model-classifier)) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
 - Design `[ai] max_document_chars` (how much of a document is sent to the AI): at least 0, where `0` means no limit. An unlimited run prints one warning before any document is classified, never one per document, about token usage, processing time and the model's context window (a longer document may fail or be cut off). The CLI prints it and `core` stays quiet; Stage 4.4 also logs it at WARNING. With `provider = "openai"` the warning also says the cost is real money.
 - Design the `microfiche-library.json` node schema as a recursive tree of folders, `{name, hints, rules, children}`, whose top level is the groups, so it is not tied to two levels and can be created from the folders. A `name` of `*` means any folder at that level, which keeps today's behaviour (hints global by category name) without repeating them in every group. The hints and rules for a group and category are the concrete nodes' first, then the `*` nodes'. The tree may not be deeper than `[library_structure] depth`. The file is reviewed and confirmed before it is built on.
 - Design the fuzzy-library switch: pass `score_cutoff=fuzzy_group_threshold` to the group match, decide whether scores stay rounded integers or become floats (84.6 used to round up to 85 and pass), and give `tag_mapper` an explicit `processor` because RapidFuzz's `extractOne` does not lowercase or strip punctuation by default.
@@ -212,7 +213,7 @@ target design is [architecture.md §10](architecture.md#10-configuration-layout)
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
 - Add `[ai] max_document_chars` (default 4000) and make `0` mean unlimited: send the whole document, and print the one-per-run warning designed above.
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it as `*` nodes. A missing file means no hints; the sync that creates it is Stage 4.10.
-- Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widens it to 1–2, and Stage 4.7 to 3 if it goes ahead) with a clear message.
+- Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widened it to 1–2; [depth 3](feature-backlog.md#subcategories-depth-3) is in the backlog) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
 - Replace `thefuzz` with `rapidfuzz` in `rules/group_rules.py` and `obsidian/tag_mapper.py`, as its own commit after the library file work: declare `rapidfuzz` in `core`'s `pyproject.toml`, remove `thefuzz` and its mypy override, and pass `score_cutoff` and `processor` as designed.
 
@@ -435,49 +436,6 @@ there is nothing to read afterwards. Stages 5 and 6 are easier to build and debu
 
 ---
 
-## Stage 4.5 — Decision-Model Classifier
-
-**Milestone:** `Stage 4.5 — Decision-Model Classifier` (an untagged update to `v0.1.4`)
-**Testable version:** `sort --use-ai` can use either a chat model (as today) or a decision-model classifier,
-chosen in `[ai]`; both sit behind `Classifier` as resolvers. A decision model's own probability becomes the
-confidence instead of a flat `0.70`, and the calibration report shows on the same corpus how each performs,
-so the choice is a measurement.
-
-Why here: it needs 4.1 (the `[ai]` section, the configurable AI score and `build_provider`), 4.3 (the
-AI-unavailable path, so a slow or hosted backend degrades safely) and 4.4 (logs of each call and its timing).
-The options, candidate models and adoption rules are in [ai-classifier-options.md](ai-classifier-options.md).
-
-**Plan**
-- Check the candidates (Jev, Clef, Nimble) against their own documentation or model cards: licence, local or hosted, size and hardware, Windows support, whether per-option probabilities are returned, and the input limit. Record the results in `ai-classifier-options.md`; the search summaries there are unverified.
-- Decide the privacy rule: a hosted model sends document text off the machine, so it is treated like `OpenAIProvider` (chosen explicitly, the run says so, any key comes from an environment variable).
-- Define the adoption gate: the decision model is adopted only if, on the calibration corpus, it is no less precise than the chat model at the same coverage and its probabilities separate right answers from wrong ones. If none passes, record that and stop the stage here.
-
-**Design**
-- Design a `ChoiceModel` protocol, `choose(text, question, options) -> Choice` with the chosen option or none, its probability and the ranked alternatives. It is a separate seam from `AIProvider`, because the two vary: one returns free text to be parsed, the other returns a bounded choice with a score.
-- Design `ChoiceClassifier` as a `Resolver` beside `LLMClassifier`. The options are the taxonomy's names plus "none", and `Classifier` still checks the answer against the taxonomy and applies the threshold.
-- Design the mapping from probability to confidence (direct, or scaled and clamped) as a setting, since a model's probabilities are not automatically calibrated.
-- Design how `[ai]` names the kind (for example `kind = "chat" | "choice"`) alongside `provider`, `model` and `endpoint`. One kind at a time; chaining a decision model before a chat model is deferred.
-
-**Build**
-- Add `ai/choice_classifier.py` with the `ChoiceModel` protocol and `ChoiceClassifier`.
-- Add one backend, the best verified candidate, behind `build_provider`, with any new dependency in the `ai` extra.
-- Use the model's probability as the resolver's confidence, and log each call's choice, probability and timing (Stage 4.4).
-- Extend `tests/calibration/` with saved decision-model answers, as it already does for the chat model's.
-
-**Test**
-- Write unit tests with a fake `ChoiceModel`: an option is chosen, "none" is chosen, an option that isn't in the taxonomy is treated as unresolved, and a probability below the threshold goes to review.
-- Write tests for the probability-to-confidence mapping, including its bounds.
-- Write a backend test against a mocked response; the suite uses no network and no model.
-- Re-run the calibration report with both kinds and pin the finding in `test_calibration.py`.
-
-**Deploy**
-- Update `docs/how-to-use.md` (which kind to choose, what leaves the machine, the new settings), the README, `docs/cli-reference.md` and `calibration.md`.
-- Merge to `main` without a new tag; the changes ship with `v0.1.5`.
-
-**Deferred:** training a small classifier on the library's own ledger; chaining models; downloading and managing model files for the user.
-
----
-
 ## Stage 4.6 — Flat Libraries (Depth 1)
 
 **Milestone:** `Stage 4.6 — Flat Libraries (Depth 1)` (an untagged update to `v0.1.4`)
@@ -531,54 +489,6 @@ be reworked. The vocabulary, the depth model and the dependencies between 4.6 to
 
 ---
 
-## Stage 4.7 — Subcategories (Depth 3+) (provisional)
-
-**Milestone:** `Stage 4.7 — Subcategories (Depth 3+)` (an untagged update to `v0.1.4`)
-**Testable version:** With `depth = 3`, `microfiche sort` classifies group, then category, then subcategory, and
-files into the subcategory folder; the ledger, `rollback` and `reclassify` handle three levels; and the library
-creation functions can create up to three levels. **This stage may be deferred.** If trying to implement it hits
-a practical limitation (see the go/no-go gate below), the stage ends with the finding recorded in
-[library-depth.md](library-depth.md), depth stays 1 or 2, and the roadmap lists depth 3 as deferred.
-
-**Depends on:** Stage 4.6 (the single-level path and the optional category), and the rule in Stage 4.8 for telling
-a subcategory folder from a folder that was filed as content. Build 4.8 before 4.7. As built, 4.8 gives that rule as
-`Ledger.folder_units()`, and `Library.structure()` already skips those folders, so a bundle never becomes a
-subcategory.
-
-**Plan**
-- Write the go/no-go gate with numbers, measured on the calibration corpus extended with a three-level library: how far auto-filing may fall, and how far misfiling may rise, against the same documents at depth 2. Likely limits to watch: the minimum-across-levels confidence sends more documents to review; the AI fallback costs one call per level; `review` needs a choice at each level; and the ledger schema changes again.
-- Decide the cap: library creation functions (`create_library_group` and any future template catalog or `init`) support at most depth 3. Depth 4 and above is not planned. Write the classifier to be level-generic so it isn't a rewrite, but specify and test depth 3 only.
-- Decide the vocabulary: *subcategory* is the third level.
-
-**Design**
-- Design `Taxonomy` as a tree read to `depth`, and `Library.target_dir` taking the path of levels.
-- Design the resolver step per level, replacing `resolve_group` and `resolve_category` with one call that takes the path so far and the level; the adapters (`RulesEngine`, `LLMClassifier`) follow.
-- Design the confidence rule: the path's confidence is the minimum across levels, as now.
-- Design the AI cost control: ask for a level only when the rules are unsure at that level, so the common case is no more calls than at depth 2.
-- Design the ledger and audit fields (`subcategory` optional, or a list of levels) and the folder-unit vote on the full path.
-- Design the `review` prompt so it can ask one choice per level (an input to Stage 5).
-- Design library creation to take a template of up to three levels, rejecting more.
-
-**Build**
-- Make `depth` accept 3, and make the taxonomy walk, `target_dir`, the classifier loop and the filer work level by level.
-- Read hints and rules for level-3 nodes in the library file.
-- Make the ledger, `reclassify` and the displays handle a subcategory.
-- Update the library creation functions for up to three levels, and reject more.
-
-**Test**
-- Add a three-level fixture library (`tests/mock_deep_library`) and write end-to-end tests: sort files into a subcategory, `rollback` restores it, `reclassify` reports correctly.
-- Write unit tests for the per-level resolver step, the minimum-across-levels confidence, and the AI being asked only for levels the rules couldn't answer.
-- Write tests that library creation makes three levels and refuses four.
-- Run the gate: re-run the calibration report on the three-level library and record the result.
-
-**Deploy**
-- If the gate passes: update `README.md`, `docs/how-to-use.md`, `docs/cli-reference.md`, `architecture.md`, `data-model.md` and `CONTEXT.md` (add *subcategory*), and merge without a new tag.
-- If the gate fails: merge the recorded finding and the roadmap entry only.
-
-**Deferred:** depth 4 and above.
-
----
-
 ## Stage 4.8 — Non-Library Folders
 
 **Milestone:** `Stage 4.8 — Non-Library Folders` (an untagged update to `v0.1.4`)
@@ -613,7 +523,7 @@ folder a user keeps inside a category. The reasoning is in [library-depth.md](li
 **Test**
 - Write a fixture with a category holding a filed bundle and a user's `attachments/` folder.
 - Write tests: the taxonomy ignores both; a pattern accepts and rejects the right names; an invalid pattern is reported with its file and level; `reclassify` keeps the bundle whole and leaves `attachments/` alone with a report line; `rollback` of the folder unit still restores it.
-- Once Stage 4.7 exists, add a depth-3 test that the bundle is not read as a subcategory.
+- If [depth 3](feature-backlog.md#subcategories-depth-3) is ever built, add a depth-3 test that the bundle is not read as a subcategory.
 
 **Deploy**
 - Update `docs/how-to-use.md` (what microfiche leaves alone, and how to add a name pattern), the README, `architecture.md` §1 and §4, and `CONTEXT.md` (*non-library folder*).
@@ -650,7 +560,7 @@ writes nothing.
 Why a stage of its own: Stage 4.1 moves hints into a library file that the user writes by hand. This stage makes
 the file follow the folders, so a new library does not send everything to review and a folder added later needs no
 manual entry. It builds after 4.3 because it writes during `sort`, so it needs `--dry-run` (which must not write)
-and the run lock. Stages 4.6 and 4.7 reuse its structure walk for depths 1 and 3. The principle is in
+and the run lock. Stage 4.6 reuses its structure walk for depth 1, as depth 3 would. The principle is in
 [architecture.md §1](architecture.md#1-the-library-is-the-taxonomy--categories-are-discovered-not-configured).
 
 **Plan**
@@ -707,8 +617,8 @@ it extended the target and is better built on a plugin architecture than inside 
 [feature-backlog.md](feature-backlog.md#obsidian-integration). `review` stays: without it a unit below the confidence
 threshold has no way out of the inbox except filing it by hand.
 
-**Revised before building (2026-10-13).** Stage 5 is built ahead of Stages 4.5 and 4.7, because neither blocks it: the
-ranked suggestions a decision model would give wait for 4.5, and a third level adds one more prompt when 4.7 is built.
+**Revised before building (2026-10-13).** Stage 5 does not wait for the decision-model classifier or depth 3 (since moved to the backlog), because
+neither blocks it: the ranked suggestions a decision model would give, and the extra prompt a third level would add, can follow if they are built.
 Decisions taken:
 - *The queue is not stored.* `review` previews a sort (`run_sort(dry_run=True)`) and queues what it leaves in the inbox, so the inbox is the queue.
 - *Duplicates are not in the queue.* A copy is not a classification question and microfiche never deletes; `review` counts them and `sort` lists them.
@@ -723,8 +633,8 @@ Decisions taken:
 - Decide where the queue comes from. `sort` keeps no queue: a unit below the threshold simply stays in the inbox, so the current `review` docstring ("from the most recent sort run") promises more than is stored. Either re-scan and re-classify the inbox, or save the last report under `.microfiche/`. The inbox is already the queue, so re-classifying is the simpler of the two; saving a report adds state that has to be kept in step with the inbox.
 
 **Design**
-- If a decision model is configured (Stage 4.5), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
-- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is built, depth 3 (Stage 4.7).
+- If a decision model is ever configured ([backlog](feature-backlog.md#decision-model-classifier)), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
+- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is ever built, depth 3 ([backlog](feature-backlog.md#subcategories-depth-3)).
 - Design "create new" as making a folder in the library. `propose-categories` never creates folders, so `review` would be the first command that does: decide whether it may, and require an explicit confirmation. Stage 4.10's library file sync then lists the new folder on the next run.
 - Design filing from `review` to take the same safeguards as `sort`: the run lock, the shared destination check and the duplicate check, and one `file_batch` job per session.
 
@@ -752,7 +662,7 @@ Decisions taken:
 - `--use-ai`, `-v` and `-q` as on `sort`. The old test that pinned the stub's help text was replaced by one for the real command.
 - The `v0.1.5` tag is a release step and was not created.
 
-**Deferred:** ranked suggestions from a decision model (Stage 4.5); an extra prompt per level at depth 3 (Stage 4.7); going back to an item once passed; learning hints from choices.
+**Deferred:** ranked suggestions from a decision model, and an extra prompt per level at depth 3 (both in the backlog); going back to an item once passed; learning hints from choices.
 
 ---
 
@@ -816,28 +726,25 @@ rather than in isolation:
    per-unit failure isolation come before the interactive `review` loop adds another way to file.
 4.4. **Logging next** — it records decisions made by everything above, and Stages 5 and 6
    are easier to build and debug with it in place. It is small enough to move earlier if debugging needs it.
-4.5. **Decision-model classifier** — it needs the `[ai]` config (4.1), the safe
-   AI-unavailable path (4.3) and logs (4.4), and it is gated on a measurement: if no candidate beats the chat
-   model on the calibration corpus, the stage ends with that finding and Stage 5 proceeds unchanged.
+   (4.5, a decision-model classifier gated on a measurement, was moved to the backlog while under review; see
+   [feature-backlog.md](feature-backlog.md#decision-model-classifier).)
 4.6. **Flat libraries before Stage 5** — `review` is built on the library's shape, so a one-level
    library has to exist first or it is reworked.
-4.7. **Subcategories, provisional** — the largest change to the model, gated on a measurement; if it hits a
-   practical limit it is deferred and nothing later depends on it.
-4.8. **Non-library folders** — numbered after 4.7, but 4.7 needs its rule for telling a subcategory from a filed
-   bundle, so build 4.8 first. It is useful on its own at depth 2, where `reclassify` would otherwise split a
-   filed bundle.
+   (4.7, subcategories at depth 3, was moved to the backlog while under review; see
+   [feature-backlog.md](feature-backlog.md#subcategories-depth-3).)
+4.8. **Non-library folders** — useful on its own at depth 2, where `reclassify` would otherwise split a
+   filed bundle. It is also the rule depth 3 would need to tell a subcategory from one.
    (4.9, an optional filing target mode, was moved to the backlog while under review; see
    [feature-backlog.md](feature-backlog.md#filing-target-mode-file_at).)
 
-   Suggested build order for the 4.6 to 4.8 group: 4.6, 4.8, then 4.7.
 4.10. **Library file sync, after 4.3** — the library file arrives in 4.1 as a hand-written file; this makes it follow
    the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
-   `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6 and 4.7, which reuse its structure
-   walk for depths 1 and 3.
+   `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6, which reuses its structure
+   walk for depth 1.
 5. **Review fifth** — it is the other end of the sort loop: everything `sort` holds back lands in the queue it
    works. It needs the earlier stages' safeguards (the collision and duplicate checks, the run lock, rollback) because
    it files too. The Obsidian integration used to share this stage and was moved out of the MVP, so that it can be
-   designed as a plugin. It was built ahead of 4.5 and 4.7, which it does not depend on (see its "Revised before
+   designed as a plugin. It does not depend on 4.5 or 4.7, which were later moved to the backlog (see its "Revised before
    building" note).
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs
    until the feature set has stopped changing underneath them.

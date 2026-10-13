@@ -96,7 +96,7 @@ score from point 1 and `max_document_chars` (0 means unlimited, with a one-per-r
 go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a per-run switch or becomes
 `[ai] enabled` is open.
 
-**Tier 1.5, Stage 4.5.** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](ai-classifier-options.md).
+**Tier 1.5, now in the [backlog](feature-backlog.md#decision-model-classifier).** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](ai-classifier-options.md).
 
 **Tier 2, deferred.** A `command` provider, where the config holds the command to run. It is a genuine seam
 (`AIProvider` is one method, `complete(prompt) -> str`), and it would let users plug in llama.cpp, `llm`,
