@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from core.config import ConfigError
-from core.library.library_file import (
+from microfiche.core.config import ConfigError
+from microfiche.core.library.library_file import (
     LIBRARY_FILENAME,
     DuplicateFolderError,
     FilingRule,

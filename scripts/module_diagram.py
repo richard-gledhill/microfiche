@@ -1,7 +1,7 @@
 """Regenerate the import graph in docs/development/module-diagram.md from the source.
 
 The first Mermaid diagram in that file shows which module imports which. This script reads every ``import``
-statement in ``packages/core/src/core`` and ``packages/cli/src/cli``, then rewrites only the graph's edges and
+statement in ``packages/core/src/microfiche/core`` and ``packages/cli/src/microfiche/cli``, then rewrites only the graph's edges and
 nodes: it keeps the labels and annotations already in the diagram, adds a node for each new module, drops the
 node (and edges) of each deleted one, and updates the "as of" date when anything changed. The second diagram
 (the runtime data flow) and all the prose are left alone.
@@ -24,8 +24,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DIAGRAM_PATH = REPO_ROOT / "docs" / "development" / "module-diagram.md"
 PACKAGE_ROOTS: dict[str, Path] = {
-    "core": REPO_ROOT / "packages" / "core" / "src" / "core",
-    "cli": REPO_ROOT / "packages" / "cli" / "src" / "cli",
+    "core": REPO_ROOT / "packages" / "core" / "src" / "microfiche" / "core",
+    "cli": REPO_ROOT / "packages" / "cli" / "src" / "microfiche" / "cli",
 }
 
 # A source folder (relative to its package's src folder) -> the diagram subgraph that shows it, and the prefix of
@@ -119,10 +119,11 @@ def import_edges(roots: Mapping[str, Path]) -> dict[str, set[str]]:
     the standard library, other packages, or modules that don't exist are ignored, as is a module importing itself.
 
     Args:
-        roots: Each package's name mapped to its source folder, such as ``core`` to ``packages/core/src/core``.
+        roots: Each package's name mapped to its source folder, such as ``core`` to ``packages/core/src/microfiche/core``.
 
     Returns:
-        The importing module's path (like ``core/ai/factory.py``, relative to its package's ``src`` folder) mapped to
+        The importing module's path (like ``core/ai/factory.py``, relative to the ``microfiche`` folder both packages
+        install into) mapped to
         the paths of the project modules it imports.
     """
 
@@ -242,7 +243,7 @@ def _imports_of(file: Path, bases: Mapping[str, Path]) -> Iterable[str]:
     for node in ast.walk(ast.parse(file.read_text(encoding="utf-8"))):
         if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             for alias in node.names:
-                # `from core.models import document` names a module; `from core.parsers import is_supported` a name in one
+                # `from microfiche.core.models import document` names a module; `from microfiche.core.parsers import is_supported` a name in one
                 target = _resolve(f"{node.module}.{alias.name}", bases) or _resolve(node.module, bases)
                 if target:
                     yield target
@@ -254,7 +255,9 @@ def _resolve(dotted: str, bases: Mapping[str, Path]) -> str | None:
     """The path of the project module a dotted name refers to, or ``None`` if it isn't one."""
 
     parts = dotted.split(".")
-    base = bases.get(parts[0])
+    if parts[0] == "microfiche":  # both packages install inside the microfiche namespace: microfiche.core.filer
+        parts = parts[1:]
+    base = bases.get(parts[0]) if parts else None
     if base is None:
         return None
     path = base.joinpath(*parts)

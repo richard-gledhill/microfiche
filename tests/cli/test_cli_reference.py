@@ -17,7 +17,17 @@ def test_cli_reference_matches_app(tmp_path: Path) -> None:
     generated = tmp_path / "cli-reference.md"
     result = runner.invoke(
         typer_cli,
-        ["cli.app", "utils", "docs", "--name", "microfiche", "--title", "CLI reference", "--output", str(generated)],
+        [
+            "microfiche.cli.app",
+            "utils",
+            "docs",
+            "--name",
+            "microfiche",
+            "--title",
+            "CLI reference",
+            "--output",
+            str(generated),
+        ],
     )
 
     assert result.exit_code == 0, result.output

@@ -5,12 +5,12 @@ from pathlib import Path
 from typing import Literal
 
 import pytest
-from core import duplicates
-from core.duplicates import DuplicateIndex, ExistingCopy
-from core.library.library import Library
-from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
-from core.models.document import Document
-from core.models.unit import SortableUnit
+from microfiche.core import duplicates
+from microfiche.core.duplicates import DuplicateIndex, ExistingCopy
+from microfiche.core.library.library import Library
+from microfiche.core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
+from microfiche.core.models.document import Document
+from microfiche.core.models.unit import SortableUnit
 
 # region Test helpers
 

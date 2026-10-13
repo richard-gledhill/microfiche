@@ -50,15 +50,24 @@ your local interpreter are what you want day to day.
 uv workspace, two packages, `core` has no dependency on `cli`:
 
 ```
-packages/core/src/core/   # scanning, classification, filing, library logic — the engine
-packages/cli/src/cli/     # Typer CLI (app.py registers commands from commands.py) — thin wrapper
-tests/core/, tests/cli/   # mirror the packages/ layout 1:1
+packages/core/src/microfiche/core/   # scanning, classification, filing, library logic — the engine
+packages/cli/src/microfiche/cli/     # Typer CLI (app.py registers commands from commands.py) — thin wrapper
+tests/core/, tests/cli/              # mirror the packages/ layout 1:1
 tests/mock_library/       # hand-built library fixture for integration-style tests
 ```
 
-Coverage/mypy config (in the root `pyproject.toml`) targets `core`/`cli` as **package names**,
-not `packages/*/src` paths — this works because both are installed editable into the shared
-workspace `.venv`.
+**Names.** The two distributions are called `core` and `cli`, but they import as `microfiche.core` and
+`microfiche.cli`: each package's `[tool.uv.build-backend] module-name` puts its code in the shared `microfiche`
+namespace (a PEP 420 namespace package). **`packages/*/src/microfiche/` must never contain an `__init__.py`**: it
+would make one wheel own the namespace and hide the other (a test and `scripts/check_wheels.py` guard this). In these
+docs, `core/organizer.py` and `core.filer` are shorthand for `microfiche/core/organizer.py` and `microfiche.core.filer`.
+Write `from microfiche.core.filer import ...` in code and in `monkeypatch.setattr` strings. How to set this up:
+the libCoding vault note "Namespace Packages in a uv Workspace".
+
+Coverage config (in the root `pyproject.toml`) targets `microfiche.core`/`microfiche.cli` as **package names**, not
+paths — this works because both are installed editable into the shared workspace `.venv`. mypy needs `mypy_path`,
+`namespace_packages` and `explicit_package_bases` for the same reason, and each package's deptry config maps the
+`microfiche` import to the right distribution.
 
 ### The sort pipeline (`core/organizer.py::run_sort`)
 
@@ -202,7 +211,7 @@ it becomes a unit (or proposal) left for review, with the reason.
 - Name a module's logger `_logger = logging.getLogger(__name__)`, among the module's constants below the imports.
   The underscore marks it private: never import another module's logger, so a record is always attributed to the
   module that emitted it. Only `cli` configures logging (handlers and levels); `core` just emits, and
-  `core/__init__.py` adds a `NullHandler` to the `core` logger and nothing else.
+  `core/__init__.py` adds a `NullHandler` to the `microfiche.core` logger and nothing else.
 - `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
   just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
 - Code must import and type-check on Linux (CI) and Windows. Some names exist on one only: `stat.IO_REPARSE_TAG_*`,

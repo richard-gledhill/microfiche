@@ -225,7 +225,7 @@ operating system's process API: `os.kill(pid, 0)` must not be used there, since 
 and read-only commands take no lock. A lock timeout and a `--force` override are deferred.
 
 **Decision — core emits, the CLI configures logging.** Every module that logs has `_logger = logging.getLogger(__name__)`
-(`core.*`, `cli.*`), and `core/__init__.py` adds a `NullHandler` to the `core` logger and nothing else, so `core` is quiet
+(`microfiche.core.*`, `microfiche.cli.*`), and `core/__init__.py` adds a `NullHandler` to the `microfiche.core` logger and nothing else, so `core` is quiet
 when used as a library. Only the CLI installs handlers (`cli/logging.py::configure_logging`), and only on the `core` and
 `cli` loggers, not the root, so a third party's records (the AI SDKs' HTTP clients) stay out and `propagate` stays on for
 `caplog`. The loggers pass every record on and each handler filters, so `-v` and `-q` can differ from the file: the console

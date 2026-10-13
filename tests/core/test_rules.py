@@ -3,13 +3,13 @@
 from pathlib import Path
 from typing import Any
 
-from core.classifier import Classifier
-from core.config import ClassificationConfig, load_config
-from core.library.library import Library
-from core.library.library_file import LibraryFile
-from core.models.category import Taxonomy
-from core.models.document import Document
-from core.rules.rules_engine import RulesEngine
+from microfiche.core.classifier import Classifier
+from microfiche.core.config import ClassificationConfig, load_config
+from microfiche.core.library.library import Library
+from microfiche.core.library.library_file import LibraryFile
+from microfiche.core.models.category import Taxonomy
+from microfiche.core.models.document import Document
+from microfiche.core.rules.rules_engine import RulesEngine
 from rapidfuzz import fuzz
 
 

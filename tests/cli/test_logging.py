@@ -6,15 +6,15 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from cli.logging import FILE_ONLY, configure_logging, reset_logging
-from core.library.library import Library
+from microfiche.cli.logging import FILE_ONLY, configure_logging, reset_logging
+from microfiche.core.library.library import Library
 
 # region Test helpers
 
 
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
-_CORE = logging.getLogger("core.sample")
-_CLI = logging.getLogger("cli.sample")
+_CORE = logging.getLogger("microfiche.core.sample")
+_CLI = logging.getLogger("microfiche.cli.sample")
 _LOG_NAME = "microfiche.log"
 
 
@@ -247,7 +247,7 @@ def test_reset_logging_removes_handlers_and_levels() -> None:
 
     reset_logging()
 
-    for name in ("core", "cli"):
+    for name in ("microfiche.core", "microfiche.cli"):
         logger = logging.getLogger(name)
         assert logger.level == logging.NOTSET
         assert [h for h in logger.handlers if not isinstance(h, logging.NullHandler)] == []
@@ -258,7 +258,7 @@ def test_reset_logging_keeps_core_null_handler() -> None:
 
     reset_logging()
 
-    assert any(isinstance(h, logging.NullHandler) for h in logging.getLogger("core").handlers)
+    assert any(isinstance(h, logging.NullHandler) for h in logging.getLogger("microfiche.core").handlers)
 
 
 def test_reset_logging_closes_log_file(tmp_path: Path) -> None:

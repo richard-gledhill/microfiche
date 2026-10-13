@@ -2,13 +2,13 @@
 
 from pathlib import Path
 
-from core.models.audit_event import AuditEvent
-from core.models.category import Taxonomy
-from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
-from core.models.document import Document
-from core.models.job import Job
-from core.models.ledger import LedgerRecord
-from core.models.unit import SortableUnit
+from microfiche.core.models.audit_event import AuditEvent
+from microfiche.core.models.category import Taxonomy
+from microfiche.core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
+from microfiche.core.models.document import Document
+from microfiche.core.models.job import Job
+from microfiche.core.models.ledger import LedgerRecord
+from microfiche.core.models.unit import SortableUnit
 
 
 def test_document_round_trip() -> None:

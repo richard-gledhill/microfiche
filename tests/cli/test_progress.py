@@ -3,7 +3,7 @@
 import io
 
 import pytest
-from cli.progress import _MANY_UNITS, progress_bar, should_show_progress
+from microfiche.cli.progress import _MANY_UNITS, progress_bar, should_show_progress
 from rich.console import Console
 
 # region Test helpers

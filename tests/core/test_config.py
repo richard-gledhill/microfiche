@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from core.config import (
+from microfiche.core.config import (
     _STATE_FILE_NAMES,
     CONFIG_FILENAME,
     AIConfig,
@@ -23,12 +23,12 @@ from core.config import (
     UnsupportedDepthError,
     load_config,
 )
-from core.filer import _ROLLBACK_DIRNAME, AUDIT_LOG_FILENAME
-from core.ledger import LEDGER_FILENAME
-from core.library.library_file import LIBRARY_FILENAME
-from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
-from core.runlock import LOCK_FILENAME
-from core.utils.filesystem import is_excluded
+from microfiche.core.filer import _ROLLBACK_DIRNAME, AUDIT_LOG_FILENAME
+from microfiche.core.ledger import LEDGER_FILENAME
+from microfiche.core.library.library_file import LIBRARY_FILENAME
+from microfiche.core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
+from microfiche.core.runlock import LOCK_FILENAME
+from microfiche.core.utils.filesystem import is_excluded
 from pydantic import BaseModel, ValidationError
 
 # region Test helpers
@@ -36,7 +36,9 @@ from pydantic import BaseModel, ValidationError
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _REPO_CONFIG_DIR = _REPO_ROOT / "microfiche"
-_PACKAGED_DEFAULTS = _REPO_ROOT / "packages" / "core" / "src" / "core" / "defaults" / "microfiche-config.toml"
+_PACKAGED_DEFAULTS = (
+    _REPO_ROOT / "packages" / "core" / "src" / "microfiche" / "core" / "defaults" / "microfiche-config.toml"
+)
 # The one setting the template deliberately sets differently: it ships example folder patterns to leave out,
 # while the packaged default excludes nothing beyond the inbox and the state folder.
 _TEMPLATE_MAY_DIFFER = {"exclusions.exclude"}
@@ -182,7 +184,7 @@ def _with_packaged_defaults(monkeypatch: pytest.MonkeyPatch, **sections: dict[st
     defaults = load_config(Path("does-not-exist")).model_dump()
     for name, values in sections.items():
         defaults[name] = {**defaults[name], **values}
-    monkeypatch.setattr("core.config._load_packaged_defaults", lambda: defaults)
+    monkeypatch.setattr("microfiche.core.config._load_packaged_defaults", lambda: defaults)
 
 
 def test_load_config_list_replaces_default_list(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

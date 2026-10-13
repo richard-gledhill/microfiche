@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from core.config import ConfigError, load_config
-from core.library.library import Library
-from core.library.library_file import LIBRARY_FILENAME, FolderNode, load_library_file
-from core.library.library_sync import sync_library_file
+from microfiche.core.config import ConfigError, load_config
+from microfiche.core.library.library import Library
+from microfiche.core.library.library_file import LIBRARY_FILENAME, FolderNode, load_library_file
+from microfiche.core.library.library_sync import sync_library_file
 
 # region Test helpers
 

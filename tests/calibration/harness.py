@@ -24,10 +24,10 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.classifier import Classifier, Resolver
-from core.library.library import Library
-from core.models.unit import SortableUnit
-from core.parsers import read_documents
+from microfiche.core.classifier import Classifier, Resolver
+from microfiche.core.library.library import Library
+from microfiche.core.models.unit import SortableUnit
+from microfiche.core.parsers import read_documents
 
 CORPUS_ROOT = Path(__file__).parent / "corpus"
 FLAT_CORPUS_ROOT = Path(__file__).parent / "corpus_flat"  # depth-1 libraries: documents sit directly in a group

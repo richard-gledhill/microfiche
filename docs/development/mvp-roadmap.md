@@ -15,7 +15,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
-| `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. Also undoes `reclassify --apply` jobs, which go through the same `file_batch` path. |
+| `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. `--last` undoes the newest job not yet undone (Stage 6). Also undoes `reclassify --apply` jobs, which go through the same `file_batch` path. |
 | `config` | Done | Prints the library's loaded configuration (`cli/display.py::render_config`). `--sync` instead brings `microfiche-library.json` in step with the folders (Stage 4.10); it takes the run lock and, unlike plain `config`, writes. |
 
 ## Cross-cutting feature status

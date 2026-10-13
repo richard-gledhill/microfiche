@@ -5,19 +5,21 @@ import logging
 import os
 import re
 import shutil
+import sys
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
 import pytest
 import typer
-from cli import commands as cli_commands
-from cli.app import app
 from conftest import LinkMaker
-from core.config import AIConfig
-from core.library.library import Library
-from core.runlock import run_lock
+from microfiche.cli import commands as cli_commands
+from microfiche.cli.app import app
+from microfiche.core.config import AIConfig
+from microfiche.core.library.library import Library
+from microfiche.core.runlock import run_lock
 from typer.testing import CliRunner
 
 # region Test helpers
@@ -90,6 +92,26 @@ def test_app_help_lists_all_commands() -> None:
     assert result.exit_code == 0
     for command_name in ["sort", "review", "propose-categories", "reclassify", "audit", "rollback", "config"]:
         assert command_name in result.stdout
+
+
+def test_app_version_prints_installed_version() -> None:
+    result = runner.invoke(app, ["--version"])  # no command and no --library needed
+
+    assert result.exit_code == 0
+    assert result.stdout == f"microfiche {version('cli')}\n"
+
+
+def test_app_version_not_installed_says_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    def not_installed(name: str) -> str:
+        raise PackageNotFoundError(name)
+
+    # `cli.app` as an attribute is the Typer object (cli/__init__.py imports it under that name), not the module.
+    monkeypatch.setattr(sys.modules["microfiche.cli.app"], "version", not_installed)
+
+    result = runner.invoke(app, ["--version"])
+
+    assert result.exit_code == 0
+    assert result.stdout == "microfiche unknown\n"
 
 
 def test_app_index_command_removed() -> None:
@@ -172,6 +194,45 @@ def test_rollback_restores_library_and_appears_in_audit(tmp_path: Path) -> None:
     assert f"job={job_id} rollback Project Phoenix/02 Architecture/{_PHOENIX_NOTE} -> _sorting/{_PHOENIX_NOTE}" in (
         audit.stdout
     )
+
+
+def test_rollback_last_undoes_newest_job_then_the_one_before(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+    first = _sort(library)
+    note = library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE
+    (library / "_sorting" / "second.md").write_text(note.read_text(encoding="utf-8") + "\nSecond.", encoding="utf-8")
+    before_second = _tree(library)
+    second = _sort(library)
+    assert second != first
+
+    newest = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+
+    assert newest.exit_code == 0
+    assert f"from job {second}." in newest.stdout
+    assert _tree(library) == before_second
+    older = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+    assert f"from job {first}." in older.stdout
+    assert _tree(library) == before | {"_sorting/second.md"}  # the note added for the second job
+
+
+def test_rollback_last_nothing_to_undo_fails_cleanly(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["rollback", "--library", str(_library(tmp_path)), "--last"])
+
+    assert result.exit_code == 1
+    assert "No job to roll back" in result.stdout
+
+
+@pytest.mark.parametrize("arguments", [[], ["--last", "--job-id", "20260101-000000-abcdef"]])
+def test_rollback_job_choice_not_exactly_one_fails(tmp_path: Path, arguments: list[str]) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), *arguments])
+
+    assert result.exit_code == 1
+    assert "exactly one of --job-id and --last" in result.stdout
+    assert _tree(library) == before
 
 
 def test_rollback_same_job_twice_fails_cleanly(tmp_path: Path) -> None:
@@ -334,7 +395,7 @@ def built_with(monkeypatch: pytest.MonkeyPatch) -> list[AIConfig]:
         seen.append(config)
         return _NoAnswerProvider()
 
-    monkeypatch.setattr("cli.commands.build_provider", fake_build_provider)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", fake_build_provider)
     return seen
 
 
@@ -788,7 +849,7 @@ def test_sort_use_ai_provider_down_warns_once_and_still_files(tmp_path: Path, mo
     library = _library(tmp_path)
     (library / "_sorting" / "unknown-one.md").write_text("Nothing recognisable in here.", encoding="utf-8")
     (library / "_sorting" / "unknown-two.md").write_text("Nor in here.", encoding="utf-8")
-    monkeypatch.setattr("cli.commands.build_provider", lambda config: _DownProvider())
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _DownProvider())
 
     result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
 
@@ -821,7 +882,7 @@ def test_reclassify_apply_move_that_fails_is_listed_and_left_in_place(
     def refuse(source: Path, destination: Path) -> Path:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("core.filer.safe_move", refuse)
+    monkeypatch.setattr("microfiche.core.filer.safe_move", refuse)
 
     result = runner.invoke(app, ["reclassify", "--library", str(library), "--apply"])
 
@@ -1435,8 +1496,8 @@ def test_commands_leave_no_logging_handlers_behind(tmp_path: Path, command: str)
     # Otherwise one command's log file stays open, and the next invocation in this process writes to it.
     runner.invoke(app, [command, "--library", str(_library(tmp_path))])
 
-    assert _handlers_left_on("core") == []
-    assert _handlers_left_on("cli") == []
+    assert _handlers_left_on("microfiche.core") == []
+    assert _handlers_left_on("microfiche.cli") == []
 
 
 def test_sort_use_ai_openai_notice_stays_on_stdout_and_goes_to_log_file_only(
@@ -1479,7 +1540,7 @@ def test_sort_use_ai_provider_down_warning_is_in_log_file_and_hidden_by_quiet(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     library = _library(tmp_path)
-    monkeypatch.setattr("cli.commands.build_provider", lambda config: _DownProvider())
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _DownProvider())
 
     result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
 
@@ -1551,7 +1612,7 @@ def progress_spy(monkeypatch: pytest.MonkeyPatch) -> _ProgressSpy:
         spy.settings.append(settings)
         yield lambda done, total: spy.calls.append((done, total))
 
-    monkeypatch.setattr("cli.commands.progress_bar", fake_progress_bar)
+    monkeypatch.setattr("microfiche.cli.commands.progress_bar", fake_progress_bar)
     return spy
 
 
@@ -1662,7 +1723,7 @@ def test_reclassify_corrupt_ledger_exits_1_with_a_message(tmp_path: Path) -> Non
 def at_a_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
     """Pretend a person is at the keyboard: `review` refuses to run without one."""
 
-    monkeypatch.setattr("cli.commands.stdin_is_terminal", lambda: True)
+    monkeypatch.setattr("microfiche.cli.commands.stdin_is_terminal", lambda: True)
 
 
 def _raise_threshold(library: Path, value: float = 0.95) -> None:
@@ -1896,7 +1957,7 @@ def test_review_accepting_a_guess_that_stops_being_possible_is_explained_and_ask
     library = _library(tmp_path)
     _raise_threshold(library)
     monkeypatch.setattr(
-        "core.review.ReviewSession.decide", lambda self, item, folders: "someone took that name a moment ago"
+        "microfiche.core.review.ReviewSession.decide", lambda self, item, folders: "someone took that name a moment ago"
     )
 
     code, output = _review(library, "a\ns\ns\n")
@@ -1935,7 +1996,7 @@ def test_review_use_ai_offers_the_ai_answer_as_the_best_guess(tmp_path: Path, mo
         def complete(self, prompt: str) -> str:
             return "03 Research" if "categories" in prompt else "Project Phoenix"
 
-    monkeypatch.setattr("cli.commands.build_provider", lambda settings: _Answers())
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda settings: _Answers())
 
     code, output = _review(library, "a\ny\n", "--use-ai")
 
@@ -1960,7 +2021,7 @@ def test_review_lock_held_at_the_end_can_be_retried_without_choosing_again(
         with real_locked(*args, **kwargs) as holder:
             yield holder
 
-    monkeypatch.setattr("cli.commands._locked", busy_once)
+    monkeypatch.setattr("microfiche.cli.commands._locked", busy_once)
 
     code, output = _review(library, "m\n1\n3\ny\ny\n")  # choose, confirm, then "try again?" yes
 

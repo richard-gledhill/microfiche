@@ -5,7 +5,7 @@ import types
 from typing import Any
 
 import pytest
-from core.ai.openai_provider import OpenAIProvider
+from microfiche.core.ai.openai_provider import OpenAIProvider
 
 # region Test helpers
 

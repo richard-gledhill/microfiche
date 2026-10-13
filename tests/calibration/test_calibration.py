@@ -5,8 +5,6 @@ from pathlib import Path
 
 import pytest
 from ai_arm import RESULTS_DIR, RecordedAnswers, load
-from core.library.library import Library
-from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from harness import (
     ADVERSARIAL_KINDS,
     CORPUS_ROOT,
@@ -24,6 +22,8 @@ from harness import (
     misfiles,
     sweep,
 )
+from microfiche.core.library.library import Library
+from microfiche.core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
 # region Test helpers
 

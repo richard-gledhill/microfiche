@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 from conftest import LinkMaker
-from core.config import MICROFICHE_DIRNAME
-from core.filer import rollback_job
-from core.ledger import Ledger
-from core.library.library import Library
-from core.models.ledger import LedgerRecord
-from core.review import AlreadyDecidedError, ReviewError, ReviewItem, ReviewSession
-from core.utils.hashing import file_hash
+from microfiche.core.config import MICROFICHE_DIRNAME
+from microfiche.core.filer import rollback_job
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library
+from microfiche.core.models.ledger import LedgerRecord
+from microfiche.core.review import AlreadyDecidedError, ReviewError, ReviewItem, ReviewSession
+from microfiche.core.utils.hashing import file_hash
 
 # region Test helpers
 

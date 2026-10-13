@@ -57,7 +57,7 @@ To read or restore a file:
 
 ```bash
 git show 551eec9:packages/core/src/core/obsidian/tag_mapper.py
-git checkout 551eec9 -- packages/core/src/core/obsidian tests/core/test_index_writer.py tests/core/test_tag_governance.py
+git checkout 551eec9 -- packages/core/src/core/obsidian  # the path at that commit, before the move to microfiche/core tests/core/test_index_writer.py tests/core/test_tag_governance.py
 ```
 
 Restoring the files does not restore the config section or the command; those need the design questions below

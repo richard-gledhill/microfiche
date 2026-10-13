@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from core.ai.factory import build_provider
-from core.ai.ollama_provider import OllamaProvider
-from core.ai.openai_provider import OpenAIProvider
-from core.config import AIConfig, ConfigError, load_config
+from microfiche.core.ai.factory import build_provider
+from microfiche.core.ai.ollama_provider import OllamaProvider
+from microfiche.core.ai.openai_provider import OpenAIProvider
+from microfiche.core.config import AIConfig, ConfigError, load_config
 
 # region Test helpers
 

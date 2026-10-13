@@ -20,14 +20,14 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from core.ai.llm_classifier import LLMClassifier
-from core.config import load_config
-from core.library.library import Library
-from core.models.category import Taxonomy
-from core.models.classification import CategoryMatch, GroupMatch
-from core.models.document import Document
-from core.parsers import read_documents
 from harness import ADVERSARIAL_KINDS, CORPUS_ROOT, UNFILED, evaluate, load_corpus
+from microfiche.core.ai.llm_classifier import LLMClassifier
+from microfiche.core.config import load_config
+from microfiche.core.library.library import Library
+from microfiche.core.models.category import Taxonomy
+from microfiche.core.models.classification import CategoryMatch, GroupMatch
+from microfiche.core.models.document import Document
+from microfiche.core.parsers import read_documents
 
 # The calibration measures the packaged settings; _AI_CONFIDENCE is the score the pipeline gives any AI answer.
 _SETTINGS = load_config(Path("does-not-exist")).ai

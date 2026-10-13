@@ -9,8 +9,8 @@ from multiprocessing.synchronize import Event
 from pathlib import Path
 
 import pytest
-from core.library.library import Library
-from core.runlock import LOCK_FILENAME, LockHolder, LockUnavailableError, RunLockedError, run_lock
+from microfiche.core.library.library import Library
+from microfiche.core.runlock import LOCK_FILENAME, LockHolder, LockUnavailableError, RunLockedError, run_lock
 
 # region Test helpers
 
@@ -185,7 +185,7 @@ def test_run_lock_lock_file_cannot_be_created_reports_why(tmp_path: Path, monkey
     def refuse(*args: object, **kwargs: object) -> int:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("core.runlock.os.open", refuse)
+    monkeypatch.setattr("microfiche.core.runlock.os.open", refuse)
 
     with pytest.raises(LockUnavailableError, match="PermissionError"), run_lock(_library(tmp_path), "sort"):
         pass
@@ -198,7 +198,7 @@ def test_run_lock_write_failure_leaves_no_lock_behind(tmp_path: Path, monkeypatc
     def fail_to_write(*args: object, **kwargs: object) -> object:
         raise failure
 
-    monkeypatch.setattr("core.runlock.os.write", fail_to_write)
+    monkeypatch.setattr("microfiche.core.runlock.os.write", fail_to_write)
 
     with pytest.raises(LockUnavailableError, match="No space left"), run_lock(library, "sort"):
         pass

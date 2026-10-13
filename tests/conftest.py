@@ -92,7 +92,7 @@ def library_file_locked(monkeypatch: pytest.MonkeyPatch) -> None:
     def refuse(*_args: object, **_kwargs: object) -> None:
         raise _FileLockedError
 
-    monkeypatch.setattr("core.library.library_sync.os.replace", refuse)
+    monkeypatch.setattr("microfiche.core.library.library_sync.os.replace", refuse)
 
 
 def _exit_at_once() -> None:

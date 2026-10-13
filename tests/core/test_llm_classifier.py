@@ -6,10 +6,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from core.ai.llm_classifier import LLMClassifier
-from core.config import AIConfig, load_config
-from core.models.category import Taxonomy
-from core.models.document import Document
+from microfiche.core.ai.llm_classifier import LLMClassifier
+from microfiche.core.config import AIConfig, load_config
+from microfiche.core.models.category import Taxonomy
+from microfiche.core.models.document import Document
 
 TAXONOMY = Taxonomy(groups={"Acme Ltd": ["Contracts", "Invoices"], "Globex": ["Contracts"]})
 
@@ -205,11 +205,11 @@ def test_llm_classifier_missing_optional_package_counts_as_unavailable() -> None
 
 def test_llm_classifier_logs_call_timing_not_prompt_or_answer(caplog: pytest.LogCaptureFixture) -> None:
     marker = "UNIQUE-DOCUMENT-TEXT-MARKER"
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     LLMClassifier(ScriptedProvider("Acme Ltd"), _settings()).resolve_group(_document(marker), TAXONOMY)
 
-    [record] = [r for r in caplog.records if r.name == "core.ai.llm_classifier"]
+    [record] = [r for r in caplog.records if r.name == "microfiche.core.ai.llm_classifier"]
     assert record.levelno == logging.DEBUG
     assert re.fullmatch(r"AI answered in \d+\.\d{2} s \(\d+ prompt chars\)", record.getMessage())
     assert marker not in caplog.text  # the document's text is sent to the model, never to the log
@@ -223,13 +223,15 @@ def test_llm_classifier_failure_logged_once_as_warning(caplog: pytest.LogCapture
         def complete(self, prompt: str) -> str:
             raise self._error
 
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
     resolver = LLMClassifier(DownProvider(), _settings())
 
     resolver.resolve_group(_document("first"), TAXONOMY)
     resolver.resolve_group(_document("second"), TAXONOMY)  # not asked again, so no second warning
 
-    warnings = [r for r in caplog.records if r.name == "core.ai.llm_classifier" and r.levelno == logging.WARNING]
+    warnings = [
+        r for r in caplog.records if r.name == "microfiche.core.ai.llm_classifier" and r.levelno == logging.WARNING
+    ]
     (warning,) = warnings
     assert "ConnectionError: connection refused" in warning.getMessage()
     assert "rules only" in warning.getMessage()

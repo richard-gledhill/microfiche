@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 from conftest import LinkMaker
-from core.ai.llm_classifier import LLMClassifier
-from core.config import MICROFICHE_DIRNAME, ConfigError
-from core.filer import AUDIT_LOG_FILENAME, rollback_job
-from core.ledger import Ledger
-from core.library.library import Library
-from core.organizer import SortReport, run_sort
-from core.utils.hashing import file_hash
+from microfiche.core.ai.llm_classifier import LLMClassifier
+from microfiche.core.config import MICROFICHE_DIRNAME, ConfigError
+from microfiche.core.filer import AUDIT_LOG_FILENAME, rollback_job
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library
+from microfiche.core.organizer import SortReport, run_sort
+from microfiche.core.utils.hashing import file_hash
 
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
 
@@ -966,11 +966,11 @@ def test_run_sort_invalid_library_file_stops_before_moving_anything(tmp_path: Pa
 
 
 def _sort_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
-    return [record.getMessage() for record in caplog.records if record.name == "core.organizer"]
+    return [record.getMessage() for record in caplog.records if record.name == "microfiche.core.organizer"]
 
 
 def test_run_sort_logs_unit_count_and_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO, logger="core")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
 
     run_sort(Library(_library(tmp_path)))
 
@@ -980,7 +980,7 @@ def test_run_sort_logs_unit_count_and_summary(tmp_path: Path, caplog: pytest.Log
 
 
 def test_run_sort_dry_run_summary_is_labelled(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO, logger="core")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
 
     run_sort(Library(_library(tmp_path)), dry_run=True)
 
@@ -988,7 +988,7 @@ def test_run_sort_dry_run_summary_is_labelled(tmp_path: Path, caplog: pytest.Log
 
 
 def test_run_sort_logs_each_unit_outcome_at_debug(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     run_sort(Library(_library(tmp_path)))
 
@@ -998,7 +998,7 @@ def test_run_sort_logs_each_unit_outcome_at_debug(tmp_path: Path, caplog: pytest
 
 
 def test_run_sort_info_level_leaves_out_unit_detail(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.INFO, logger="core")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
 
     run_sort(Library(_library(tmp_path)))
 
@@ -1011,7 +1011,7 @@ def test_run_sort_info_level_leaves_out_unit_detail(tmp_path: Path, caplog: pyte
 def test_run_sort_duplicate_logged_with_its_reason(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     library = _library(tmp_path)
     _copy(library / "_sorting" / _PHOENIX_NOTE, library, _PHOENIX_DESTINATION)  # the same note, filed earlier
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     run_sort(Library(library))
 

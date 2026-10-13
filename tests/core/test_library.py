@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 from conftest import LinkMaker
-from core.config import ConfigError, MicroficheConfig, TomlConfigParseError, load_config
-from core.ledger import Ledger
-from core.library.library import Library, ScopeOutsideLibraryError
-from core.library.library_file import FolderNode
-from core.models.ledger import LedgerRecord
+from microfiche.core.config import ConfigError, MicroficheConfig, TomlConfigParseError, load_config
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library, ScopeOutsideLibraryError
+from microfiche.core.library.library_file import FolderNode
+from microfiche.core.models.ledger import LedgerRecord
 
 # region Test helpers
 
@@ -583,7 +583,7 @@ def test_structure_unreadable_ledger_warns_and_lists_every_folder(
     root = _build(tmp_path / "library")
     (root / ".microfiche" / "ledger.jsonl").write_text("not json\n", encoding="utf-8")
 
-    with caplog.at_level("WARNING", logger="core.library.library"):
+    with caplog.at_level("WARNING", logger="microfiche.core.library.library"):
         taxonomy = Library(root).taxonomy()
 
     assert taxonomy.categories_for("Project Phoenix") == ["01 Requirements", "02 Architecture"]

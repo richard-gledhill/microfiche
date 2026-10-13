@@ -4,11 +4,11 @@ import logging
 from pathlib import Path
 
 import pytest
-from core.classifier import Classifier
-from core.models.category import Taxonomy
-from core.models.classification import CategoryMatch, GroupMatch
-from core.models.document import Document, UnreadableDocument
-from core.models.unit import SortableUnit
+from microfiche.core.classifier import Classifier
+from microfiche.core.models.category import Taxonomy
+from microfiche.core.models.classification import CategoryMatch, GroupMatch
+from microfiche.core.models.document import Document, UnreadableDocument
+from microfiche.core.models.unit import SortableUnit
 
 PHOENIX = "Project Phoenix"
 ATLAS = "Project Atlas"
@@ -576,11 +576,11 @@ def test_classify_unit_flat_library_unreadable_unit_has_no_category() -> None:
 
 
 def _decision_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
-    return [record for record in caplog.records if record.name == "core.classifier"]
+    return [record for record in caplog.records if record.name == "microfiche.core.classifier"]
 
 
 def test_classify_document_logs_decision_and_reasons(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
     rules = FakeResolver("rules_engine", _group(PHOENIX), _category(ARCH))
 
     Classifier(rules).classify_document(_document(file_name="notes.md"), TAXONOMY)
@@ -593,7 +593,7 @@ def test_classify_document_logs_decision_and_reasons(caplog: pytest.LogCaptureFi
 
 
 def test_classify_document_unresolved_logs_both_reasons(caplog: pytest.LogCaptureFixture) -> None:
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
     rules = FakeResolver("rules_engine", _group(None), _category(None))
 
     Classifier(rules).classify_document(_document(file_name="notes.md"), TAXONOMY)
@@ -611,7 +611,7 @@ def test_classify_document_log_never_holds_document_text(
     caplog: pytest.LogCaptureFixture, group: GroupMatch, category: CategoryMatch
 ) -> None:
     document_text = "UNIQUE-DOCUMENT-TEXT-MARKER"
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
     rules = FakeResolver("rules_engine", group, category)
 
     Classifier(rules).classify_document(_document(document_text), TAXONOMY)

@@ -11,8 +11,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 from harness import CORPUS_ROOT, format_report, load_corpus
+from microfiche.core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
 
 def main(argv: list[str]) -> None:

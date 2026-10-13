@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 from conftest import LinkMaker
-from core.utils.filesystem import ensure_dir, is_excluded, is_link, name_matches, safe_move
+from microfiche.core.utils.filesystem import ensure_dir, is_excluded, is_link, name_matches, safe_move
 
 
 def test_is_excluded_matches_any_path_component() -> None:
