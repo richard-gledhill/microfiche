@@ -56,7 +56,18 @@ documents and sorts them with minimal manual effort. It's Obsidian-friendly, can
 
 ## Installation
 
-microfiche isn't published to PyPI yet — install it from source:
+microfiche isn't published to PyPI. Each [GitHub release](https://github.com/richard-gledhill/microfiche/releases)
+has two wheels, `core` and `cli`, released as a pair. Download both and install them together by path (don't
+`pip install cli` by name: `core` and `cli` are common package names):
+
+```bash
+uv tool install ./cli-*.whl --with ./core-*.whl
+microfiche --version
+```
+
+PowerShell, `pip`, upgrading and the AI extra are in the
+[install guide](https://richard-gledhill.github.io/microfiche/how-to-use/#1-install). To work on the code instead,
+install from source:
 
 ```bash
 git clone https://github.com/richard-gledhill/microfiche.git

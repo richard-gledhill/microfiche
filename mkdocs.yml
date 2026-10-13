@@ -62,6 +62,7 @@ extra:
       link: https://pypi.org/project/microfiche
 
 markdown_extensions:
+  - admonition
   - toc:
       permalink: true
   - pymdownx.arithmatex:
