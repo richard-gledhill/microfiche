@@ -322,13 +322,20 @@ category. A `tags` field is parked with the Obsidian integration (§6).
 
 ```bash
 microfiche sort [--keep-folders | --keep-folders-off] [--use-ai] [--dry-run]        # process the library-wide _sorting/ inbox
-microfiche review                                    # work the low-confidence queue (stub - see mvp-roadmap.md)
+microfiche review [--use-ai]                         # decide, one by one, what sort left in the inbox
 microfiche propose-categories                        # suggest category names from the inbox; print-only
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
 microfiche audit                                     # show the audit log
 microfiche rollback --job-id ID                      # undo a job by id
 microfiche config [--sync]                           # show the loaded configuration; --sync updates the library file from the folders
 ```
+
+**Decision — `review` has no stored queue.** What `sort` leaves behind is exactly what a preview sort would leave
+(`ReviewSession.start`), so the inbox is the queue and there is no report to keep in step. A person's choice becomes a
+`ClassificationResult` with `classified_by = "user"`, and goes through the same checks and the same `file_batch` as a
+sorted unit, so it is recorded, rollback-able and never overwrites. The choices are only staged until one confirmation,
+and the run lock is held only while filing, so deciding never blocks another run. A new group or category folder is
+planned in the session and made by filing into it.
 
 Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
 `-q`/`--quiet`. Scoping `propose-categories` to a library folder, and its `--use-ai`

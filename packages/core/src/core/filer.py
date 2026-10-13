@@ -286,11 +286,25 @@ class DestinationClaims:
             used, which names the path relative to the library. Nothing is reserved then.
         """
 
+        problem = self.problem(destination)
+        if problem is None:
+            self._claimed.add(destination)
+        return problem
+
+    def problem(self, destination: Path) -> str | None:
+        """Say why ``destination`` cannot be used, without reserving it.
+
+        Args:
+            destination: Where a unit would be filed (see ``destination_for``).
+
+        Returns:
+            ``None`` if the path is free, otherwise the reason it is not, naming the path relative to the library.
+        """
+
         if destination.exists():
             return f"'{destination.name}' already exists in {self._library.relative(destination.parent)}"
         if destination in self._claimed:
             return f"another unit in this run is already going to {self._library.relative(destination)}"
-        self._claimed.add(destination)
         return None
 
 

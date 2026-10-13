@@ -169,6 +169,7 @@ Other commands:
 ```bash
 uv run microfiche sort --library ~/Documents/Library --dry-run   # preview a sort: nothing is moved or recorded
 uv run microfiche sort --library ~/Documents/Library -v   # also show progress messages (-q: errors only)
+uv run microfiche review --library ~/Documents/Library   # decide, one by one, what `sort` left in the inbox
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Library

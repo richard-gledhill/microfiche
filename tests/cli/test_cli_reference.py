@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cli.app import app
 from typer.cli import app as typer_cli
 from typer.testing import CliRunner
 
@@ -27,10 +26,3 @@ def test_cli_reference_matches_app(tmp_path: Path) -> None:
     assert _REFERENCE.read_text(encoding="utf-8").splitlines() == generated.read_text(encoding="utf-8").splitlines(), (
         f"docs/cli-reference.md is out of date with the CLI; run `{_REGENERATE}`"
     )
-
-
-def test_review_command_says_not_implemented() -> None:
-    result = runner.invoke(app, ["review", "--help"])
-
-    assert result.exit_code == 0
-    assert "Not implemented yet" in result.stdout

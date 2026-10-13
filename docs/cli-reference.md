@@ -17,7 +17,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 **Commands**:
 
 * `sort`: Process the library&#x27;s inbox: classify and...
-* `review`: Not implemented yet: work through the...
+* `review`: Decide where the documents `sort` left in...
 * `propose-categories`: Suggest new category folder names from...
 * `reclassify`: Re-review already-filed documents and...
 * `audit`: Show the audit log.
@@ -47,7 +47,12 @@ $ microfiche sort [OPTIONS]
 
 ## `microfiche review`
 
-Not implemented yet: work through the low-confidence review queue from the most recent sort run.
+Decide where the documents `sort` left in the inbox should go.
+
+For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
+Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
+then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
+documents already in the library. Needs a terminal.
 
 **Usage**:
 
@@ -57,6 +62,10 @@ $ microfiche review [OPTIONS]
 
 **Options**:
 
+* `--library <directory>`: Path to the library root.  [required]
+* `--use-ai`: Ask the AI named in the library&#x27;s config for a best guess where the rules have none, as `sort` does.
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche propose-categories`

@@ -14,7 +14,7 @@ Domain language (library, group, category, unit, job, ledger, ...) is defined in
 
 **Before assuming a described feature is fully wired, check
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
-actually implemented vs. still stubbed (e.g. `review` is a stub command). See
+actually implemented vs. still partial or deferred. See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
 [data-model.md](docs/development/data-model.md) (ledger/audit/rollback schemas) and
 [mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
@@ -143,6 +143,10 @@ workspace `.venv`.
   classification drift gets reconciled after rule changes. A folder the ledger records as filed whole
   (`Ledger.folder_units()`) is one unit, proposed whole and never split; other folders are read file by file,
   and `[exclusions]` keeps a folder out.
+- **`review.py`** (the `review` command) is a `ReviewSession` over what a preview sort leaves in the inbox:
+  `decide` checks a choice as it is made (a place that exists or is planned, the name free, not a duplicate),
+  `commit` re-checks and files the chosen units as one `file_batch` job with `classified_by = "user"`. Nothing is
+  created or moved before `commit`; the prompts live in `cli/review.py`.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
   scope; never creates folders itself (requires explicit `--apply` at the CLI layer).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are

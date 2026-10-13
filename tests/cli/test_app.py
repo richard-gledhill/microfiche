@@ -8,8 +8,11 @@ import shutil
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
+from typing import Any
 
 import pytest
+import typer
+from cli import commands as cli_commands
 from cli.app import app
 from conftest import LinkMaker
 from core.config import AIConfig
@@ -1647,6 +1650,386 @@ def test_reclassify_corrupt_ledger_exits_1_with_a_message(tmp_path: Path) -> Non
 
     assert result.exit_code == 1
     assert "ledger" in result.stdout.lower()
+
+
+# endregion
+
+
+# region Review
+
+
+@pytest.fixture
+def at_a_terminal(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pretend a person is at the keyboard: `review` refuses to run without one."""
+
+    monkeypatch.setattr("cli.commands.stdin_is_terminal", lambda: True)
+
+
+def _raise_threshold(library: Path, value: float = 0.95) -> None:
+    """Make the Phoenix note a below-threshold guess, so it joins the review queue with a suggestion."""
+
+    config = library / ".microfiche" / "microfiche-config.toml"
+    config.write_text(
+        config.read_text(encoding="utf-8").replace("confidence_threshold = 0.75", f"confidence_threshold = {value}"),
+        encoding="utf-8",
+    )
+
+
+def _review(library: Path, answers: str, *extra: str) -> tuple[int, str]:
+    result = runner.invoke(app, ["review", "--library", str(library), *extra], input=answers)
+    return result.exit_code, " ".join(result.stdout.split())
+
+
+_SOLAR = "SolarConstructionNotes.md"
+_RESEARCH_DIR = Path("Project Phoenix") / "03 Research"
+
+
+def test_review_without_a_terminal_exits_1_and_moves_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    code, output = _review(library, "m\n1\n3\ny\n")
+
+    assert code == 1
+    assert "needs a terminal" in output
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_empty_queue_says_so(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / _SOLAR).unlink()
+
+    code, output = _review(library, "")
+
+    assert code == 0
+    assert "Nothing to review" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_copies_in_the_library_are_not_queued_but_mentioned(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    shutil.copyfile(library / "_sorting" / _SOLAR, library / _RESEARCH_DIR / "older-solar.md")
+
+    code, output = _review(library, "")
+
+    assert code == 0
+    assert "1 document(s) are copies of other documents and stay in the inbox" in output
+    assert "Nothing to review" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_modify_files_the_unit_where_it_was_sent(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\n1\n3\ny\n")
+
+    assert code == 0, output
+    assert (library / _RESEARCH_DIR / _SOLAR).is_file()
+    assert not (library / "_sorting" / _SOLAR).exists()
+    assert "Ready to file 1 of 1 unit(s)" in output
+    assert f"{_SOLAR} -> Project Phoenix/03 Research" in output
+    assert "Filed: 1" in output
+    assert "Undo with: microfiche rollback" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_accept_files_the_best_guess(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _raise_threshold(library)
+
+    code, output = _review(library, "a\ns\ny\n")  # accept the Phoenix note, skip the solar note, confirm
+
+    assert code == 0, output
+    assert (
+        "Best guess: Project Phoenix/02 Architecture (confidence 0.90; 0.95 is needed to file without asking)" in output
+    )
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).is_file()
+    assert (library / "_sorting" / _SOLAR).is_file()
+    assert "1 unit(s) stay in the inbox" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_skipping_everything_moves_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    code, output = _review(library, "\n")  # the default answer is skip
+
+    assert code == 0
+    assert "Nothing was chosen" in output
+    assert _tree(library) == before
+    assert not (library / ".microfiche" / "rollback").exists()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_declining_the_final_question_moves_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    code, output = _review(library, "m\n1\n3\nn\n")
+
+    assert code == 0
+    assert "Nothing was moved." in output
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_quit_files_what_was_chosen_so_far(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _raise_threshold(library)
+
+    code, output = _review(library, "a\nq\ny\n")
+
+    assert code == 0, output
+    assert "Stopping here." in output
+    assert "Ready to file 1 of 2 unit(s)" in output
+    assert (library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE).is_file()
+    assert (library / "_sorting" / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_new_category_is_confirmed_listed_and_created_on_filing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\n1\nn\n04 Retrospectives\ny\ny\n")
+
+    assert code == 0, output
+    assert "Create 'Project Phoenix/04 Retrospectives' when the units are filed?" in output
+    assert "New folders, created when the units are filed:" in output
+    assert (library / "Project Phoenix" / "04 Retrospectives" / _SOLAR).is_file()
+    assert "Created the folder 04 Retrospectives" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_new_group_and_category(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\nn\nProject Atlas\ny\nn\n01 Plans\ny\ny\n")
+
+    assert code == 0, output
+    assert (library / "Project Atlas" / "01 Plans" / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_new_folder_not_confirmed_creates_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\n1\nn\n04 Retrospectives\nn\n\n\n")  # decline, then back out twice
+
+    assert code == 0, output
+    assert not (library / "Project Phoenix" / "04 Retrospectives").exists()
+    assert (library / "_sorting" / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_bad_folder_name_is_explained_and_asked_again(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\n1\nn\na/b\n02 architecture\n04 Retrospectives\ny\ny\n")
+
+    assert code == 0, output
+    assert "'a/b' is not a valid folder name" in output
+    assert "there is already a folder called '02 architecture' there" in output
+    assert (library / "Project Phoenix" / "04 Retrospectives" / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_bad_number_and_bad_action_are_asked_again(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "x\nm\n9\n1\n3\ny\n")
+
+    assert code == 0, output
+    assert "Please answer one of: m, s, q" in output
+    assert "Enter a number from the list" in output
+    assert (library / _RESEARCH_DIR / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_best_guess_whose_name_is_taken_is_not_offered(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _raise_threshold(library)
+    taken = library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE
+    taken.write_text("a different document with that name", encoding="utf-8")
+
+    code, output = _review(library, "s\ns\n")
+
+    assert code == 0, output
+    assert "The best guess can't be used:" in output
+    assert "already exists in Project Phoenix/02 Architecture" in output
+    assert "(a) accept" not in output
+    assert taken.read_text(encoding="utf-8") == "a different document with that name"
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_a_modified_choice_that_would_clash_is_refused_and_asked_again(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / _RESEARCH_DIR / _SOLAR).write_text("a different document with that name", encoding="utf-8")
+
+    code, output = _review(library, "m\n1\n3\ns\n")  # clashes, so back at the menu; then skip
+
+    assert code == 0, output
+    assert f"'{_SOLAR}' already exists in Project Phoenix/03 Research" in output
+    assert "Nothing was chosen" in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_going_back_from_the_group_or_category_list_returns_to_the_menu(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    code, output = _review(
+        library, "m\n\nm\n1\n\ns\n"
+    )  # modify and back out at the group list, then at the category list
+
+    assert code == 0, output
+    assert output.count("What now?") == 3
+    assert "Nothing was chosen" in output
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_accepting_a_guess_that_stops_being_possible_is_explained_and_asked_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    _raise_threshold(library)
+    monkeypatch.setattr(
+        "core.review.ReviewSession.decide", lambda self, item, folders: "someone took that name a moment ago"
+    )
+
+    code, output = _review(library, "a\ns\ns\n")
+
+    assert code == 0, output
+    assert "someone took that name a moment ago" in output
+    assert output.count("What now?") == 3  # asked again after the refusal, then skip, then skip
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_a_digit_that_is_not_a_number_is_asked_again(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "m\n1\n\u00b2\n3\ny\n")  # a superscript two is a digit, but not a number
+
+    assert code == 0, output
+    assert "Enter a number from the list" in output
+    assert (library / _RESEARCH_DIR / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_says_how_many_documents_sort_would_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    code, output = _review(library, "\n")
+
+    assert code == 0
+    assert "1 document(s) are confident enough for `sort` to file, so `review` does not ask about them." in output
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_use_ai_offers_the_ai_answer_as_the_best_guess(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+
+    class _Answers:
+        def complete(self, prompt: str) -> str:
+            return "03 Research" if "categories" in prompt else "Project Phoenix"
+
+    monkeypatch.setattr("cli.commands.build_provider", lambda settings: _Answers())
+
+    code, output = _review(library, "a\ny\n", "--use-ai")
+
+    assert code == 0, output
+    assert "Best guess: Project Phoenix/03 Research (confidence 0.70" in output
+    assert (library / _RESEARCH_DIR / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_lock_held_at_the_end_can_be_retried_without_choosing_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    attempts: list[int] = []
+    real_locked = cli_commands._locked
+
+    @contextmanager
+    def busy_once(*args: Any, **kwargs: Any) -> Iterator[object]:
+        attempts.append(1)
+        if len(attempts) == 1:
+            raise typer.Exit(code=1)  # as `_locked` does when another run holds the lock
+        with real_locked(*args, **kwargs) as holder:
+            yield holder
+
+    monkeypatch.setattr("cli.commands._locked", busy_once)
+
+    code, output = _review(library, "m\n1\n3\ny\ny\n")  # choose, confirm, then "try again?" yes
+
+    assert code == 0, output
+    assert "Try again?" in output
+    assert (library / _RESEARCH_DIR / _SOLAR).is_file()
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_job_can_be_rolled_back(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+    result = runner.invoke(app, ["review", "--library", str(library)], input="m\n1\n3\ny\n")
+    match = _JOB_LINE.search(result.stdout)
+    assert match is not None, result.stdout
+
+    undone = runner.invoke(app, ["rollback", "--library", str(library), "--job-id", match.group(1)])
+
+    assert undone.exit_code == 0, undone.stdout
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_refused_at_the_end_while_another_run_holds_the_lock(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    with _held(library):
+        code, output = _review(library, "m\n1\n3\ny\n")  # asking works; filing is what needs the lock
+
+    assert code == 1
+    assert "Another microfiche run is already in progress" in output
+    assert "Try again?" in output  # the choices are kept, so it offers another go before giving up
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_stdin_ending_mid_session_aborts_and_moves_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["review", "--library", str(library)], input="m\n1\n")  # no more answers
+
+    assert result.exit_code == 1
+    assert _tree(library) == before
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_writes_the_log_only_when_it_files(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    log = library / ".microfiche" / "microfiche.log"
+
+    _review(library, "\n")
+    assert not log.exists()  # nothing was filed, so no lock was taken and no log written
+
+    _review(library, "m\n1\n3\ny\n")
+    assert log.is_file()
+    assert "review" in log.read_text(encoding="utf-8")
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_flat_library_needs_only_a_group(tmp_path: Path) -> None:
+    library = _flat_library(tmp_path)
+
+    code, output = _review(library, "m\n1\ny\n")  # Household
+
+    assert code == 0, output
+    assert (library / "Household" / "HolidayIdeas.md").is_file()
+    assert "Category" not in output
 
 
 # endregion
