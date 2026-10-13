@@ -709,7 +709,7 @@ actual MVP.
 - Design how a release is installed. `core` and `cli` are separate workspace packages and `cli` depends on `core`, so decide whether a release ships both wheels or `cli` pins `core` by version. Today the release workflow only builds the documentation.
 
 **Build**
-- Build out a fixture library with representative data covering every classification and filing path.
+- Build out a fixture library with representative data covering every classification and filing path. *(Built: `scripts/make_sample_library.py`, below.)*
 - Set the coverage `fail_under` threshold once a real baseline is established.
 - Add a coverage-gated job to CI's test workflow.
 - Extend the release workflow to build the `core` and `cli` wheels, check that the packaged defaults file is inside them, and attach them to the GitHub release.
@@ -778,15 +778,20 @@ happened is what the doc says. A mismatch is a finding: fix the doc or the code,
 | 17 | Two runs at once | Start `sort` in one terminal, a second in another; then plant a stale lock from a dead pid | The second refuses with the doc's message; the stale lock is cleared with a warning recorded in the log |
 | 18 | AI fallback | `sort --use-ai` with Ollama stopped (optional: running) | One "unavailable" warning; the rules-only result is filed; nothing invented |
 
-**Test library setups.** Fill in the setups the walkthrough will use. Between them they should cover each shape the doc
-describes, and the known limits above, so those are seen to be stated accurately.
+**Test library setups.** `uv run python scripts/make_sample_library.py <folder> [--shape depth2|flat]` builds a library to
+walk, and prints the outcome each inbox item should have, so a step can be checked against it. The same builder is
+what `tests/scripts/test_make_sample_library.py` sorts, so the walkthrough and the suite cannot drift apart. Between them
+the setups should cover each shape the doc describes, and the known limits above, so those are seen to be stated accurately.
 
-| Setup | Shape | Depth | Must contain |
-|---|---|---|---|
-| A | _project › document type, e.g. `tests/mock_library`_ | 2 | Confident files, a below-threshold file, a name clash, an exact copy, a dropped folder |
-| B | _project › stage with hints (`project-stages`)_ | 2 | Filename rules, shared `"*"` hints, a per-group hint |
-| C | _flat, groups only (`household-flat`)_ | 1 | A short group name inside a longer word (`Car` in `scarf`), to confirm the limit is documented |
-| D | _the maintainer's own_ | _?_ | A realistic mix; this is where unexpected cases turn up |
+| Setup | Shape | Depth | Built by | Must contain |
+|---|---|---|---|---|
+| A | project > document type | 2 | `make_sample_library.py --shape depth2` | A document for every route: filed by group name, fuzzy name, category name, hint and filename rule (`.md`, `.txt`, `.docx`, `.pdf`, `.eml`); a name clash, an exact copy of a filed file, a copy within the inbox, an unreadable file, an oversize file, ignored names, a folder filed whole and a folder whose documents tie; filed documents that `reclassify` keeps, moves, reviews and reports as a conflict; folders excluded by `[exclusions]` |
+| B | project > stage | 2 | `tests/calibration/corpus/project-stages` copied to a new folder (it is already filed, so `reclassify` works at once; for `sort`, create `_sorting/` and copy `_unfiled/*` into it) | Filename rules, shared `"*"` hints, a per-group hint |
+| C | flat, groups only | 1 | `make_sample_library.py --shape flat` | A group hint, a filename rule, two groups' hints in one document (left for review), and `Car` inside `scarf` filed at full confidence, to confirm the limit is documented |
+| D | the maintainer's own | any | by hand | A realistic mix; this is where unexpected cases turn up |
+
+Links and junctions, a file open in Word, and `--use-ai` are not in the builder because they depend on the machine: make them
+by hand at checkpoint 10 and 18.
 
 **Exit criteria.** Every checkpoint is pass or an explained skip, in both tabs, for every setup; every fail is either fixed
 (and its step repeated) or recorded in `mvp-roadmap.md` and the docs' "Current limitations" as a known limit.
