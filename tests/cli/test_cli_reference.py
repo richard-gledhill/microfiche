@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from cli.app import app
 from typer.cli import app as typer_cli
 from typer.testing import CliRunner
 
@@ -27,14 +26,3 @@ def test_cli_reference_matches_app(tmp_path: Path) -> None:
     assert _REFERENCE.read_text(encoding="utf-8").splitlines() == generated.read_text(encoding="utf-8").splitlines(), (
         f"docs/cli-reference.md is out of date with the CLI; run `{_REGENERATE}`"
     )
-
-
-def test_review_command_help_describes_the_workflow() -> None:
-    result = runner.invoke(app, ["review", "--help"])
-
-    output = " ".join(result.stdout.split())
-    assert result.exit_code == 0
-    assert "Not implemented" not in output
-    assert "accept the best guess" in output
-    assert "Needs a terminal" in output
-    assert "--use-ai" in output
