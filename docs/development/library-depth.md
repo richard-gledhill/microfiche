@@ -47,8 +47,8 @@ implementing it hits a practical limitation, the finding is recorded here and de
   unsure at that level.
 - **`review` gains a choice per level**, which Stage 5 has to be designed for.
 - **The ledger schema changes again**, and so does every place that says "group and category".
-- **Library creation is capped at three levels.** `create_library_group` and any later template catalog or
-  `init` make at most three levels. The classifier is written level-generic so depth 4 is not a rewrite, but
+- **Library creation is capped at three levels.** Any later template catalog or `init` (see the
+  [feature backlog](feature-backlog.md#library-creation-init-and-group-templates)) makes at most three levels. The classifier is written level-generic so depth 4 is not a rewrite, but
   only depth 3 is specified and tested, and depth 4 and above is not planned.
 
 The go/no-go numbers would be set in the backlog entry, against a three-level library added to the calibration corpus.

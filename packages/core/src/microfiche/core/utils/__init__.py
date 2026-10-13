@@ -1,1 +1,1 @@
-"""Small, dependency-free helpers used across core: filesystem, hashing, logging, validation."""
+"""Small, dependency-free helpers used across core: filesystem, hashing, errors."""

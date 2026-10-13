@@ -125,10 +125,6 @@ def test_classify_document_no_category_never_confident() -> None:
     assert Classifier(rules, threshold=0.0).classify_document(_document(), TAXONOMY).confident is False
 
 
-def test_classifier_threshold_exposed() -> None:
-    assert Classifier(FakeResolver("r", _group(None), _category(None)), threshold=0.5).threshold == 0.5
-
-
 # endregion
 
 

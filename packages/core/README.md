@@ -19,7 +19,7 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 | `library/` | The `Library` (layout, exclusions, taxonomy), the library file and its sync, category suggestion, naming. |
 | `models/` | Shared pydantic models (`Document`, `SortableUnit`, `Taxonomy`, ...). |
 | `config.py` | Per-library TOML config loading. |
-| `utils/` | Filesystem, hashing, logging, and validation helpers. |
+| `utils/` | Filesystem, hashing and error-message helpers. |
 
 See [docs/development/architecture.md](../../docs/development/architecture.md)
 for the design behind this package.

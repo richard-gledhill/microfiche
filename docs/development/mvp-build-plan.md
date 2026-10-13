@@ -698,9 +698,9 @@ actual MVP.
 - *The coverage gate is one floor on the whole of `core` and `cli`* (`fail_under` in `pyproject.toml`), enforced by a `coverage` job
   on Linux and by `make test`. The measured baseline was 97.6% on Windows; the floor starts at 95 so a branch one OS does not
   run cannot fail the build, and is raised once the Linux figure is known. Modules below the floor on their own, and why:
-  `parsers/msg_parser.py` (58%, needs a real `.msg` file), `runlock.py` (88%, Windows-only branches), and two modules nothing
-  imports, `library/templates.py` and `utils/validation.py` (0%), which are for the simplification review below to remove
-  or keep, not for a coverage exemption.
+  `parsers/msg_parser.py` (58%, needs a real `.msg` file) and `runlock.py` (88%, Windows-only branches). Two modules nothing
+  imported, `library/templates.py` and `utils/validation.py` (0%), were removed by the simplification review below, not
+  exempted.
 
 **Plan**
 - Define the MVP's release acceptance criteria (coverage floor, zero known must-fix gaps, docs accuracy) before starting hardening work.

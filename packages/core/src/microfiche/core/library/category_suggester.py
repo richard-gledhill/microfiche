@@ -1,9 +1,8 @@
 """Proposes new category folder names based on common terms across a set of documents.
 
 Never creates folders itself - the caller (the CLI's `propose-categories` command) decides
-whether to apply a suggestion. Deterministic keyword-frequency scoring by default; an
-AI-assisted pass over the same documents can be layered on by routing them through
-``microfiche.core.ai.llm_classifier`` with the ``CATEGORY_PROPOSAL_PROMPT`` instead/in addition.
+whether to apply a suggestion. Deterministic keyword-frequency scoring only; an AI-assisted variant is designed but
+not built (docs/development/architecture.md, section 6).
 """
 
 from __future__ import annotations

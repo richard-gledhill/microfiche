@@ -1,4 +1,4 @@
-"""Prompt templates for the AI fallback classification and category-proposal passes."""
+"""Prompt templates for the AI fallback: one question per level (the group, then the category)."""
 
 from __future__ import annotations
 
@@ -21,13 +21,3 @@ Document text (truncated):
 ---
 
 Reply with exactly one category name from the list above, or the single word NONE if it fits none of them."""
-
-CATEGORY_PROPOSAL_PROMPT = """These documents don't fit any existing category. Suggest up to {top_n} short,
-title-case category folder names that would group them sensibly.
-
-Document excerpts:
----
-{document_excerpts}
----
-
-Reply with one category name per line."""

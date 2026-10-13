@@ -85,7 +85,6 @@ def test_run_sort_records_one_job_for_all_filed(tmp_path: Path) -> None:
 
     assert report.job is not None
     assert [move.new_path for move in report.job.moves] == [library / _PHOENIX_DESTINATION]
-    assert report.audit_events == report.job.moves
     assert (library / MICROFICHE_DIRNAME / "rollback" / f"job_{report.job.job_id}.json").exists()
     (record,) = Ledger(library / MICROFICHE_DIRNAME).current()
     assert record.job_id == report.job.job_id
@@ -112,7 +111,6 @@ def test_run_sort_nothing_confident_writes_no_state(tmp_path: Path) -> None:
 
     assert report.job is None
     assert report.filed == []
-    assert report.audit_events == []
     assert [unit.source_path.name for unit, _ in report.needs_review] == [_SOLAR_NOTE]
     assert _snapshot(library) == before
     state_dir = library / MICROFICHE_DIRNAME
@@ -818,7 +816,6 @@ def test_run_sort_dry_run_changes_nothing_at_all(tmp_path: Path) -> None:
     assert _everything(library) == before  # files, folders, ledger, audit log and jobs: all identical
     assert report.dry_run is True
     assert report.job is None
-    assert report.audit_events == []
 
 
 def test_run_sort_dry_run_creates_no_state_folder(tmp_path: Path) -> None:

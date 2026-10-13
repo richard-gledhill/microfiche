@@ -106,12 +106,6 @@ class Classifier:
             threshold=config.classification.confidence_threshold,
         )
 
-    @property
-    def threshold(self) -> float:
-        """The confidence a result must reach to be ``confident``."""
-
-        return self._threshold
-
     def classify_document(self, document: Document, taxonomy: Taxonomy) -> ClassificationResult:
         """Classify one document: resolve its group, then its category within that group.
 

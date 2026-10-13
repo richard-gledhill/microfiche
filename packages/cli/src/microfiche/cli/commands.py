@@ -251,18 +251,15 @@ def reclassify(
         result = apply_reclassification(lib, proposals) if apply else None
         below_depth = items_below_depth(lib)  # after any move, so it is what is still below
     depth = lib.config.library_structure.depth
-    if result is None:
-        render_reclassify_result(console, proposals, job=None, dry_run=True, below_depth=below_depth, depth=depth)
-    else:
-        render_reclassify_result(
-            console,
-            proposals,
-            job=result.job,
-            failed=result.failed,
-            dry_run=False,
-            below_depth=below_depth,
-            depth=depth,
-        )
+    render_reclassify_result(
+        console,
+        proposals,
+        job=result.job if result else None,
+        failed=result.failed if result else (),
+        dry_run=result is None,
+        below_depth=below_depth,
+        depth=depth,
+    )
 
 
 def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:

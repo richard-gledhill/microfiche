@@ -8,12 +8,14 @@ import pytest
 from microfiche.core.config import ConfigError
 from microfiche.core.library.library_file import (
     LIBRARY_FILENAME,
+    WILDCARD,
     DuplicateFolderError,
     FilingRule,
     FolderNode,
     LibraryFile,
     LibraryFileTooDeepError,
     WildcardWithDataError,
+    can_be_entry_name,
     json_schema,
     load_library_file,
 )
@@ -535,6 +537,34 @@ def test_template_library_file_is_valid_and_matches_the_old_template_config() ->
 
 
 # endregion
+
+
+# endregion
+
+
+# region can_be_entry_name
+
+
+@pytest.mark.parametrize("name", ["Project Phoenix", "01 Requirements", "a.b", "Ünïcode", "x" * 200])
+def test_can_be_entry_name_ordinary_folder_names_accepted(name: str) -> None:
+    assert can_be_entry_name(name)
+
+
+@pytest.mark.parametrize("name", ["", " leading", "trailing ", "with/slash", "with\\backslash", WILDCARD])
+def test_can_be_entry_name_names_the_file_cannot_hold_refused(name: str) -> None:
+    assert not can_be_entry_name(name)
+
+
+@pytest.mark.parametrize("name", ["Project Phoenix", "a.b", "with/slash", "with\\backslash", "  padded  "])
+def test_can_be_entry_name_agrees_with_what_loading_the_file_accepts(name: str) -> None:
+    # The sync writes an entry only for a name this accepts, and the file must then load with that exact name.
+    document = {"groups": [{"name": name}]}
+    try:
+        loaded = LibraryFile.model_validate(document).groups[0].name
+    except ValidationError:
+        loaded = None
+
+    assert can_be_entry_name(name) == (loaded == name)
 
 
 # endregion
