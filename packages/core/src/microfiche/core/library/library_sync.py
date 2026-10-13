@@ -14,7 +14,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from microfiche.core.library.library import Library
-from microfiche.core.library.library_file import LIBRARY_FILENAME, WILDCARD, FolderNode, LibraryFile, load_library_file
+from microfiche.core.library.library_file import (
+    LIBRARY_FILENAME,
+    WILDCARD,
+    FolderNode,
+    LibraryFile,
+    can_be_entry_name,
+    load_library_file,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -116,7 +123,7 @@ def _merge(
     merged = list(entries)
     seen: set[str] = set()
     for folder in folders:
-        if not _can_be_entry(folder.name) or folder.name.casefold() in seen:
+        if not can_be_entry_name(folder.name) or folder.name.casefold() in seen:
             _logger.warning("library file: not listing the folder %r: its name can't be an entry", parent / folder.name)
             continue
         seen.add(folder.name.casefold())
@@ -136,12 +143,6 @@ def _merge(
         if not (library.root / path).exists():  # an excluded folder is still there, so it isn't missing
             sync.missing.append(path.as_posix())
     return merged
-
-
-def _can_be_entry(name: str) -> bool:
-    """Whether a folder name can be an entry's ``name``: the library file refuses the rest when it is loaded."""
-
-    return bool(name) and name == name.strip() and "/" not in name and "\\" not in name and name != WILDCARD
 
 
 def _find_possible_renames(sync: LibrarySync) -> None:

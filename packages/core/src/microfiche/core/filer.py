@@ -35,7 +35,7 @@ from microfiche.core.models.job import Job
 from microfiche.core.models.ledger import LedgerRecord
 from microfiche.core.models.unit import SortableUnit
 from microfiche.core.utils.errors import describe_error
-from microfiche.core.utils.filesystem import ensure_dir, safe_move
+from microfiche.core.utils.filesystem import safe_move
 from microfiche.core.utils.hashing import unit_hash
 
 # region Constants and types
@@ -428,7 +428,6 @@ def _file_unit(
 
     content_hash = unit_hash(unit.source_path)  # before the move, while the content is still at the source
     destination = destination_for(library, folders, unit.source_path.name)
-    ensure_dir(destination.parent)
     safe_move(unit.source_path, destination)
     _logger.debug("moved %s -> %s", library.relative(unit.source_path), library.relative(destination))
 

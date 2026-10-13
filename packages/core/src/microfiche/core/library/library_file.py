@@ -9,6 +9,7 @@ folder is never filed into, and the file never creates or removes a folder.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Annotated, Any
@@ -27,7 +28,8 @@ WILDCARD = "*"
 # would match every document).
 _Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 # A folder name: no path separators.
-_FolderName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, pattern=r"^[^/\\]+$")]
+_FOLDER_NAME = r"[^/\\]+"
+_FolderName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, pattern=f"^{_FOLDER_NAME}$")]
 
 
 class _Model(BaseModel):
@@ -259,6 +261,22 @@ def json_schema() -> dict[str, Any]:
     schema["$schema"] = "https://json-schema.org/draft/2020-12/schema"
     schema["title"] = "microfiche library file"
     return schema
+
+
+def can_be_entry_name(name: str) -> bool:
+    """Whether a folder called ``name`` can be the ``name`` of an entry in this file, exactly as it is spelt.
+
+    This is the same rule the file applies when it is loaded (no path separators, not empty, no surrounding space), so
+    a folder the sync would write an entry for is a folder the file will accept. The wildcard is not a folder name.
+
+    Args:
+        name: A folder's name.
+
+    Returns:
+        ``True`` if an entry can carry that name.
+    """
+
+    return name == name.strip() and name != WILDCARD and re.fullmatch(_FOLDER_NAME, name) is not None
 
 
 # endregion

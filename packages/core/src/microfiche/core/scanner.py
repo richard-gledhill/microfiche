@@ -79,12 +79,9 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
     ignore, max_bytes = config.sorting.ignore, config.parsing.max_file_bytes
 
     for entry in sorted(inbox.iterdir()):
-        if name_matches(entry.name, ignore):
-            _logger.debug("ignored %s: it matches [sorting] ignore", entry.name)
+        if not _admitted(entry, ignore, scan.skipped_links):
             continue
-        if is_link(entry):
-            _skip_link(entry, scan.skipped_links)
-        elif entry.is_file():
+        if entry.is_file():
             if is_supported(entry):
                 scan.units.append(_file_unit(entry, max_bytes))
         elif entry.is_dir():
@@ -130,29 +127,24 @@ def _files_under(folder: Path, ignore: list[str], skipped_links: list[Path]) -> 
     files: list[Path] = []
     for current, folders, names in os.walk(folder):
         here = Path(current)
-        kept_folders: list[str] = []
-        for name in sorted(folders):
-            if name_matches(name, ignore):
-                _logger.debug("ignored %s: it matches [sorting] ignore", name)
-                continue
-            if is_link(here / name):
-                _skip_link(here / name, skipped_links)
-            else:
-                kept_folders.append(name)
-        folders[:] = kept_folders  # os.walk only descends into what is left in this list
-        for name in names:
-            if name_matches(name, ignore):
-                _logger.debug("ignored %s: it matches [sorting] ignore", name)
-                continue
-            if is_link(here / name):
-                _skip_link(here / name, skipped_links)
-            else:
-                files.append(here / name)
+        # os.walk only descends into what is left in this list
+        folders[:] = [name for name in sorted(folders) if _admitted(here / name, ignore, skipped_links)]
+        files.extend(here / name for name in names if _admitted(here / name, ignore, skipped_links))
     return sorted(files)
 
 
-def _skip_link(link: Path, skipped_links: list[Path]) -> None:
-    """Note a symbolic link or junction as skipped, and say why."""
+def _admitted(path: Path, ignore: list[str], skipped_links: list[Path]) -> bool:
+    """Whether the scan may look at ``path``: its name is not ignored, and it is not a symbolic link or junction.
 
-    skipped_links.append(link)
-    _logger.info("skipped link %s: links are never followed", link.name)
+    An ignored name is dropped silently. A link is appended to ``skipped_links`` and never followed, whether it points
+    at a file or a folder, so the user is told about it.
+    """
+
+    if name_matches(path.name, ignore):
+        _logger.debug("ignored %s: it matches [sorting] ignore", path.name)
+        return False
+    if is_link(path):
+        skipped_links.append(path)
+        _logger.info("skipped link %s: links are never followed", path.name)
+        return False
+    return True

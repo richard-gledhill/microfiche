@@ -13,7 +13,6 @@ from microfiche.core.duplicates import Duplicate, DuplicateIndex
 from microfiche.core.filer import DestinationClaims, destination_for, file_batch
 from microfiche.core.library.library import Library
 from microfiche.core.library.library_sync import LibrarySync, sync_library_file
-from microfiche.core.models.audit_event import AuditEvent
 from microfiche.core.models.classification import ClassificationResult
 from microfiche.core.models.job import Job
 from microfiche.core.models.unit import SortableUnit
@@ -34,7 +33,6 @@ class SortReport:
         needs_review: Each unit left in the inbox for review, with its classification.
         duplicates: Each inbox file left where it is because the library already has a copy of it (or
             another inbox file with the same content is being filed this run), with the reason.
-        audit_events: The move events recorded for the filed units.
         job: The rollback job for the run, or ``None`` if nothing was filed.
         skipped_links: Symbolic links and junctions in the inbox that were passed over, never followed.
         ai_unavailable: Why the AI fallback stopped being asked part-way through the run (a connection
@@ -51,7 +49,6 @@ class SortReport:
     filed: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
     needs_review: list[tuple[SortableUnit, ClassificationResult]] = field(default_factory=list)
     duplicates: list[Duplicate] = field(default_factory=list)
-    audit_events: list[AuditEvent] = field(default_factory=list)
     job: Job | None = None
     skipped_links: list[Path] = field(default_factory=list)
     ai_unavailable: str | None = None
@@ -155,8 +152,6 @@ def _file_confident_units(library: Library, report: SortReport) -> None:
 
     result = file_batch(library, report.filed)
     report.job = result.job
-    if result.job is not None:
-        report.audit_events.extend(result.job.moves)
     if not result.failed:
         return
 

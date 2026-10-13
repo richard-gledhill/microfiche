@@ -137,7 +137,8 @@ for `index.md` generation went out of the MVP with the Obsidian integration.
 
 ### What the code does today
 
-- `library_templates` is read by nothing outside the tests. `create_library_group` in `templates.py` has no
+- `library_templates` is read by nothing outside the tests. `create_library_group` in `templates.py` (since removed; see the
+  [feature backlog](feature-backlog.md#library-creation-init-and-group-templates)) had no
   caller, since there is no `init` command, and its docstring still says `library_templates.yaml`. Because
   it sits in `microfiche-config.toml`, a malformed entry fails validation on every `sort`
   (`test_config.py` pins this with `software_project = "oops"`).
