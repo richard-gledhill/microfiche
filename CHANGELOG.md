@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Documentation
+- add Stage 6 guided walkthrough, simplification review and code review [`979c5a0`](https://github.com/richard-gledhill/microfiche/commit/979c5a0)
+- :robot: changelog file generated [`880496a`](https://github.com/richard-gledhill/microfiche/commit/880496a)
+
+### Other
+- Merge pull request #60 from richard-gledhill/docs/stage-6-walkthrough-and-reviews [`5242e0e`](https://github.com/richard-gledhill/microfiche/commit/5242e0e)
+
+## v0.1.5 (2026-10-13)
+
 ### Feature
 - read hints and filename rules from the library file [`35b4f86`](https://github.com/richard-gledhill/microfiche/commit/35b4f86)
 - load the library file with clear errors [`14e5ec8`](https://github.com/richard-gledhill/microfiche/commit/14e5ec8)
