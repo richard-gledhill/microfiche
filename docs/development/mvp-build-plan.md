@@ -693,7 +693,8 @@ actual MVP.
   and `cli`. Each package sets `[tool.uv.build-backend] module-name`, and `microfiche/` is a namespace package with no
   `__init__.py` (a test and `check_wheels.py` guard that). This stops two top-level folders called `core` and `cli` landing in a
   user's `site-packages`. It does not stop `core==X` being resolved from PyPI by name, so a release is installed from its
-  own wheels (`--no-index --find-links`). Set-up notes: the libCoding note "Namespace Packages in a uv Workspace".
+  own wheel files, given by path together (`uv tool install ./cli-*.whl --with ./core-*.whl`, tested with uv and pip on Windows),
+  never by name; this is in `docs/how-to-use.md` section 1. Set-up notes: the libCoding note "Namespace Packages in a uv Workspace".
 - *The coverage gate is one floor on the whole of `core` and `cli`* (`fail_under` in `pyproject.toml`), enforced by a `coverage` job
   on Linux and by `make test`. The measured baseline was 97.6% on Windows; the floor starts at 95 so a branch one OS does not
   run cannot fail the build, and is raised once the Linux figure is known. Modules below the floor on their own, and why:

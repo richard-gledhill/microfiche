@@ -6,8 +6,104 @@ as-is in either.
 
 ## 1. Install
 
-Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/). microfiche isn't on PyPI yet, so
-install it from source:
+Requires Python 3.11+. The commands below use [uv](https://docs.astral.sh/uv/); a `pip` route is given too.
+microfiche isn't on PyPI. Each [GitHub release](https://github.com/richard-gledhill/microfiche/releases) has two
+files, `core-<version>-py3-none-any.whl` and `cli-<version>-py3-none-any.whl`, and you install them together. To change
+the code, or to try something that isn't released, [install from source](#install-from-source) instead.
+
+### Install a release
+
+!!! warning "Install both files, by path"
+    The two wheels are released as a pair: `cli` needs exactly the same version of `core`. Install them from the
+    files you downloaded, as shown. Don't run `pip install cli` or `uv tool install cli` by name: `core` and `cli`
+    are very common package names, and a package of that name from the package index is not microfiche.
+
+**1. Download both wheels** into a new folder. From the release page in a browser, or with the
+[GitHub CLI](https://cli.github.com/), which fetches the latest release:
+
+=== "Bash"
+
+    ```bash
+    mkdir microfiche-release && cd microfiche-release
+    ```
+
+    ```bash
+    gh release download --repo richard-gledhill/microfiche --pattern "*.whl"
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    New-Item -ItemType Directory microfiche-release; Set-Location microfiche-release
+    ```
+
+    ```powershell
+    gh release download --repo richard-gledhill/microfiche --pattern "*.whl"
+    ```
+
+**2. Install them** as a command-line tool, in an environment of its own so nothing else on your machine is touched:
+
+=== "Bash"
+
+    ```bash
+    uv tool install ./cli-*.whl --with ./core-*.whl
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv tool install (Get-Item .\cli-*.whl).FullName --with (Get-Item .\core-*.whl).FullName
+    ```
+
+**3. Check it works:**
+
+```bash
+microfiche --version
+```
+
+```bash
+microfiche --help
+```
+
+If the command isn't found, run `uv tool update-shell` and open a new terminal: uv puts tools in a folder that may not be on
+your `PATH` yet.
+
+**Using pip instead.** Make an environment and give pip both files:
+
+=== "Bash"
+
+    ```bash
+    python -m venv .venv && source .venv/bin/activate
+    ```
+
+    ```bash
+    pip install ./core-*.whl ./cli-*.whl
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    python -m venv .venv; .\.venv\Scripts\Activate.ps1
+    ```
+
+    ```powershell
+    pip install (Get-Item .\core-*.whl).FullName (Get-Item .\cli-*.whl).FullName
+    ```
+
+**Upgrade.** Download the new release's two wheels into a new folder and run the install command again with
+`--reinstall` (`uv tool install --reinstall ...`; with pip, `pip install --force-reinstall ...`). Your libraries are
+untouched: their settings and records live inside each library, in `.microfiche/`.
+
+**Uninstall.** `uv tool uninstall cli` (the tool is named after its package; the command it provides is `microfiche`), or
+`pip uninstall cli core`. Libraries are left as they are.
+
+!!! note "Commands in the rest of this guide"
+    The examples that follow start with `uv run microfiche`, which is how you run it from a source checkout. With a
+    release install, leave out `uv run` and type `microfiche ...`.
+
+### Install from source
+
+To change the code, or to run something that isn't in a release:
 
 ```bash
 git clone https://github.com/richard-gledhill/microfiche.git
@@ -31,8 +127,24 @@ uv run microfiche --help
 uv run microfiche --version
 ```
 
-**Optional — AI fallback.** To let a local [Ollama](https://ollama.com) model classify documents
-the rules can't, install the `ai` extra:
+### Optional: the AI fallback
+
+To let a local [Ollama](https://ollama.com) model classify documents the rules can't, install the `ai` extra, which
+is the `ollama` and `openai` packages. From a release, add them to the tool when you install it:
+
+=== "Bash"
+
+    ```bash
+    uv tool install ./cli-*.whl --with ./core-*.whl --with ollama --with openai
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv tool install (Get-Item .\cli-*.whl).FullName --with (Get-Item .\core-*.whl).FullName --with ollama --with openai
+    ```
+
+From a source checkout:
 
 ```bash
 uv sync --package core --extra ai

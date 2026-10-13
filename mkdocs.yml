@@ -58,10 +58,9 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/richard-gledhill/microfiche
-    - icon: fontawesome/brands/python
-      link: https://pypi.org/project/microfiche
 
 markdown_extensions:
+  - admonition
   - toc:
       permalink: true
   - pymdownx.arithmatex:
