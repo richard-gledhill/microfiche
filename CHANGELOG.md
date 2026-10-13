@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## Unreleased changes
 
 ### Feature
+- add a sample library builder covering every sort route [`2d94eeb`](https://github.com/richard-gledhill/microfiche/commit/2d94eeb)
 - release core and cli wheels in lockstep, with a coverage floor and Windows CI [`5392578`](https://github.com/richard-gledhill/microfiche/commit/5392578)
 - add --version, rollback --last and documented exit codes [`999cebc`](https://github.com/richard-gledhill/microfiche/commit/999cebc)
 
@@ -14,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
 
 ### Documentation
+- reconcile the docs with shipped behaviour (Stage 6 drift pass) [`d4a2aba`](https://github.com/richard-gledhill/microfiche/commit/d4a2aba)
+- remove the footer link to a PyPI page microfiche does not have [`e9650e5`](https://github.com/richard-gledhill/microfiche/commit/e9650e5)
+- add install-from-a-release instructions [`273c2a0`](https://github.com/richard-gledhill/microfiche/commit/273c2a0)
+- :robot: changelog file generated [`c1250c7`](https://github.com/richard-gledhill/microfiche/commit/c1250c7)
 - :robot: changelog file generated [`b1ed7c5`](https://github.com/richard-gledhill/microfiche/commit/b1ed7c5)
 - add Stage 6 guided walkthrough, simplification review and code review [`979c5a0`](https://github.com/richard-gledhill/microfiche/commit/979c5a0)
 - :robot: changelog file generated [`880496a`](https://github.com/richard-gledhill/microfiche/commit/880496a)
@@ -26,6 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - import core and cli as microfiche.core and microfiche.cli [`a88e02e`](https://github.com/richard-gledhill/microfiche/commit/a88e02e)
 
 ### Other
+- Merge pull request #64 from richard-gledhill/docs/stage-6-drift-pass [`862adbe`](https://github.com/richard-gledhill/microfiche/commit/862adbe)
+- Merge pull request #63 from richard-gledhill/docs/install-from-a-release [`d7dde62`](https://github.com/richard-gledhill/microfiche/commit/d7dde62)
+- Merge pull request #62 from richard-gledhill/feature/sample-library-fixture [`28a96c3`](https://github.com/richard-gledhill/microfiche/commit/28a96c3)
 - Merge pull request #61 from richard-gledhill/refactor/microfiche-namespace [`a921ab0`](https://github.com/richard-gledhill/microfiche/commit/a921ab0)
 - Merge pull request #60 from richard-gledhill/docs/stage-6-walkthrough-and-reviews [`5242e0e`](https://github.com/richard-gledhill/microfiche/commit/5242e0e)
 
