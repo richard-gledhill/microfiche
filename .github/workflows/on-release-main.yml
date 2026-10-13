@@ -6,6 +6,35 @@ on:
 
 jobs:
 
+  attach-wheels:
+    # core and cli are released together: both wheels, the same version, which must be the release's tag.
+    permissions:
+      contents: write # Allows the job to attach files to the release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Build the wheels
+        run: uv build --all-packages --wheel -o dist
+
+      - name: Check the wheels against the tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: uv run python scripts/check_wheels.py dist --tag "$TAG"
+
+      - name: Install the wheels in a clean environment
+        run: bash scripts/smoke_wheels.sh dist
+
+      - name: Attach the wheels to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/core-*.whl dist/cli-*.whl
+
   deploy-docs:
     permissions:
       contents: read

@@ -26,9 +26,11 @@ jobs:
         run: make check
 
   tests-and-type-check:
-    runs-on: ubuntu-latest
+    # Windows as well as Linux: the junction, locked-file and run-lock code only runs there, and the project is used there.
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python-version: ["3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
     defaults:
@@ -49,7 +51,45 @@ jobs:
       - name: Check typing
         run: uv run mypy
 
+  coverage:
+    # One run with coverage on, enforcing `fail_under` from pyproject.toml. Linux only: it measures the code, and the
+    # matrix above is what shows that the code behaves the same everywhere.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
 
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run tests with coverage
+        run: uv run python -m pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
+
+  wheels:
+    # Builds the release wheels and installs them in a clean environment, so a broken release is found on the pull
+    # request that breaks it, not on the day it is cut.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Build and check the wheels
+        run: |
+          uv build --all-packages --wheel -o dist
+          uv run python scripts/check_wheels.py dist
+
+      - name: Install the wheels in a clean environment
+        run: bash scripts/smoke_wheels.sh dist
 
   check-docs:
     runs-on: ubuntu-latest

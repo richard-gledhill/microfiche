@@ -93,8 +93,10 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
 ]
-# No fail_under yet - the codebase has known-stubbed paths (see docs/development/architecture.md
-# section 9). Add one once coverage has a real baseline to enforce against.
+# The floor CI and `make test` enforce on the whole of core and cli. The measured baseline was 97.6% (Windows,
+# 2026-10-13); it is set below that so a platform-specific branch that one OS does not run cannot fail the build.
+# Raise it, never lower it, once the Linux figure from CI is known (docs/development/mvp-build-plan.md, Stage 6).
+fail_under = 95
 
 [tool.ruff]
 target-version = "py311"

@@ -673,6 +673,18 @@ Decisions taken:
 baseline enforced in CI, and its documentation is accurate against shipped behavior — the
 actual MVP.
 
+**Decisions taken (2026-10-13).**
+- *Wheels are released in lockstep.* `core` and `cli` always have the same version, and `cli` requires `core==<that version>`, so a
+  mismatched pair cannot be installed. The root `microfiche` package builds a wheel that depends on nothing, and is not released.
+  `tests/scripts/test_check_wheels.py` fails if the three versions or the pin drift apart, and `scripts/check_wheels.py` checks
+  built wheels (both present, same version, the pin, the packaged defaults file, the `microfiche` command, and the tag).
+- *The coverage gate is one floor on the whole of `core` and `cli`* (`fail_under` in `pyproject.toml`), enforced by a `coverage` job
+  on Linux and by `make test`. The measured baseline was 97.6% on Windows; the floor starts at 95 so a branch one OS does not
+  run cannot fail the build, and is raised once the Linux figure is known. Modules below the floor on their own, and why:
+  `parsers/msg_parser.py` (58%, needs a real `.msg` file), `runlock.py` (88%, Windows-only branches), and two modules nothing
+  imports, `library/templates.py` and `utils/validation.py` (0%), which are for the simplification review below to remove
+  or keep, not for a coverage exemption.
+
 **Plan**
 - Define the MVP's release acceptance criteria (coverage floor, zero known must-fix gaps, docs accuracy) before starting hardening work.
 

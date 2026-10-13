@@ -5,9 +5,10 @@ import logging
 import os
 import re
 import shutil
+import sys
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
 
@@ -98,6 +99,19 @@ def test_app_version_prints_installed_version() -> None:
 
     assert result.exit_code == 0
     assert result.stdout == f"microfiche {version('cli')}\n"
+
+
+def test_app_version_not_installed_says_unknown(monkeypatch: pytest.MonkeyPatch) -> None:
+    def not_installed(name: str) -> str:
+        raise PackageNotFoundError(name)
+
+    # `cli.app` as an attribute is the Typer object (cli/__init__.py imports it under that name), not the module.
+    monkeypatch.setattr(sys.modules["cli.app"], "version", not_installed)
+
+    result = runner.invoke(app, ["--version"])
+
+    assert result.exit_code == 0
+    assert result.stdout == "microfiche unknown\n"
 
 
 def test_app_index_command_removed() -> None:

@@ -23,9 +23,15 @@ test: ## Test the code with pytest
 	@uv run python -m pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
 
 .PHONY: build
-build: clean-build ## Build wheel file
-	@echo "🚀 Creating wheel file"
-	@uvx --from build pyproject-build --installer uv
+build: clean-build ## Build the core and cli release wheels into dist/ and check them
+	@echo "🚀 Creating wheel files"
+	@uv build --all-packages --wheel -o dist
+	@uv run python scripts/check_wheels.py dist
+
+.PHONY: smoke-wheels
+smoke-wheels: build ## Install the built wheels in a clean virtual environment and run them
+	@echo "🚀 Installing the wheels in a clean environment"
+	@bash scripts/smoke_wheels.sh dist
 
 .PHONY: clean-build
 clean-build: ## Clean build artifacts
