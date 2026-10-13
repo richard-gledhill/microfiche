@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- :robot: changelog file generated [`cac978f`](https://github.com/richard-gledhill/microfiche/commit/cac978f)
 - move Stages 4.5 and 4.7 to the feature backlog, under review [`9b61aa9`](https://github.com/richard-gledhill/microfiche/commit/9b61aa9)
 - :robot: changelog file generated [`0a49b77`](https://github.com/richard-gledhill/microfiche/commit/0a49b77)
 - :robot: changelog file generated [`983278a`](https://github.com/richard-gledhill/microfiche/commit/983278a)
@@ -66,6 +67,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - add make module-diagram to regenerate the import graph [`279c6f2`](https://github.com/richard-gledhill/microfiche/commit/279c6f2)
 - add make library-schema to regenerate the library file schema [`587c8cd`](https://github.com/richard-gledhill/microfiche/commit/587c8cd)
 
+### Chore
+- bump version to 0.1.5 [`5fc65c4`](https://github.com/richard-gledhill/microfiche/commit/5fc65c4)
+
 ### Refactor
 - move the Obsidian integration out of the MVP [`50e0955`](https://github.com/richard-gledhill/microfiche/commit/50e0955)
 - use rapidfuzz directly instead of thefuzz [`f212dc0`](https://github.com/richard-gledhill/microfiche/commit/f212dc0)
@@ -73,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #59 from richard-gledhill/chore/bump-version-0.1.5 [`e70b4c4`](https://github.com/richard-gledhill/microfiche/commit/e70b4c4)
 - Merge pull request #58 from richard-gledhill/docs/move-stages-4-5-and-4-7-to-backlog [`b9ebbdb`](https://github.com/richard-gledhill/microfiche/commit/b9ebbdb)
 - Merge pull request #57 from richard-gledhill/feature/review-command [`1ce9650`](https://github.com/richard-gledhill/microfiche/commit/1ce9650)
 - feature: add the interactive review command for units left in the inbox [`132d86a`](https://github.com/richard-gledhill/microfiche/commit/132d86a)
