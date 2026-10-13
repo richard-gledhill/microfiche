@@ -219,7 +219,7 @@ class Library:
         """
 
         start = self._search_root(scope)
-        if start != self.root and (self.is_excluded(start) or is_link(start)):
+        if start != self.root and self.is_excluded(start):  # a scope is resolved first, so it is never itself a link
             return
         yield from self._walk_folder(start)
 

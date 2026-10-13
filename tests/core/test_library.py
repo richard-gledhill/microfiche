@@ -435,12 +435,14 @@ def test_files_excluded_folder_never_entered(tmp_path: Path, monkeypatch: pytest
     assert "attachments" not in opened  # pruned before descending, not listed and filtered afterwards
 
 
-def test_files_linked_scope_lists_nothing(tmp_path: Path, make_symlink: LinkMaker) -> None:
+def test_files_scope_that_is_a_link_out_of_the_library_refused(tmp_path: Path, make_symlink: LinkMaker) -> None:
     root = _build(tmp_path / "library")
     _touch(tmp_path / "elsewhere", "outside.md")
     make_symlink(root / "Project Phoenix" / "Linked", tmp_path / "elsewhere")
 
-    assert Library(root, config=_shipped()).files(root / "Project Phoenix" / "Linked") == []
+    # The scope is resolved first, so a link that leads out of the library is outside it, not an empty folder.
+    with pytest.raises(ScopeOutsideLibraryError):
+        Library(root, config=_shipped()).files(root / "Project Phoenix" / "Linked")
 
 
 def test_files_outside_scope_refused(tmp_path: Path) -> None:
