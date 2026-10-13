@@ -673,6 +673,17 @@ Decisions taken:
 baseline enforced in CI, and its documentation is accurate against shipped behavior — the
 actual MVP.
 
+**Carried in from Stage 5 (2026-10-13).**
+- CI is Ubuntu-only. The Windows-specific code (junctions, locked files, the `FILE_IN_USE` handling) runs only on the
+  maintainer's machine, and the 6 skipped tests are the ones that need Windows. A Windows CI job is the most valuable
+  item in this stage.
+- Typer forces coloured output when `GITHUB_ACTIONS` is set, so tests must not assert on raw `--help` text. To reproduce
+  a CI-only failure, run `GITHUB_ACTIONS=true uv run pytest tests`.
+- Known limits the docs accuracy pass must keep stating, not hide: a bundle moved by hand is split by `reclassify` (pinned
+  by a test); `Car` matches inside `care` and `scarf` at full confidence ([calibration.md](calibration.md)); `-q` hides the
+  "AI unavailable" warning; `review` cannot be scripted and has no ranked suggestions yet.
+- Coverage is about 98%, so the `fail_under` floor can be set from a real baseline.
+
 **Plan**
 - Define the MVP's release acceptance criteria (coverage floor, zero known must-fix gaps, docs accuracy) before starting hardening work.
 
@@ -687,16 +698,81 @@ actual MVP.
 - Extend the release workflow to build the `core` and `cli` wheels, check that the packaged defaults file is inside them, and attach them to the GitHub release.
 - Add `microfiche --version`, `rollback --last` (so the job id needn't be copied from `audit`), and a documented list of exit codes.
 - Reconcile any remaining documentation drift between the README, `docs/how-to-use.md`, the architecture docs, and actual behavior, including that no shipped doc presents Obsidian folder notes or tag governance as present.
+- Last step of the build sequence: an independent, **read-only** simplification review. Run `/mattpocock-skills:improve-codebase-architecture` and `/simplify` in parallel, each in its own sub-agent with no knowledge of the other's findings, and told to report only: neither may edit, stage or commit anything (`/simplify` applies its fixes by default, so say so in its prompt). Compare the two reports and consolidate them into one list (agreed by both, found by one only, contradicting), each item with the file, the proposed change, the benefit (simpler or more efficient) and the risk. **Nothing from the list is implemented until the maintainer has agreed it item by item.** Agreed changes are then made as ordinary changes, each with `make check` and `make test`.
 
 **Test**
 - Run the full test suite across every supported Python version and confirm parity.
 - Run the test suite on Windows as well as Linux (add `windows-latest` to the CI matrix); CI is Ubuntu-only today, while the docs and the project's own development use Windows paths and PowerShell.
 - Install the built wheels into a clean virtual environment and run `microfiche --version` and a sort against the mock library.
-- Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps).
+- Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps). It is run as a guided session, once per test library setup: see [Guided walkthrough session](#guided-walkthrough-session-stage-6-test).
+- Last step of the tests: an independent `/code-review` of everything Stage 6 changed (the diff from `main` as Stage 6 began to the release candidate, including any simplifications agreed above), spawned as a sub-agent in a clean session, so it has none of the build session's context or conclusions. It reports findings and changes nothing; the maintainer decides which to fix before the release is cut.
 
 **Deploy**
 - Cut the `v0.1.6` release through the repo's release workflow, with the wheels attached.
 - Publish the documentation site for the tagged release.
+
+### Guided walkthrough session (Stage 6 Test)
+
+The walkthrough is a paired session, run once for each test library setup. **The maintainer runs every command that
+changes the library**, typing it exactly as `docs/how-to-use.md` shows it; **Claude only reads** and checks that what
+happened is what the doc says. A mismatch is a finding: fix the doc or the code, then repeat that step.
+
+**Roles and limits**
+- The maintainer runs each step from the doc's Bash tab, then repeats the steps that differ in the PowerShell tab on a
+  fresh copy of the setup. Both tabs get a full pass, because most doc drift is in the one nobody ran.
+- Claude never runs `sort`, `review`, `rollback`, `reclassify --apply` or `config --sync`, and never edits, moves or deletes anything
+  in the library. Its checks are: listing the tree, hashing files, reading `.microfiche/` (`ledger.jsonl`, `audit.log`,
+  `rollback/job_<id>.json`, `microfiche.log`, `lock`) and the maintainer's pasted output, and running the commands that
+  write nothing (`config`, `audit`, `sort --dry-run`, `reclassify` without `--apply`, `propose-categories`).
+- Scratch files go in `.temp/` (gitignored). Each setup is walked on a **copy**, never on the maintainer's real library.
+
+**Per-setup protocol**
+1. *Snapshot.* Before step 1, Claude records a manifest of the copy: every path with its SHA-256, and the folder list.
+2. *Prompt loop.* For each checkpoint below, Claude states the section of the doc to follow, the shell tab, and what the
+   maintainer should paste back. The maintainer runs it and replies with the output, or "done".
+3. *Read-only check.* Claude then checks the folder against what the doc promises, and replies **pass**, or **fail**
+   with the doc line, the expected result, and what it found.
+4. *Invariants, after every changing step.* Every hash in the snapshot still exists exactly once (no file lost, copied
+   or overwritten); nothing new sits beside a document (no sidecars); `.microfiche/lock` is gone; each moved file has one
+   ledger record and one audit line; the job file's events match the moves.
+5. *Close.* Claude lists the findings, with which tab and setup each came from, and the maintainer decides which are fixed
+   before `v0.1.6`.
+
+**Checkpoints** (skip one that doesn't apply to the setup, and say so)
+
+| # | Doc section | Maintainer runs | Claude checks (read-only) |
+|---|---|---|---|
+| 1 | 1 Install | `uv sync`, `microfiche --help` | The commands the doc lists match the app's; `--version` exists |
+| 2 | 2 Set up a library | Create the inbox, copy `microfiche/` to `.microfiche/`, `config` | The tree matches the doc's diagram; the config output matches the file |
+| 3 | 2 (config errors) | Mistype a setting, run `config` and `audit` | `config` names the file and the setting; `audit` still works |
+| 4 | Library file | First `sort --dry-run`, then `config --sync` | The dry run wrote nothing; the sync lists exactly the folders on disk, and changes no existing entry |
+| 5 | 3 Preview | `sort --dry-run` | Preview label; no `.microfiche/` changes, no lock, no job, no ledger line |
+| 6 | 3 Sort | `sort` | Hashes conserved; each filed file is in the reported place; Needs review files are untouched in the inbox; the job id exists |
+| 7 | Clashes and duplicates | Drop a same-name file and an exact copy, `sort` | Both stay in the inbox; the reasons name the right place; nothing overwritten |
+| 8 | Folders | Drop a folder; `sort`, then again with `--keep-folders-off` | Whole folder moved in the first case; per-file and the emptied folder gone in the second, recorded as `remove_folder` |
+| 9 | Working through Needs review | `review`: accept, modify, a new folder, skip, quit, and one Ctrl-C | Nothing moved before the confirmation; one job after it; the new folder exists only if it was used; skipped units remain |
+| 10 | Files that can't be sorted | A file open in Word (Windows), a symlink or junction, a `~$` file, an oversize file | Each stays put with the documented message; no stray copy; the link was not followed |
+| 11 | audit, rollback | `audit`, then `rollback --job-id` for the `sort` and the `review` jobs | The tree equals the snapshot manifest again (a folder with documents in it may remain); a second rollback is refused |
+| 12 | reclassify | Dry run, `--folder`, `--apply`, `rollback` | The table matches the tree; only `move` rows moved; one job; rollback restores the manifest |
+| 13 | Exclusions | Add `exclude` for a folder, `reclassify` | The excluded folder's files do not appear in the table |
+| 14 | Flat library (`depth = 1`) | Set `depth = 1`, `sort --dry-run`, `sort`, `reclassify` | Files sit directly in group folders; no category prompt in `review` |
+| 15 | Reduce the depth | Set `depth` 2 to 1, `reclassify` | The "filed item(s) sit below the depth" count equals the number found on disk; nothing moved |
+| 16 | Troubleshooting | `sort -v`, `-q`, then read the log | The log has a line per document with a reason, no document text, and the summary; `-q` hides the warnings the doc says it hides |
+| 17 | Two runs at once | Start `sort` in one terminal, a second in another; then plant a stale lock from a dead pid | The second refuses with the doc's message; the stale lock is cleared with a warning recorded in the log |
+| 18 | AI fallback | `sort --use-ai` with Ollama stopped (optional: running) | One "unavailable" warning; the rules-only result is filed; nothing invented |
+
+**Test library setups.** Fill in the setups the walkthrough will use. Between them they should cover each shape the doc
+describes, and the known limits above, so those are seen to be stated accurately.
+
+| Setup | Shape | Depth | Must contain |
+|---|---|---|---|
+| A | _project › document type, e.g. `tests/mock_library`_ | 2 | Confident files, a below-threshold file, a name clash, an exact copy, a dropped folder |
+| B | _project › stage with hints (`project-stages`)_ | 2 | Filename rules, shared `"*"` hints, a per-group hint |
+| C | _flat, groups only (`household-flat`)_ | 1 | A short group name inside a longer word (`Car` in `scarf`), to confirm the limit is documented |
+| D | _the maintainer's own_ | _?_ | A realistic mix; this is where unexpected cases turn up |
+
+**Exit criteria.** Every checkpoint is pass or an explained skip, in both tabs, for every setup; every fail is either fixed
+(and its step repeated) or recorded in `mvp-roadmap.md` and the docs' "Current limitations" as a known limit.
 
 ---
 
@@ -736,7 +812,6 @@ rather than in isolation:
    filed bundle. It is also the rule depth 3 would need to tell a subcategory from one.
    (4.9, an optional filing target mode, was moved to the backlog while under review; see
    [feature-backlog.md](feature-backlog.md#filing-target-mode-file_at).)
-
 4.10. **Library file sync, after 4.3** — the library file arrives in 4.1 as a hand-written file; this makes it follow
    the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
    `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6, which reuses its structure
@@ -747,4 +822,5 @@ rather than in isolation:
    designed as a plugin. It does not depend on 4.5 or 4.7, which were later moved to the backlog (see its "Revised before
    building" note).
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs
-   until the feature set has stopped changing underneath them.
+   until the feature set has stopped changing underneath them. The simplification review closes the build and the independent code review closes the tests, so
+   the release candidate is looked at after its last change, not before.
