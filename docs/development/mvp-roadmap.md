@@ -104,7 +104,7 @@ per-unit failure, goes to review with the reason while the rest of the batch is 
 `FilingResult`). A failing AI provider switches the AI off for the rest of the run, with one warning. The inbox
 scan skips `[sorting] ignore` names, symlinks and junctions, and a file over `[parsing] max_file_mb` is left for
 review unread. Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
-the inbox's `ignore` and link rules.
+the inbox's `ignore` rule. (It skips links: `Library.files` was made to in Stage 6, after a review found it followed a junction.)
 
 [Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) is built. `core` emits records through module loggers
 (`_logger = logging.getLogger(__name__)`) and installs no handlers; `core/__init__.py` puts a `NullHandler` on its

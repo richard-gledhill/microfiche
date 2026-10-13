@@ -11,7 +11,6 @@ file sizes, and hashes a file only when it has the same size as a file being che
 
 from __future__ import annotations
 
-import os
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,7 +19,6 @@ from microfiche.core.filer import destination_for
 from microfiche.core.library.library import Library
 from microfiche.core.models.classification import ClassificationResult
 from microfiche.core.models.unit import SortableUnit
-from microfiche.core.utils.filesystem import is_link
 from microfiche.core.utils.hashing import file_hash
 
 # region Constants and types
@@ -153,25 +151,13 @@ class DuplicateIndex:
         """Group every non-excluded file in the library by size, reading directory entries only."""
 
         by_size: dict[int, list[Path]] = defaultdict(list)
-        folders = [self._library.root]
-        while folders:
+        for entry in self._library.walk():
             try:
-                with os.scandir(folders.pop()) as scan:
-                    entries = sorted(scan, key=lambda entry: entry.name)
+                size = entry.stat().st_size
             except OSError:
                 continue
-            for entry in entries:
-                path = Path(entry.path)
-                try:
-                    if entry.is_dir(follow_symlinks=False):
-                        if not self._library.is_excluded(path) and not is_link(path):
-                            folders.append(path)
-                    elif entry.is_file(follow_symlinks=False) and not self._library.is_excluded(path):
-                        size = entry.stat().st_size
-                        if size:
-                            by_size[size].append(path)
-                except OSError:
-                    continue
+            if size:
+                by_size[size].append(Path(entry.path))
         for paths in by_size.values():
             paths.sort()
         return by_size

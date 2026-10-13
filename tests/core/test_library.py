@@ -1,5 +1,6 @@
 """Tests for the Library: its layout, exclusions, taxonomy, and lazily loaded config."""
 
+import os
 from pathlib import Path
 
 import pytest
@@ -387,6 +388,59 @@ def test_files_excluded_scope_not_listed(tmp_path: Path) -> None:
     _touch(root, "_sorting/inbox.md")
 
     assert Library(root, config=_shipped()).files(root / "_sorting") == []
+
+
+@pytest.mark.parametrize("maker", ["make_symlink", "make_junction"])
+def test_files_linked_folder_not_followed(tmp_path: Path, request: pytest.FixtureRequest, maker: str) -> None:
+    make_link: LinkMaker = request.getfixturevalue(maker)
+    root = _build(tmp_path / "library")
+    _touch(root, "Project Phoenix/01 Requirements/a.md")
+    elsewhere = tmp_path / "elsewhere"
+    _touch(elsewhere, "secret.md")
+    make_link(root / "Project Phoenix" / "Linked", elsewhere)
+
+    files = Library(root, config=_shipped()).files()
+
+    assert [path.relative_to(root).as_posix() for path in files] == ["Project Phoenix/01 Requirements/a.md"]
+
+
+def test_files_linked_file_not_listed(tmp_path: Path, make_symlink: LinkMaker) -> None:
+    root = _build(tmp_path / "library")
+    _touch(root, "Project Phoenix/01 Requirements/a.md")
+    _touch(tmp_path / "elsewhere", "outside.md")
+    make_symlink(root / "Project Phoenix" / "01 Requirements" / "alias.md", tmp_path / "elsewhere" / "outside.md")
+
+    files = Library(root, config=_shipped()).files()
+
+    assert [path.name for path in files] == ["a.md"]
+
+
+def test_files_excluded_folder_never_entered(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = _build(tmp_path / "library")
+    _touch(root, "Project Phoenix/01 Requirements/a.md", "Project Phoenix/01 Requirements/attachments/big.md")
+    library = Library(root, config=_shipped())
+    library.config.exclusions.exclude.append("attachments")
+    opened: list[str] = []
+    real_scandir = os.scandir
+
+    def recording_scandir(path: "str | os.PathLike[str]") -> "os.scandir[str]":
+        opened.append(Path(path).name)
+        return real_scandir(path)
+
+    monkeypatch.setattr(os, "scandir", recording_scandir)
+
+    files = library.files()
+
+    assert [path.name for path in files] == ["a.md"]
+    assert "attachments" not in opened  # pruned before descending, not listed and filtered afterwards
+
+
+def test_files_linked_scope_lists_nothing(tmp_path: Path, make_symlink: LinkMaker) -> None:
+    root = _build(tmp_path / "library")
+    _touch(tmp_path / "elsewhere", "outside.md")
+    make_symlink(root / "Project Phoenix" / "Linked", tmp_path / "elsewhere")
+
+    assert Library(root, config=_shipped()).files(root / "Project Phoenix" / "Linked") == []
 
 
 def test_files_outside_scope_refused(tmp_path: Path) -> None:

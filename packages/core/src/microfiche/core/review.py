@@ -305,12 +305,15 @@ class ReviewSession:
 
         if item.unit.source_path in self._decisions:
             raise AlreadyDecidedError(item.name)
+        try:
+            content_hash = unit_hash(
+                item.unit.source_path
+            )  # before reserving: a unit that can't be read must claim nothing
+        except OSError as err:
+            return f"it can't be read: {err}"
         problem = self._vet(item, folders, self._claims, self._duplicates, reserve=True)
         if problem is None:
-            try:
-                self._hashes[item.unit.source_path] = unit_hash(item.unit.source_path)
-            except OSError as err:
-                return f"it can't be read: {err}"
+            self._hashes[item.unit.source_path] = content_hash
             self._decisions[item.unit.source_path] = (item, folders)
             _logger.debug("review: %s -> %s", item.name, "/".join(folders))
         return problem

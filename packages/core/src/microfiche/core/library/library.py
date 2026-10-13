@@ -10,6 +10,8 @@ is, and where a classified unit belongs. Everything else asks it.
 from __future__ import annotations
 
 import logging
+import os
+from collections.abc import Iterator
 from pathlib import Path
 
 from microfiche.core.config import MICROFICHE_DIRNAME, MicroficheConfig, load_config
@@ -182,6 +184,9 @@ class Library:
     def files(self, scope: Path | None = None) -> list[Path]:
         """List every file under ``scope`` (default: the whole library) that isn't excluded.
 
+        Links are never followed: a symbolic link or Windows junction (to a file or a folder) is not listed, and
+        nothing behind a linked folder is, so a link cannot lead a scan out of the library.
+
         Args:
             scope: A folder inside the library to limit the listing to. May be relative to the
                 working directory or spelled differently from ``root``.
@@ -193,8 +198,47 @@ class Library:
             ScopeOutsideLibraryError: if ``scope`` isn't inside the library.
         """
 
-        search_root = self._search_root(scope)
-        return [path for path in sorted(search_root.rglob("*")) if path.is_file() and not self.is_excluded(path)]
+        return [Path(entry.path) for entry in self.walk(scope)]
+
+    def walk(self, scope: Path | None = None) -> Iterator[os.DirEntry[str]]:
+        """Every file under ``scope`` (default: the whole library) that isn't excluded, as directory entries.
+
+        This is the one walk of the library's content, shared by ``files`` and the duplicate check. An excluded or
+        linked folder is skipped without being opened, so a large excluded tree (``.git``, ``node_modules``) costs
+        nothing. The entries carry the file's size and kind from the directory listing, so no extra call is made to
+        learn them.
+
+        Args:
+            scope: A folder inside the library to limit the walk to, as for ``files``.
+
+        Yields:
+            Each file's entry, folders in sorted path order and the files and folders in each in that order too.
+
+        Raises:
+            ScopeOutsideLibraryError: if ``scope`` isn't inside the library.
+        """
+
+        start = self._search_root(scope)
+        if start != self.root and (self.is_excluded(start) or is_link(start)):
+            return
+        yield from self._walk_folder(start)
+
+    def _walk_folder(self, folder: Path) -> Iterator[os.DirEntry[str]]:
+        try:
+            with os.scandir(folder) as scan:
+                entries = sorted(scan, key=lambda entry: Path(entry.path))
+        except OSError:
+            return
+        for entry in entries:
+            path = Path(entry.path)
+            try:
+                if entry.is_dir(follow_symlinks=False):
+                    if not is_link(path) and not self.is_excluded(path):
+                        yield from self._walk_folder(path)
+                elif entry.is_file(follow_symlinks=False) and not self.is_excluded(path):
+                    yield entry
+            except OSError:
+                continue
 
     def _filed_whole(self) -> set[Path]:
         """The folders microfiche filed whole, which are content and not structure.
