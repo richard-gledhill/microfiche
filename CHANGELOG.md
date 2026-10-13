@@ -6,11 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Feature
+- release core and cli wheels in lockstep, with a coverage floor and Windows CI [`5392578`](https://github.com/richard-gledhill/microfiche/commit/5392578)
+- add --version, rollback --last and documented exit codes [`999cebc`](https://github.com/richard-gledhill/microfiche/commit/999cebc)
+
+### Bug Fixes
+- take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
+
 ### Documentation
+- :robot: changelog file generated [`b1ed7c5`](https://github.com/richard-gledhill/microfiche/commit/b1ed7c5)
 - add Stage 6 guided walkthrough, simplification review and code review [`979c5a0`](https://github.com/richard-gledhill/microfiche/commit/979c5a0)
 - :robot: changelog file generated [`880496a`](https://github.com/richard-gledhill/microfiche/commit/880496a)
 
+### Chore
+- merge main into refactor/microfiche-namespace [`6c3ba76`](https://github.com/richard-gledhill/microfiche/commit/6c3ba76)
+- keep LF endings on shell scripts and the Makefile [`c96017c`](https://github.com/richard-gledhill/microfiche/commit/c96017c)
+
+### Refactor
+- import core and cli as microfiche.core and microfiche.cli [`a88e02e`](https://github.com/richard-gledhill/microfiche/commit/a88e02e)
+
 ### Other
+- Merge pull request #61 from richard-gledhill/refactor/microfiche-namespace [`a921ab0`](https://github.com/richard-gledhill/microfiche/commit/a921ab0)
 - Merge pull request #60 from richard-gledhill/docs/stage-6-walkthrough-and-reviews [`5242e0e`](https://github.com/richard-gledhill/microfiche/commit/5242e0e)
 
 ## v0.1.5 (2026-10-13)
