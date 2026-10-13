@@ -68,8 +68,9 @@ class AuditEvent(BaseModel):
 Of the seven `AuditAction` values, four are emitted today: `"move"` (from
 `filer.py::file_batch`), `"rollback"` (from `filer.py::rollback_job`), and the pair
 `"remove_folder"` and `"restore_folder"`. `"rename"`, `"classify"`, and `"override"` are defined for
-future use — a rename-rules event, a classification-decision event, and a user-override event from the
-(not yet implemented) review flow — but nothing produces them yet.
+future use — a rename-rules event, a classification-decision event, and a user-override event — but nothing produces
+them yet. The `review` command does not use `"override"`: it files a person's choice as an ordinary `"move"`, recorded
+in the ledger with `classified_by = "user"`.
 
 `"remove_folder"` records an inbox folder that was removed because all of its files were filed and it was
 left completely empty (`original_path` is the folder, `new_path` is `None`). It is only emitted when

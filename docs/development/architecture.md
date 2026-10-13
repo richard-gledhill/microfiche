@@ -12,6 +12,9 @@ library" is the destination being built from scratch. In practice the library al
 own folder taxonomy, and already has a live inbox folder that developers drop things into. This ADR reconciles
 the design with that reality.
 
+Paths such as `core/library/library.py` are shorthand for `packages/core/src/microfiche/core/library/library.py`: the
+`core` and `cli` distributions import as `microfiche.core` and `microfiche.cli` (a shared namespace package).
+
 ***
 
 ## 1. The library is the taxonomy — categories are discovered, not configured
@@ -87,8 +90,8 @@ rules/rules_engine.py        # Resolver adapter 1: deterministic rules
 ai/llm_classifier.py         # Resolver adapter 2: the AI fallback
 ```
 
-**Stage 1 — group resolution** (`rules/group_rules.py`, new):
-* Match against known group names in the document text (groups have no keyword hints).
+**Stage 1 — group resolution** (`rules/group_rules.py`):
+* Match against known group names in the document text. At depth 2 groups have no keyword hints; a flat library's groups do (§2).
 * Fuzzy match (via `rapidfuzz`, a direct dependency — this is what it's for) to catch near-misses like
   "Phoenix Project" vs "Project Phoenix".
 * AI fallback (`ai/llm_classifier.py`) only if the rules' answer is missing or below the confidence threshold:
@@ -116,8 +119,8 @@ the review prompt must let the user pick group *and* category, not just category
 that's actually unresolved.
 
 If no existing group matches at all, that's not automatically "low confidence" — it's a distinct outcome
-("no group found") that should also route to review, offering "create new group" as an explicit option
-(review UX from the original PRD, extended with group-creation).
+("no group found") that also routes to review, where "create new" is an explicit option for the group
+(review UX from the original PRD, extended with group-creation; see §8).
 
 ## 4. Sortable units: files and whole folders
 
@@ -146,8 +149,8 @@ the depth is raised. Any other folder below a category is read file by file; the
 classified individually (both stages); the folder is filed as a whole under whichever `(group, category)` pair
 has the most votes across its documents, represented by that pair's most confident document. Per-document
 classification results are
-meant to be recorded (in the ledger, see §7 — not implemented yet) even though only one filing decision is physically applied —
-so a human can see *why* a folder landed where it did. If two or more `(group, category)` pairs tie for the
+meant to be recorded in the ledger (§7; the ledger records the folder's one decision today, not the per-document breakdown)
+even though only one filing decision is physically applied — so a human can see *why* a folder landed where it did. If two or more `(group, category)` pairs tie for the
 most votes (e.g. an even split across two groups) the folder is **not** guessed: it is left unresolved and
 routed to review, with the disagreement as its reason — same as an individual unresolved document. A unique
 winner is enough; it does not need a strict majority. Documents whose group didn't resolve don't vote.
@@ -226,8 +229,8 @@ and read-only commands take no lock. A lock timeout and a `--force` override are
 
 **Decision — core emits, the CLI configures logging.** Every module that logs has `_logger = logging.getLogger(__name__)`
 (`microfiche.core.*`, `microfiche.cli.*`), and `core/__init__.py` adds a `NullHandler` to the `microfiche.core` logger and nothing else, so `core` is quiet
-when used as a library. Only the CLI installs handlers (`cli/logging.py::configure_logging`), and only on the `core` and
-`cli` loggers, not the root, so a third party's records (the AI SDKs' HTTP clients) stay out and `propagate` stays on for
+when used as a library. Only the CLI installs handlers (`cli/logging.py::configure_logging`), and only on the `microfiche.core` and
+`microfiche.cli` loggers, not the root, so a third party's records (the AI SDKs' HTTP clients) stay out and `propagate` stays on for
 `caplog`. The loggers pass every record on and each handler filters, so `-v` and `-q` can differ from the file: the console
 (stderr) shows WARNING and above, INFO with `-v`, errors only with `-q` (which wins); the file records `[logging] level`,
 or DEBUG with `-v`. The file is a rotating UTF-8 `.microfiche/microfiche.log`, opened lazily, and is attached only by a
@@ -326,7 +329,8 @@ microfiche review [--use-ai]                         # decide, one by one, what 
 microfiche propose-categories                        # suggest category names from the inbox; print-only
 microfiche reclassify [--folder PATH] [--apply]      # re-review already-filed documents
 microfiche audit                                     # show the audit log
-microfiche rollback --job-id ID                      # undo a job by id
+microfiche rollback --job-id ID | --last             # undo a job by id, or the newest one not yet undone
+microfiche --version                                 # print the installed version
 microfiche config [--sync]                           # show the loaded configuration; --sync updates the library file from the folders
 ```
 
@@ -346,7 +350,7 @@ integration (§6).
 ## 9. Explicitly deferred (unchanged from concept 1b / the roadmap)
 
 No database, no vector store, no semantic search in this MVP — `ai/` is a fallback path for group/category
-resolution and for `propose-categories --use-ai`, not a always-on classification pass. Phase 2+ items
+resolution and for `propose-categories --use-ai`, not an always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
 
 Other deferred work is in [mvp-roadmap.md](mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and

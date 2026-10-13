@@ -279,10 +279,9 @@ flowchart TD
     core_review --> u_hashing
 ```
 
-**Read against [mvp-roadmap.md](mvp-roadmap.md):** the isolated nodes above (`templates.py` and the
-`validation.py` helper) aren't dead code — they're implemented and tested, just not yet called from
-`organizer.py`/`filer.py`. That's the gap this roadmap doc tracks, not a diagramming omission. The Obsidian
-modules that used to sit here were removed from the MVP and are kept in
+**The isolated nodes above** (`templates.py` and the `validation.py` helper) are not imported by anything, and no
+test runs them (0% coverage): they are unused code, left for the Stage 6 simplification review to remove or keep. The
+Obsidian modules that used to sit here were removed from the MVP and are kept in
 [feature-backlog.md](feature-backlog.md#obsidian-integration).
 
 ## 2. Sort pipeline data flow
@@ -346,5 +345,5 @@ instead of the `_sorting/` inbox; with `--apply` it files its `move` proposals t
 ## See also
 
 - [architecture.md](architecture.md) — the design narrative these diagrams visualize.
-- [mvp-roadmap.md](mvp-roadmap.md) — status per feature; explains every "not yet wired" node above.
+- [mvp-roadmap.md](mvp-roadmap.md) — status per feature.
 - [data-model.md](data-model.md) — the ledger, `AuditEvent`, `Job` and `audit.log` schemas referenced here.
