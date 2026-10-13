@@ -25,6 +25,7 @@ from core.library.library import Library, ScopeOutsideLibraryError
 from core.library.library_sync import sync_library_file
 from core.organizer import run_sort
 from core.reclassify import apply_reclassification, items_below_depth, run_reclassify
+from core.review import ReviewOutcome, ReviewSession
 from core.runlock import LockHolder, RunLockError, run_lock
 from core.scanner import scan_sorting_inbox
 from rich.console import Console
@@ -39,6 +40,7 @@ from cli.display import (
 )
 from cli.logging import FILE_ONLY, configure_logging, reset_logging
 from cli.progress import progress_bar
+from cli.review import render_outcome, render_summary, stdin_is_terminal, work_queue
 
 # region Constants and types
 
@@ -115,11 +117,44 @@ def sort(
     render_sort_report(console, report)
 
 
-def review() -> None:
-    """Not implemented yet: work through the low-confidence review queue from the most recent sort run."""
+def review(
+    library: Path = _LIBRARY_OPTION,
+    use_ai: bool = typer.Option(
+        False,
+        "--use-ai",
+        help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does.",
+    ),
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
+    """Decide where the documents `sort` left in the inbox should go.
 
-    console.print("[yellow]The interactive review queue is not implemented yet - see cli/review.py.[/yellow]")
-    raise typer.Exit(code=1)
+    For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
+    Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
+    then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
+    documents already in the library. Needs a terminal.
+    """
+
+    opened = _open_library(library, uses_hints=True)
+    if not stdin_is_terminal():
+        _fail("review asks questions, so it needs a terminal. Use `sort`, or file the documents by hand.")
+    with _logging("review", opened, verbose=verbose, quiet=quiet, writes=False):
+        with progress_bar(quiet=quiet, ai=use_ai) as on_progress:
+            ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
+            session = ReviewSession.start(opened, ai_classifier=ai_classifier, progress=on_progress)
+        _describe_queue(session)
+        if not session.items:
+            console.print("Nothing to review: the inbox has no document waiting for a decision.")
+            return
+        work_queue(console, session)
+        if not session.decisions:
+            console.print("Nothing was chosen, so nothing was moved.")
+            return
+        render_summary(console, session)
+        if not typer.confirm("File these now?", default=True):
+            console.print("Nothing was moved.")
+            return
+    render_outcome(console, _file_chosen(opened, session, verbose=verbose, quiet=quiet))
 
 
 def propose_categories(
@@ -390,6 +425,44 @@ def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
         console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
         _logger.warning(notice, extra=FILE_ONLY)
     return LLMClassifier(provider, settings)
+
+
+def _describe_queue(session: ReviewSession) -> None:
+    """Say what `review` will not ask about, and why: copies, documents `sort` would file, an unavailable AI."""
+
+    if session.duplicates:
+        console.print(
+            f"[dim]{len(session.duplicates)} document(s) are copies of other documents and stay in the inbox; "
+            "`sort` lists them.[/dim]",
+            soft_wrap=True,
+        )
+    if session.waiting:
+        console.print(
+            f"[dim]{session.waiting} document(s) are confident enough for `sort` to file, so `review` does not "
+            "ask about them.[/dim]",
+            soft_wrap=True,
+        )
+    if session.ai_unavailable is not None:
+        console.print(f"[yellow]The AI fallback was unavailable ({escape(session.ai_unavailable)}).[/yellow]")
+
+
+def _file_chosen(library: Library, session: ReviewSession, *, verbose: bool, quiet: bool) -> ReviewOutcome:
+    """File the choices under the run lock, which is taken only now.
+
+    Asking is read-only, and holding the lock meanwhile would stop `sort` for as long as the person takes. If another
+    run holds it, the choices are kept and the person is asked whether to try again, rather than made all over again.
+    """
+
+    while True:
+        try:
+            with (
+                _locked(library, "review") as cleared_lock,
+                _logging("review", library, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
+            ):
+                return session.commit()
+        except typer.Exit:
+            if not typer.confirm("Try again?", default=False):
+                raise
 
 
 def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool | None:

@@ -135,7 +135,7 @@ will differ. Blending the ordinary and tricky outcomes at other shares, per 100 
 
 "Break-even" is how many needless reviews one avoided misfile must be worth for 0.8 to beat 0.75. Only
 if misfiles are many times worse than reviews *and* tricky documents are common does 0.8 pay off —
-and `review` is still a stub, so a held document means filing by hand.
+and a held document waits in the inbox for `review` (or for filing by hand).
 
 ## Why 0.75
 

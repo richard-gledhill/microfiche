@@ -86,7 +86,7 @@ The confidence a classification must reach before microfiche files a unit on its
 _Avoid_: Cutoff, minimum score
 
 **Review**:
-Where a unit goes when it can't be filed confidently — it stays in the inbox for a person to decide.
+Where a unit goes when it can't be filed confidently — it stays in the inbox for a person to decide. The `review` command walks that queue, and files what the person chooses.
 _Avoid_: Quarantine, rejected
 
 **Reclassify**:

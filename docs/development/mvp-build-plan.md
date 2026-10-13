@@ -707,6 +707,17 @@ it extended the target and is better built on a plugin architecture than inside 
 [feature-backlog.md](feature-backlog.md#obsidian-integration). `review` stays: without it a unit below the confidence
 threshold has no way out of the inbox except filing it by hand.
 
+**Revised before building (2026-10-13).** Stage 5 is built ahead of Stages 4.5 and 4.7, because neither blocks it: the
+ranked suggestions a decision model would give wait for 4.5, and a third level adds one more prompt when 4.7 is built.
+Decisions taken:
+- *The queue is not stored.* `review` previews a sort (`run_sort(dry_run=True)`) and queues what it leaves in the inbox, so the inbox is the queue.
+- *Duplicates are not in the queue.* A copy is not a classification question and microfiche never deletes; `review` counts them and `sort` lists them.
+- *A folder unit is one item*, with one destination for the whole folder. To file its documents separately, use `sort --keep-folders-off`.
+- *`review` may create a group or category folder*, after the person confirms the exact path. The folder is only planned until a unit is filed into it, so an abandoned session creates nothing.
+- *Choices are staged and filed once.* One confirmation at the end, one `file_batch` job; Ctrl-C before it moves nothing.
+- *The run lock is taken only to file*, with every choice re-checked at that moment, so deciding never blocks another run.
+- *`review` needs a terminal* and exits 1 without one.
+
 **Plan**
 - Define the review-queue interaction contract (accept / modify / create-new / skip) before writing the Typer prompt loop.
 - Decide where the queue comes from. `sort` keeps no queue: a unit below the threshold simply stays in the inbox, so the current `review` docstring ("from the most recent sort run") promises more than is stored. Either re-scan and re-classify the inbox, or save the last report under `.microfiche/`. The inbox is already the queue, so re-classifying is the simpler of the two; saving a report adds state that has to be kept in step with the inbox.
@@ -730,6 +741,18 @@ threshold has no way out of the inbox except filing it by hand.
 **Deploy**
 - Update `docs/how-to-use.md` (a section on `review` in both the Bash and PowerShell tabs, and remove it from "Current limitations"), the Usage section of `README.md`, `docs/cli-reference.md` (`make docs-cli`), the `review` row in `mvp-roadmap.md`, `architecture.md` §8, and the note in `calibration.md` that `review` is a stub.
 - Tag `v0.1.5` — feature-complete against the MVP's CLI surface.
+
+**As built:**
+- `core/review.py::ReviewSession` holds the queue and the choices. `decide` checks a choice as it is made, in `sort`'s order (a place that exists or is planned, then a copy, then the name), and reserves the destination; `problem` asks the same without reserving; `commit` re-checks each choice and files them through `file_batch`. `DestinationClaims` gained a non-reserving `problem`, so the name check is written once.
+- A choice is recorded as a `ClassificationResult` with `classified_by = "user"`, reasons "Chosen in review" and confidence 1.0. Nothing is learned back into hints.
+- `cli/review.py` holds the prompts: accept (only when the guess names a free destination), modify (numbered lists, `n` for a new folder), skip (the default), quit. `display.render_job` became public so `review` and `sort` print the job the same way.
+- The log file is written only for the commit, under the lock; asking logs to the screen only. If the lock is held at that point the choices are kept and the person is asked whether to try again.
+- Safety found in review: a planned folder is refused if anything is already on disk by that name (a link, a loose file, a folder filed whole), if it is the inbox or state folder in any case, or if it is a reserved Windows name or over 255 characters. A unit's content hash is taken when it is chosen and checked again at the commit, so a document replaced meanwhile is left in the inbox. A folder made for a move that then fails is taken back, and the session's choices are used up after a commit.
+- `review` also says how many documents `sort` would file (it does not ask about them) and how many copies it is leaving.
+- `--use-ai`, `-v` and `-q` as on `sort`. The old test that pinned the stub's help text was replaced by one for the real command.
+- The `v0.1.5` tag is a release step and was not created.
+
+**Deferred:** ranked suggestions from a decision model (Stage 4.5); an extra prompt per level at depth 3 (Stage 4.7); going back to an item once passed; learning hints from choices.
 
 ---
 
@@ -814,6 +837,7 @@ rather than in isolation:
 5. **Review fifth** — it is the other end of the sort loop: everything `sort` holds back lands in the queue it
    works. It needs the earlier stages' safeguards (the collision and duplicate checks, the run lock, rollback) because
    it files too. The Obsidian integration used to share this stage and was moved out of the MVP, so that it can be
-   designed as a plugin.
+   designed as a plugin. It was built ahead of 4.5 and 4.7, which it does not depend on (see its "Revised before
+   building" note).
 6. **Hardening last** — you can't set a meaningful coverage floor or write accurate docs
    until the feature set has stopped changing underneath them.

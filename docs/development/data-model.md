@@ -26,7 +26,8 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   lines for every file inside (`core/utils/hashing.py::unit_hash`). The hash lets a record be
   found again after a file is moved or renamed outside microfiche.
 - **`classified_by`** names the resolver(s) that decided the classification: `rules_engine`, `ai_fallback`,
-  or `rules_engine+ai_fallback` when each decided a different stage. (`folder_vote` marks a tied folder
+  or `rules_engine+ai_fallback` when each decided a different stage, or `user` for a choice made in `review`
+  (its reasons read "Chosen in review" and its confidence is 1.0). (`folder_vote` marks a tied folder
   left for review; it never reaches the ledger because nothing is filed.)
 - **`category` is `null` in a flat library** (`depth = 1`), which has no categories, and so is `category_reason`. A ledger
   can therefore hold records of both shapes if a library's depth is changed; the records are read as they were written.

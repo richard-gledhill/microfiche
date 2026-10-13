@@ -10,8 +10,8 @@ changes here, update the "Current limitations" list and usage steps in the user-
 
 | Command | Status | Notes |
 |---|---|---|
-| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`, which is still a stub. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). `-v`/`-q` set how much is shown, and a run is explained in `.microfiche/microfiche.log` (Stage 4.4). |
-| `review` | Stub (in the MVP: [Stage 5](mvp-build-plan.md#stage-5--review-workflow)) | Exits with a "not implemented" message (`cli/commands.py::review`); the real interaction loop is parked, unwritten, in `cli/review.py`. Until it is built, a unit left for review is filed by hand. |
+| `sort` | Done (for MVP scope) | Classifies and files, and records each run as one job: a rollback job, ledger records and `audit.log` lines under `.microfiche/` (`core/filer.py::file_batch`). Prints the job id. Items below the confidence threshold stay in `_sorting/` for `review`. A name collision or an exact content duplicate is also left in the inbox, with the reason (Stage 4.2); `keep_folders = false` files a folder's documents one by one and removes the emptied folder, recorded so `rollback` recreates it. `--dry-run` previews a run without moving or recording anything, and a move that fails (a file open in Word) leaves that unit in review without stopping the run (Stage 4.3). `-v`/`-q` set how much is shown, and a run is explained in `.microfiche/microfiche.log` (Stage 4.4). |
+| `review` | Done (for MVP scope) | Interactive: for each unit `sort` left in the inbox, accept the best guess, modify it (pick a group and category, or plan a new folder), skip, or quit. Nothing moves until one confirmation at the end, then the chosen units are filed as one rollback-able job (`core/review.py::ReviewSession`, prompts in `cli/review.py`). Needs a terminal. See [Review (Stage 5)](#review-stage-5). |
 | `propose-categories` | Partial | Works, but only scoped to the sorting inbox — scoping to an existing library folder isn't implemented. Print-only by design (never applies); that part is not a gap. |
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
@@ -160,6 +160,17 @@ a possible rename. Nothing the user wrote is changed, a `*` entry covers the fol
 written through a temporary file and a rename, only when something was added. A preview and plain `config` write
 nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview
 doesn't show what would be added, and the walk reads one or two levels until Stage 4.7.
+
+## Review (Stage 5)
+
+[Stage 5](mvp-build-plan.md#stage-5--review-workflow) is built. The queue is not stored: `ReviewSession.start` previews a sort
+(`run_sort(dry_run=True)`) and takes what it would leave in the inbox, so nothing has to be kept in step. Duplicates are
+counted but kept out of the queue. A choice is checked as it is made with the checks `sort` uses (`DestinationClaims`,
+`DuplicateIndex`), and `commit` re-checks each one and files them through `file_batch` as one job, recorded with
+`classified_by = "user"`. A new group or category is only planned until a unit is filed into it. The run lock is taken
+only for the commit. Still open: ranked suggestions from a decision model wait for
+[Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier); depth 3 will need one more prompt per level; it does
+not learn from choices; there is no way back to an item once it is passed.
 
 ## Future work and deferred beyond MVP
 

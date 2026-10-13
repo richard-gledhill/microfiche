@@ -545,6 +545,66 @@ run uses the rules only, ...`. Everything the rules can decide is filed as usual
 answered stays under **Needs review**. With `-q` the warning is not shown on screen, but it is still in the log
 file (see [Troubleshooting](#5-troubleshooting)).
 
+### Working through Needs review
+
+Whatever `sort` doesn't file stays in the inbox under **Needs review**. `review` goes through those documents one at a
+time and asks you what to do with each:
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche review --library ~/Documents/Library
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche review --library "$HOME\Documents\Library"
+    ```
+
+```text
+Item 1 of 2: PhoenixArchitectureNotes.md (file)
+  Classifier said: Category name '02 Architecture' found in document text
+  Best guess: Project Phoenix/02 Architecture (confidence 0.90; 0.95 is needed to file without asking)
+  (a) accept the best guess   (m) modify   (s) skip   (q) quit
+What now? [s]:
+```
+
+- **(a) accept** files it where the classifier would have, if that is possible. It is not offered when the guess is
+  taken (a file of that name is already there) or when the classifier had no guess.
+- **(m) modify** asks for a group, then a category (a flat library has no category), from numbered lists. Choose `n`
+  to plan a new folder instead: you type a name and confirm the exact path, for example
+  `Create 'Project Phoenix/04 Retrospectives' when the units are filed?`
+- **(s) skip** leaves the document in the inbox. It is the default, so pressing Enter skips.
+- **(q) quit** stops asking. What you have chosen so far is still offered for filing.
+
+**Nothing is moved while you answer.** At the end you see what you chose and any new folders, and confirm once. Then the
+chosen documents are filed together as one job, with its id and the command that undoes it, exactly as `sort` does.
+Pressing Ctrl-C before that confirmation moves nothing.
+
+- **Each choice is checked as you make it**, with the same checks `sort` makes: the name must be free in the folder you
+  chose, and the content must not already be in the library (or be going there from an earlier choice in this session).
+  If not, you are told why and asked again. A document that is replaced or edited between your choice and the final
+  confirmation is left in the inbox, not filed, and `review` says so.
+- **New folders are made when a document is filed into them.** A folder you planned but never used is never created,
+  and one made for a move that then failed is taken back. A name is refused if it is already there (as a folder
+  microfiche filed whole, a link or a file), is the inbox or state folder, matches `[exclusions]`, or is a reserved
+  Windows name such as `CON`. Undoing the job moves the documents back but leaves a folder that had documents in it,
+  because microfiche never deletes. The next
+  `sort`, or `config --sync`, lists the new folder in `microfiche-library.json`.
+- **A folder dropped into the inbox is one item.** You choose one destination for all of it. To file its documents
+  separately, run `sort --keep-folders-off`.
+- **Copies are not in the queue.** A document that is identical to another one stays in the inbox; `review` says how
+  many, and `sort` lists them. It also says how many documents are confident enough for `sort` to file, which it does
+  not ask about.
+- **The run lock is taken only when filing.** You can take as long as you like to decide. If another run holds the lock
+  when you confirm, `review` says so and asks whether to try again; your choices are kept until you say no.
+- `--use-ai` asks the AI for a best guess where the rules have none, as `sort --use-ai` does. `-v` and `-q` work as
+  elsewhere.
+
+`review` needs a terminal, because it asks questions. It reads the inbox afresh each time, so a document you skipped is
+offered again next time.
+
 ### Files that can't be sorted
 
 One awkward file never stops a run. It stays where it is, and the summary says why:
@@ -830,8 +890,10 @@ microfiche is pre-release. At the moment:
 - The inbox settings `[sorting] ignore` and the skipping of links apply to `sort`. `reclassify` honours
   `[parsing] max_file_mb` but not those two.
 - A file open in another program is not retried: close it and run `sort` again.
-- `review` is a placeholder and exits with a "not implemented" message. Until it is built, a document listed under
-  **Needs review** stays in the inbox for you to file by hand.
+- `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
+  cannot go back to an item once you have moved on, and it does not learn from your choices: add a keyword hint to
+  `microfiche-library.json` if a kind of document keeps coming up.
+- `review` needs a terminal and cannot be scripted. To file without asking, use `sort`.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
   integration after the first release.
 - A folder you move by hand after `sort` filed it whole is no longer recognised as one unit by `reclassify` (the

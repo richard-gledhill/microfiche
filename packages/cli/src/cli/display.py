@@ -83,7 +83,7 @@ def render_sort_report(console: Console, report: SortReport) -> None:
         if report.filed:
             console.print("Run again without --dry-run to file these.")
     elif report.job is not None:
-        _render_job(console, report.job)
+        render_job(console, report.job)
 
 
 def render_library_sync(console: Console, sync: LibrarySync) -> None:
@@ -206,7 +206,19 @@ def render_reclassify_result(
         if moves:
             console.print("Re-run with --apply to move these files.")
     elif job is not None:
-        _render_job(console, job)
+        render_job(console, job)
+
+
+def render_job(console: Console, job: Job) -> None:
+    """Print the id of the job a run filed under, and the command that undoes it.
+
+    Args:
+        console: Where to print.
+        job: The job the run saved.
+    """
+
+    console.print(f"Job: {job.job_id}", soft_wrap=True)
+    console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
 
 
 # endregion
@@ -262,11 +274,6 @@ def _render_inbox_notes(console: Console, report: SortReport) -> None:
         console.print(f"  [dim]{removal}[/dim] {escape(folder.name)}", soft_wrap=True)
     for folder, reason in report.folders_kept:
         console.print(f"  [yellow]{escape(folder.name)}[/yellow] stays in the inbox: {escape(reason)}", soft_wrap=True)
-
-
-def _render_job(console: Console, job: Job) -> None:
-    console.print(f"Job: {job.job_id}", soft_wrap=True)
-    console.print(f"Undo with: microfiche rollback --library <your library> --job-id {job.job_id}", soft_wrap=True)
 
 
 # endregion
