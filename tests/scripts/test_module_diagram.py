@@ -41,7 +41,7 @@ Two diagrams, as of 2026-10-08. If this drifts, regenerate it.
 
 ```mermaid
 flowchart TD
-    subgraph CLI["packages/cli/src/cli"]
+    subgraph CLI["packages/cli/src/microfiche/cli"]
         cli_app["app.py"]
     end
 
@@ -71,8 +71,8 @@ Some closing prose.
 """
 
 _FILES = {
-    "cli/app.py": "from core.organizer import run_sort\n",
-    "core/organizer.py": "from core.ai.llm_classifier import LLMClassifier\nfrom core.filer import file_batch\n",
+    "cli/app.py": "from microfiche.core.organizer import run_sort\n",
+    "core/organizer.py": "from microfiche.core.ai.llm_classifier import LLMClassifier\nfrom microfiche.core.filer import file_batch\n",
     "core/filer.py": "import os\n",
     "core/ai/llm_classifier.py": "from __future__ import annotations\n",
 }
@@ -98,14 +98,16 @@ def _edges(text: str) -> set[tuple[str, str]]:
 
 def test_import_edges_from_import_of_a_module(tmp_path: Path) -> None:
     roots = _project(
-        tmp_path, {"core/a.py": "from core.models.document import Document\n", "core/models/document.py": ""}
+        tmp_path, {"core/a.py": "from microfiche.core.models.document import Document\n", "core/models/document.py": ""}
     )
 
     assert module_diagram.import_edges(roots) == {"core/a.py": {"core/models/document.py"}}
 
 
 def test_import_edges_from_package_import_of_a_submodule(tmp_path: Path) -> None:
-    roots = _project(tmp_path, {"core/a.py": "from core.models import document\n", "core/models/document.py": ""})
+    roots = _project(
+        tmp_path, {"core/a.py": "from microfiche.core.models import document\n", "core/models/document.py": ""}
+    )
 
     assert module_diagram.import_edges(roots) == {"core/a.py": {"core/models/document.py"}}
 
@@ -114,7 +116,7 @@ def test_import_edges_from_package_import_of_a_name_targets_the_package_init(tmp
     roots = _project(
         tmp_path,
         {
-            "core/a.py": "from core.parsers import is_supported\n",
+            "core/a.py": "from microfiche.core.parsers import is_supported\n",
             "core/parsers/__init__.py": "def is_supported(): ...\n",
         },
     )
@@ -123,7 +125,7 @@ def test_import_edges_from_package_import_of_a_name_targets_the_package_init(tmp
 
 
 def test_import_edges_plain_import_statement(tmp_path: Path) -> None:
-    roots = _project(tmp_path, {"cli/a.py": "import core.config\n", "core/config.py": ""})
+    roots = _project(tmp_path, {"cli/a.py": "import microfiche.core.config\n", "core/config.py": ""})
 
     assert module_diagram.import_edges(roots) == {"cli/a.py": {"core/config.py"}}
 
@@ -131,7 +133,9 @@ def test_import_edges_plain_import_statement(tmp_path: Path) -> None:
 def test_import_edges_ignores_external_standard_library_and_missing_modules(tmp_path: Path) -> None:
     roots = _project(
         tmp_path,
-        {"core/a.py": "import os\nfrom pathlib import Path\nimport pydantic\nfrom core.missing import thing\n"},
+        {
+            "core/a.py": "import os\nfrom pathlib import Path\nimport pydantic\nfrom microfiche.core.missing import thing\n"
+        },
     )
 
     assert module_diagram.import_edges(roots) == {}
@@ -140,8 +144,8 @@ def test_import_edges_ignores_external_standard_library_and_missing_modules(tmp_
 def test_import_edges_counts_imports_inside_functions_and_type_checking(tmp_path: Path) -> None:
     source = (
         "from typing import TYPE_CHECKING\n"
-        "if TYPE_CHECKING:\n    from core.b import B\n"
-        "def f():\n    from core.c import C\n"
+        "if TYPE_CHECKING:\n    from microfiche.core.b import B\n"
+        "def f():\n    from microfiche.core.c import C\n"
     )
     roots = _project(tmp_path, {"core/a.py": source, "core/b.py": "", "core/c.py": ""})
 
@@ -151,7 +155,10 @@ def test_import_edges_counts_imports_inside_functions_and_type_checking(tmp_path
 def test_import_edges_ignores_a_module_importing_itself_and_repeats(tmp_path: Path) -> None:
     roots = _project(
         tmp_path,
-        {"core/a.py": "from core.a import x\nfrom core.b import y\nfrom core.b import z\n", "core/b.py": ""},
+        {
+            "core/a.py": "from microfiche.core.a import x\nfrom microfiche.core.b import y\nfrom microfiche.core.b import z\n",
+            "core/b.py": "",
+        },
     )
 
     assert module_diagram.import_edges(roots) == {"core/a.py": {"core/b.py"}}
@@ -171,7 +178,7 @@ def test_update_diagram_current_diagram_has_no_changes(tmp_path: Path) -> None:
 
 
 def test_update_diagram_adds_a_missing_edge(tmp_path: Path) -> None:
-    files = {**_FILES, "core/ai/llm_classifier.py": "from core.filer import file_batch\n"}
+    files = {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import file_batch\n"}
 
     text, changes = _update(tmp_path, files)
 
@@ -180,7 +187,7 @@ def test_update_diagram_adds_a_missing_edge(tmp_path: Path) -> None:
 
 
 def test_update_diagram_removes_a_stale_edge(tmp_path: Path) -> None:
-    files = {**_FILES, "core/organizer.py": "from core.filer import file_batch\n"}
+    files = {**_FILES, "core/organizer.py": "from microfiche.core.filer import file_batch\n"}
 
     text, changes = _update(tmp_path, files)
 
@@ -189,7 +196,10 @@ def test_update_diagram_removes_a_stale_edge(tmp_path: Path) -> None:
 
 
 def test_update_diagram_keeps_existing_order_and_appends_new_edges_sorted(tmp_path: Path) -> None:
-    files = {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\nfrom core.organizer import o\n"}
+    files = {
+        **_FILES,
+        "core/ai/llm_classifier.py": "from microfiche.core.filer import f\nfrom microfiche.core.organizer import o\n",
+    }
 
     text, _ = _update(tmp_path, files)
 
@@ -223,7 +233,7 @@ def test_update_diagram_keeps_a_nodes_annotated_label(tmp_path: Path) -> None:
 
 
 def test_update_diagram_adds_a_node_for_a_new_module_inside_its_subgraph(tmp_path: Path) -> None:
-    files = {**_FILES, "core/ledger.py": "", "core/filer.py": "from core.ledger import Ledger\n"}
+    files = {**_FILES, "core/ledger.py": "", "core/filer.py": "from microfiche.core.ledger import Ledger\n"}
 
     text, changes = _update(tmp_path, files)
 
@@ -235,7 +245,7 @@ def test_update_diagram_adds_a_node_for_a_new_module_inside_its_subgraph(tmp_pat
 
 
 def test_update_diagram_node_id_is_the_folders_prefix_and_the_file_name(tmp_path: Path) -> None:
-    files = {**_FILES, "core/ai/factory.py": "", "core/organizer.py": "from core.ai.factory import build\n"}
+    files = {**_FILES, "core/ai/factory.py": "", "core/organizer.py": "from microfiche.core.ai.factory import build\n"}
 
     text, changes = _update(tmp_path, files)
 
@@ -246,7 +256,7 @@ def test_update_diagram_node_id_is_the_folders_prefix_and_the_file_name(tmp_path
 def test_update_diagram_package_init_gets_a_node_only_when_something_imports_it(tmp_path: Path) -> None:
     files = {**_FILES, "core/parsers/__init__.py": "", "core/parsers/txt_parser.py": ""}
     unused, _ = _update(tmp_path / "unused", files)
-    used, changes = _update(tmp_path / "used", {**files, "core/filer.py": "from core.parsers import read\n"})
+    used, changes = _update(tmp_path / "used", {**files, "core/filer.py": "from microfiche.core.parsers import read\n"})
 
     assert "p_init" not in unused
     assert changes.added_nodes == ["p_init", "p_txt_parser"]
@@ -264,7 +274,7 @@ def test_update_diagram_a_subgraph_missing_from_the_diagram_is_created_before_th
 
 def test_update_diagram_drops_the_node_and_edges_of_a_deleted_module(tmp_path: Path) -> None:
     files = {key: value for key, value in _FILES.items() if key != "core/filer.py"}
-    files["core/organizer.py"] = "from core.ai.llm_classifier import LLMClassifier\n"
+    files["core/organizer.py"] = "from microfiche.core.ai.llm_classifier import LLMClassifier\n"
 
     text, changes = _update(tmp_path, files)
 
@@ -286,7 +296,7 @@ def test_update_diagram_a_folder_with_no_configured_subgraph_is_an_error(tmp_pat
 
 
 def test_update_diagram_sets_the_as_of_date_when_the_graph_changes(tmp_path: Path) -> None:
-    text, _ = _update(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"})
+    text, _ = _update(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"})
 
     assert "as of 2026-10-11." in text
     assert "2026-10-08" not in text
@@ -300,7 +310,7 @@ def test_update_diagram_keeps_the_as_of_date_when_nothing_changed(tmp_path: Path
 
 
 def test_update_diagram_leaves_the_other_diagram_and_the_prose_untouched(tmp_path: Path) -> None:
-    text, _ = _update(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"})
+    text, _ = _update(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"})
 
     assert text.endswith(
         "## 2. Data flow\n\n```mermaid\nflowchart TD\n    Start --> Finish\n```\n\nSome closing prose.\n"
@@ -309,7 +319,7 @@ def test_update_diagram_leaves_the_other_diagram_and_the_prose_untouched(tmp_pat
 
 
 def test_update_diagram_second_run_changes_nothing(tmp_path: Path) -> None:
-    files = {**_FILES, "core/ledger.py": "", "core/filer.py": "from core.ledger import Ledger\n"}
+    files = {**_FILES, "core/ledger.py": "", "core/filer.py": "from microfiche.core.ledger import Ledger\n"}
     first, _ = _update(tmp_path, files)
 
     second, changes = _update(tmp_path, files, diagram=first)
@@ -320,7 +330,7 @@ def test_update_diagram_second_run_changes_nothing(tmp_path: Path) -> None:
 
 def test_update_diagram_keeps_windows_line_endings(tmp_path: Path) -> None:
     crlf = _DIAGRAM.replace("\n", "\r\n")
-    files = {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"}
+    files = {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"}
 
     text, _ = _update(tmp_path, files, diagram=crlf)
 
@@ -346,7 +356,7 @@ def _write_diagram(tmp_path: Path, text: str = _DIAGRAM) -> Path:
 
 
 def test_main_writes_the_regenerated_diagram(tmp_path: Path) -> None:
-    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"})
+    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"})
     diagram = _write_diagram(tmp_path)
 
     status = module_diagram.main([], roots=roots, diagram=diagram, today=_TODAY)
@@ -368,7 +378,7 @@ def test_main_check_passes_a_current_diagram_and_does_not_write(tmp_path: Path) 
 def test_main_check_fails_a_stale_diagram_names_the_difference_and_does_not_write(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"})
+    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"})
     diagram = _write_diagram(tmp_path)
 
     status = module_diagram.main(["--check"], roots=roots, diagram=diagram, today=_TODAY)
@@ -379,7 +389,7 @@ def test_main_check_fails_a_stale_diagram_names_the_difference_and_does_not_writ
 
 
 def test_main_prints_what_it_changed(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from core.filer import f\n"})
+    roots = _project(tmp_path, {**_FILES, "core/ai/llm_classifier.py": "from microfiche.core.filer import f\n"})
     diagram = _write_diagram(tmp_path)
 
     module_diagram.main([], roots=roots, diagram=diagram, today=_TODAY)
@@ -416,7 +426,7 @@ def test_real_source_every_diagram_node_is_a_real_file() -> None:
         if subgraph:
             folder = module_diagram.SUBGRAPHS_BY_NAME[subgraph.group(1)]
         elif node and folder:
-            path = _REPO_ROOT / "packages" / folder.split("/")[0] / "src" / folder / node.group(1)
+            path = _REPO_ROOT / "packages" / folder.split("/")[0] / "src" / "microfiche" / folder / node.group(1)
             assert path.is_file(), path
 
 

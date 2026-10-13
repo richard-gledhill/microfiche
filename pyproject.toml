@@ -63,6 +63,11 @@ cli = { workspace = true }
 
 [tool.mypy]
 files = ["packages/core/src", "packages/cli/src"]
+# microfiche is a namespace package (no __init__.py) shared by two source folders, so mypy needs to be told where
+# each one starts, or it cannot tell `microfiche.core` is the module it is about to check.
+mypy_path = ["packages/core/src", "packages/cli/src"]
+namespace_packages = true
+explicit_package_bases = true
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
@@ -81,9 +86,9 @@ ignore_missing_imports = true
 testpaths = ["tests"]
 
 [tool.coverage.run]
-# Package names, not paths - coverage.py maps these to packages/{core,cli}/src/{core,cli} via
+# Package names, not paths - coverage.py maps these to packages/{core,cli}/src/microfiche/{core,cli} via
 # the workspace's editable installs regardless of which src/ directory they actually live in.
-source = ["core", "cli"]
+source = ["microfiche.core", "microfiche.cli"]
 branch = true
 
 [tool.coverage.report]

@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from core.filer import (
+from microfiche.core.filer import (
     AUDIT_LOG_FILENAME,
     DestinationClaims,
     JobAlreadyRolledBackError,
@@ -21,14 +21,14 @@ from core.filer import (
     rollback_job,
     save_job,
 )
-from core.ledger import Ledger
-from core.library.library import Library
-from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
-from core.models.document import Document
-from core.models.job import Job
-from core.models.unit import SortableUnit
-from core.utils.filesystem import safe_move
-from core.utils.hashing import file_hash, unit_hash
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library
+from microfiche.core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
+from microfiche.core.models.document import Document
+from microfiche.core.models.job import Job
+from microfiche.core.models.unit import SortableUnit
+from microfiche.core.utils.filesystem import safe_move
+from microfiche.core.utils.hashing import file_hash, unit_hash
 
 # region Test helpers
 
@@ -444,7 +444,7 @@ def test_file_batch_failed_unit_keeps_its_inbox_folder(tmp_path: Path, monkeypat
             raise _in_use(32)
         return real_move(source, destination)
 
-    monkeypatch.setattr("core.filer.safe_move", refuse_two)
+    monkeypatch.setattr("microfiche.core.filer.safe_move", refuse_two)
 
     result = file_batch(Library(library), [(moved, _classified()), (stuck, _classified())])
 
@@ -473,7 +473,7 @@ def test_file_batch_failure_reason_is_plain_language(
     def fail(source: Path, destination: Path) -> Path:
         raise error
 
-    monkeypatch.setattr("core.filer.safe_move", fail)
+    monkeypatch.setattr("microfiche.core.filer.safe_move", fail)
 
     result = file_batch(Library(library), [(unit, _classified())])
 
@@ -732,7 +732,7 @@ def test_destination_claims_existing_folder_refused(tmp_path: Path) -> None:
 def test_file_batch_logs_each_move_and_a_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     library = _library(tmp_path)
     units = [_file_unit(library, "a.md"), _file_unit(library, "b.md")]
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     job = file_batch(Library(library), [(unit, _classified()) for unit in units]).job
 
@@ -745,7 +745,7 @@ def test_file_batch_logs_each_move_and_a_summary(tmp_path: Path, caplog: pytest.
 def test_file_batch_logs_a_removed_empty_folder(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     library = _library(tmp_path)
     unit = _unit_from_folder(library, "pack/one.md")
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     file_batch(Library(library), [(unit, _classified())])
 
@@ -754,7 +754,7 @@ def test_file_batch_logs_a_removed_empty_folder(tmp_path: Path, caplog: pytest.L
 
 def test_file_batch_summary_is_info_and_moves_are_debug(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     library = _library(tmp_path)
-    caplog.set_level(logging.INFO, logger="core")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
 
     file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())])
 
@@ -771,12 +771,12 @@ def test_file_batch_failed_move_is_logged_with_reason(
     def refuse(source: Path, destination: Path) -> None:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("core.filer.safe_move", refuse)
-    caplog.set_level(logging.DEBUG, logger="core")
+    monkeypatch.setattr("microfiche.core.filer.safe_move", refuse)
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     file_batch(Library(library), [(stuck, _classified())])
 
-    [record] = [r for r in caplog.records if r.name == "core.filer" and r.levelno >= logging.WARNING]
+    [record] = [r for r in caplog.records if r.name == "microfiche.core.filer" and r.levelno >= logging.WARNING]
     assert "stuck.docx" in record.getMessage()
     assert "permission denied" in record.getMessage()  # the reason, as the report gives it
 
@@ -789,8 +789,8 @@ def test_file_batch_failed_move_logs_no_move(
     def refuse(source: Path, destination: Path) -> None:
         raise PermissionError(13, "Permission denied")
 
-    monkeypatch.setattr("core.filer.safe_move", refuse)
-    caplog.set_level(logging.DEBUG, logger="core")
+    monkeypatch.setattr("microfiche.core.filer.safe_move", refuse)
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     file_batch(Library(library), [(_file_unit(library, "stuck.docx"), _classified())])
 
@@ -801,7 +801,7 @@ def test_rollback_job_logs_start_each_move_and_finish(tmp_path: Path, caplog: py
     library = _library(tmp_path)
     job = file_batch(Library(library), [(_file_unit(library, "a.md"), _classified())]).job
     assert job is not None
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     rollback_job(Library(library), job.job_id)
 

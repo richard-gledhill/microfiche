@@ -29,7 +29,7 @@ plugins:
         python:
           paths: ["packages/core/src", "packages/cli/src"]
           options:
-            # `::: core` alone renders only the package's __init__ docstring.
+            # `::: microfiche.core` alone renders only the package's __init__ docstring.
             show_submodules: true
             heading_level: 2
 theme:

@@ -20,7 +20,7 @@ check: ## Run code quality tools.
 .PHONY: test
 test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
-	@uv run python -m pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
+	@uv run python -m pytest --doctest-modules --cov=microfiche.core --cov=microfiche.cli --cov-report=term-missing
 
 .PHONY: build
 build: clean-build ## Build the core and cli release wheels into dist/ and check them
@@ -40,11 +40,11 @@ clean-build: ## Clean build artifacts
 
 .PHONY: docs-cli
 docs-cli: ## Regenerate docs/cli-reference.md from the Typer app
-	@uv run typer cli.app utils docs --name microfiche --title "CLI reference" --output docs/cli-reference.md
+	@uv run typer microfiche.cli.app utils docs --name microfiche --title "CLI reference" --output docs/cli-reference.md
 
 .PHONY: library-schema
 library-schema: ## Regenerate microfiche/microfiche-library.schema.json from the library file model
-	@uv run python -c "import json, pathlib; from core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
+	@uv run python -c "import json, pathlib; from microfiche.core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
 
 .PHONY: module-diagram
 module-diagram: ## Regenerate the import graph in docs/development/module-diagram.md from the source

@@ -883,10 +883,10 @@ To find out why a document went to review, sort with `-v` and look for its name.
 category microfiche chose with a confidence and the reason, and which method decided:
 
 ```text
-2026-10-12 17:06:43,348 DEBUG core.classifier: research-summary.md: group Project Phoenix (1.00, Exact match on group name 'Project Phoenix'); category 03 Research (0.90, Category name '03 Research' found in document text); by rules_engine
-2026-10-12 17:06:43,349 DEBUG core.classifier: SolarConstructionNotes.md: group None (0.00, No known group name found in document text); category None (0.00, Group unresolved); by rules_engine
-2026-10-12 17:06:43,349 DEBUG core.organizer: SolarConstructionNotes.md: left for review (confidence 0.00)
-2026-10-12 17:06:43,354 INFO core.organizer: sort finished: 2 filed, 1 for review, 0 duplicate(s)
+2026-10-12 17:06:43,348 DEBUG microfiche.core.classifier: research-summary.md: group Project Phoenix (1.00, Exact match on group name 'Project Phoenix'); category 03 Research (0.90, Category name '03 Research' found in document text); by rules_engine
+2026-10-12 17:06:43,349 DEBUG microfiche.core.classifier: SolarConstructionNotes.md: group None (0.00, No known group name found in document text); category None (0.00, Group unresolved); by rules_engine
+2026-10-12 17:06:43,349 DEBUG microfiche.core.organizer: SolarConstructionNotes.md: left for review (confidence 0.00)
+2026-10-12 17:06:43,354 INFO microfiche.core.organizer: sort finished: 2 filed, 1 for review, 0 duplicate(s)
 ```
 
 ### Exit codes

@@ -3,7 +3,7 @@
 import hashlib
 from pathlib import Path
 
-from core.utils.hashing import file_hash, unit_hash
+from microfiche.core.utils.hashing import file_hash, unit_hash
 
 
 def _make_folder(root: Path) -> Path:

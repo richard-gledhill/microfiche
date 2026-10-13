@@ -678,6 +678,11 @@ actual MVP.
   mismatched pair cannot be installed. The root `microfiche` package builds a wheel that depends on nothing, and is not released.
   `tests/scripts/test_check_wheels.py` fails if the three versions or the pin drift apart, and `scripts/check_wheels.py` checks
   built wheels (both present, same version, the pin, the packaged defaults file, the `microfiche` command, and the tag).
+- *The packages import as `microfiche.core` and `microfiche.cli`* (2026-10-13), while the distributions keep the generic names `core`
+  and `cli`. Each package sets `[tool.uv.build-backend] module-name`, and `microfiche/` is a namespace package with no
+  `__init__.py` (a test and `check_wheels.py` guard that). This stops two top-level folders called `core` and `cli` landing in a
+  user's `site-packages`. It does not stop `core==X` being resolved from PyPI by name, so a release is installed from its
+  own wheels (`--no-index --find-links`). Set-up notes: the libCoding note "Namespace Packages in a uv Workspace".
 - *The coverage gate is one floor on the whole of `core` and `cli`* (`fail_under` in `pyproject.toml`), enforced by a `coverage` job
   on Linux and by `make test`. The measured baseline was 97.6% on Windows; the floor starts at 95 so a branch one OS does not
   run cannot fail the build, and is raised once the Linux figure is known. Modules below the floor on their own, and why:

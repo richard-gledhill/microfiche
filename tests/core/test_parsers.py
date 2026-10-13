@@ -5,7 +5,7 @@ from pathlib import Path
 import docx
 import pymupdf
 import pytest
-from core.parsers import (
+from microfiche.core.parsers import (
     SUPPORTED_EXTENSIONS,
     UnreadableDocumentError,
     UnsupportedFormatError,
@@ -13,7 +13,7 @@ from core.parsers import (
     parse_document,
     read_documents,
 )
-from core.parsers.base import document_from
+from microfiche.core.parsers.base import document_from
 
 # region Test helpers
 
@@ -230,7 +230,7 @@ def test_parse_document_over_max_bytes_unreadable_without_parsing(
 ) -> None:
     big = tmp_path / "big.txt"
     big.write_bytes(b"x" * 3 * 1024 * 1024)
-    monkeypatch.setattr("core.parsers.registry._PARSERS", {".txt": _must_not_run})
+    monkeypatch.setattr("microfiche.core.parsers.registry._PARSERS", {".txt": _must_not_run})
 
     with pytest.raises(UnreadableDocumentError) as raised:
         parse_document(big, max_bytes=2 * 1024 * 1024)

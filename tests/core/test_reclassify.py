@@ -6,18 +6,18 @@ from collections import Counter
 from pathlib import Path
 
 import pytest
-from core.config import MICROFICHE_DIRNAME, load_config
-from core.filer import AUDIT_LOG_FILENAME, rollback_job
-from core.ledger import Ledger
-from core.library.library import Library, ScopeOutsideLibraryError
-from core.organizer import run_sort
-from core.reclassify import (
+from microfiche.core.config import MICROFICHE_DIRNAME, load_config
+from microfiche.core.filer import AUDIT_LOG_FILENAME, rollback_job
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library, ScopeOutsideLibraryError
+from microfiche.core.organizer import run_sort
+from microfiche.core.reclassify import (
     ReclassifyProposal,
     apply_reclassification,
     items_below_depth,
     run_reclassify,
 )
-from core.utils.hashing import file_hash
+from microfiche.core.utils.hashing import file_hash
 
 # region Test helpers
 
@@ -336,7 +336,7 @@ def test_run_reclassify_unreadable_file_left_for_review(tmp_path: Path) -> None:
 
 def test_run_reclassify_logs_each_action_and_a_summary(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     library = Library(_library(tmp_path))
-    caplog.set_level(logging.DEBUG, logger="core")
+    caplog.set_level(logging.DEBUG, logger="microfiche.core")
 
     proposals = run_reclassify(library)
 

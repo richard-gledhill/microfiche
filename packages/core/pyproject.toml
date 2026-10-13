@@ -21,3 +21,13 @@ ai = ["openai", "ollama"]
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+# Install as microfiche.core: the distribution stays "core", the import name carries the project's namespace.
+# src/microfiche/ must have no __init__.py, so the core and cli wheels can both put a folder inside it.
+module-name = "microfiche.core"
+
+[tool.deptry]
+# core imports itself as microfiche.core, and deptry cannot see that the "microfiche" folder (a namespace, with no
+# __init__.py) is this package's own, so it would call every such import a missing dependency.
+known_first_party = ["microfiche"]

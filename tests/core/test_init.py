@@ -4,11 +4,12 @@ import logging
 import shutil
 from pathlib import Path
 
-import core
-from core.filer import rollback_job
-from core.library.library import Library
-from core.organizer import run_sort
-from core.reclassify import run_reclassify
+from microfiche.core.filer import rollback_job
+from microfiche.core.library.library import Library
+from microfiche.core.organizer import run_sort
+from microfiche.core.reclassify import run_reclassify
+
+from microfiche import core
 
 _MOCK_LIBRARY = Path(__file__).resolve().parents[1] / "mock_library"
 

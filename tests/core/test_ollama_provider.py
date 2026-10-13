@@ -5,7 +5,7 @@ import types
 from typing import Any
 
 import pytest
-from core.ai.ollama_provider import OllamaProvider
+from microfiche.core.ai.ollama_provider import OllamaProvider
 
 # region Test helpers
 

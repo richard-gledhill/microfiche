@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from core.library.category_suggester import suggest_categories
-from core.models.document import Document
+from microfiche.core.library.category_suggester import suggest_categories
+from microfiche.core.models.document import Document
 
 
 def test_suggest_categories_ranks_by_frequency() -> None:

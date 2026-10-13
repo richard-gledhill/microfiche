@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pytest
-from core.ledger import Ledger, LedgerCorruptError
-from core.models.ledger import LedgerEvent, LedgerRecord
+from microfiche.core.ledger import Ledger, LedgerCorruptError
+from microfiche.core.models.ledger import LedgerEvent, LedgerRecord
 
 
 def _record(

@@ -3,11 +3,11 @@
 import shutil
 from pathlib import Path
 
-from cli.review import render_outcome, render_summary
-from core.filer import FailedFiling
-from core.library.library import Library
-from core.models.job import Job
-from core.review import ReviewOutcome, ReviewSession
+from microfiche.cli.review import render_outcome, render_summary
+from microfiche.core.filer import FailedFiling
+from microfiche.core.library.library import Library
+from microfiche.core.models.job import Job
+from microfiche.core.review import ReviewOutcome, ReviewSession
 from rich.console import Console
 
 # region Test helpers

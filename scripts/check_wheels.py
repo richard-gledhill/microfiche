@@ -3,7 +3,9 @@
 microfiche releases two wheels in lockstep: ``core`` (the engine) and ``cli`` (the command line, which needs it).
 A release is only installable if both are there, carry the same version, ``cli`` pins ``core`` to exactly that
 version, ``core`` contains the packaged defaults file (without it every library would start with no settings) and
-``cli`` installs the ``microfiche`` command. A wheel built from a checkout that gets any of these wrong still builds,
+``cli`` installs the ``microfiche`` command. Both install into the ``microfiche`` namespace (``microfiche.core`` and
+``microfiche.cli``), so neither may contain ``microfiche/__init__.py``: that file would make one of them own the
+namespace and hide the other's folder. A wheel built from a checkout that gets any of these wrong still builds,
 so this script is the check.
 
 Run it on the folder ``uv build --all-packages --wheel -o <dir>`` wrote to::
@@ -26,7 +28,8 @@ from pathlib import Path
 
 # region Constants and types
 
-DEFAULTS_FILE = "core/defaults/microfiche-config.toml"
+NAMESPACE_INIT = "microfiche/__init__.py"
+DEFAULTS_FILE = "microfiche/core/defaults/microfiche-config.toml"
 RELEASE_PACKAGES = ("core", "cli")
 _WHEEL_NAME = re.compile(r"^(?P<name>[A-Za-z0-9_.]+)-(?P<version>[^-]+)-.*\.whl$")
 
@@ -64,8 +67,13 @@ def check_wheels(dist: Path, tag: str | None = None) -> list[str]:
         problems.append(f"cli does not require core=={version} exactly (requires: {', '.join(_requirements(cli))})")
     if DEFAULTS_FILE not in _names(core):
         problems.append(f"the core wheel does not contain {DEFAULTS_FILE}")
-    if "microfiche=cli:main" not in _entry_points(cli):
-        problems.append("the cli wheel does not install a `microfiche` command (microfiche = cli:main)")
+    if "microfiche=microfiche.cli:main" not in _entry_points(cli):
+        problems.append("the cli wheel does not install a `microfiche` command (microfiche = microfiche.cli:main)")
+    problems += [
+        f"the {name} wheel contains {NAMESPACE_INIT}, which would make it own the shared microfiche namespace"
+        for name, wheel in (("core", core), ("cli", cli))
+        if NAMESPACE_INIT in _names(wheel)
+    ]
     return problems
 
 
@@ -132,7 +140,7 @@ def _requirements(wheel: Path) -> list[str]:
 
 
 def _entry_points(wheel: Path) -> list[str]:
-    """The wheel's entry-point lines with spaces removed, like ``microfiche=cli:main``."""
+    """The wheel's entry-point lines with spaces removed, like ``microfiche=microfiche.cli:main``."""
 
     return [line.replace(" ", "") for line in _read(wheel, "entry_points.txt").splitlines()]
 

@@ -34,7 +34,7 @@ def _wheel(
         archive.writestr(f"{name}-{version}.dist-info/METADATA", metadata)
         if name == "cli":
             archive.writestr(
-                f"{name}-{version}.dist-info/entry_points.txt", "[console_scripts]\nmicrofiche = cli:main\n"
+                f"{name}-{version}.dist-info/entry_points.txt", "[console_scripts]\nmicrofiche = microfiche.cli:main\n"
             )
         for filename in files:
             archive.writestr(filename, "")
@@ -113,6 +113,15 @@ def test_check_wheels_defaults_file_missing_reported(tmp_path: Path) -> None:
     assert check_wheels.check_wheels(tmp_path) == [f"the core wheel does not contain {check_wheels.DEFAULTS_FILE}"]
 
 
+def test_check_wheels_namespace_init_reported(tmp_path: Path) -> None:
+    _wheel(tmp_path, "core", files=(check_wheels.DEFAULTS_FILE, check_wheels.NAMESPACE_INIT))
+    _wheel(tmp_path, "cli", requires=("core==0.1.6",))
+
+    assert check_wheels.check_wheels(tmp_path) == [
+        "the core wheel contains microfiche/__init__.py, which would make it own the shared microfiche namespace"
+    ]
+
+
 def test_check_wheels_tag_mismatch_reported(tmp_path: Path) -> None:
     _release(tmp_path)
 
@@ -141,6 +150,14 @@ def test_main_exit_code_follows_problems(tmp_path: Path, capsys: pytest.CaptureF
 
 
 # region Lockstep in the source
+
+
+def test_microfiche_namespace_has_no_init_in_any_source_folder() -> None:
+    # An __init__.py here turns the shared namespace into an ordinary package owned by one wheel.
+    folders = [_REPO_ROOT / "packages" / name / "src" / "microfiche" for name in ("core", "cli")]
+    folders.append(_REPO_ROOT / "src" / "microfiche")
+
+    assert [folder for folder in folders if (folder / "__init__.py").exists()] == []
 
 
 def _project_table(relative: str) -> dict[str, object]:

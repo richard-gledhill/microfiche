@@ -2,8 +2,8 @@
 
 ## Core
 
-::: core
+::: microfiche.core
 
 ## CLI
 
-::: cli
+::: microfiche.cli

@@ -74,7 +74,7 @@ TODO asking whether it should default to true, and `propose-categories` already 
 
 ## 3. A packaged defaults file
 
-Put the defaults inside the package, at `packages/core/src/core/defaults/microfiche-config.toml`, loaded
+Put the defaults inside the package, at `packages/core/src/microfiche/core/defaults/microfiche-config.toml`, loaded
 with `importlib.resources`:
 
 - The repo-root `microfiche/` folder sits outside `src/`, so a built wheel would not include it.

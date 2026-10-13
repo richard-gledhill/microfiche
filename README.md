@@ -256,8 +256,8 @@ two packages:
 ```text
 microfiche/
 ├── packages/
-│   ├── core/src/core/    # scanning, classification, filing, library logic
-│   └── cli/src/cli/      # the microfiche Typer CLI
+│   ├── core/src/microfiche/core/    # scanning, classification, filing, library logic
+│   └── cli/src/microfiche/cli/      # the microfiche Typer CLI
 ├── microfiche/     # default per-library config, copied into a library's .microfiche/
 ├── tests/
 │   ├── core/, cli/        # unit tests, mirrors the packages/ layout

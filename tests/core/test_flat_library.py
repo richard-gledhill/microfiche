@@ -4,14 +4,14 @@ import shutil
 from collections.abc import Callable
 from pathlib import Path
 
-from core.ai.llm_classifier import LLMClassifier
-from core.config import MICROFICHE_DIRNAME
-from core.filer import rollback_job
-from core.ledger import Ledger
-from core.library.library import Library
-from core.organizer import SortReport, run_sort
-from core.reclassify import apply_reclassification, run_reclassify
-from core.utils.hashing import file_hash
+from microfiche.core.ai.llm_classifier import LLMClassifier
+from microfiche.core.config import MICROFICHE_DIRNAME
+from microfiche.core.filer import rollback_job
+from microfiche.core.ledger import Ledger
+from microfiche.core.library.library import Library
+from microfiche.core.organizer import SortReport, run_sort
+from microfiche.core.reclassify import apply_reclassification, run_reclassify
+from microfiche.core.utils.hashing import file_hash
 
 # region Test helpers
 
