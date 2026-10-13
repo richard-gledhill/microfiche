@@ -1,6 +1,6 @@
 [project]
 name = "microfiche"
-version = "0.1.4"
+version = "0.1.5"
 description = "Automatically organize, categorize, and file project reference materials into a structured library."
 authors = [{ name = "Richard Gledhill", email = "rich.gledhill73@gmail.com" }]
 readme = "README.md"
