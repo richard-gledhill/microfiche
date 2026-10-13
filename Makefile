@@ -20,7 +20,7 @@ check: ## Run code quality tools.
 .PHONY: test
 test: ## Test the code with pytest
 	@echo "🚀 Testing code: Running pytest"
-	@uv run python -m pytest --doctest-modules --cov=microfiche.core --cov=microfiche.cli --cov-report=term-missing
+	@uv run python -m pytest --doctest-modules --cov --cov-report=term-missing
 
 .PHONY: build
 build: clean-build ## Build the core and cli release wheels into dist/ and check them
