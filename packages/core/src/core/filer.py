@@ -108,6 +108,13 @@ class JobAlreadyRolledBackError(RuntimeError):
         super().__init__(f"Job '{job_id}' was already rolled back at {rolled_back_at.isoformat(timespec='seconds')}")
 
 
+class NoJobToRollBackError(LookupError):
+    """Raised when the library has no job that is still waiting to be rolled back."""
+
+    def __init__(self, state_dir: Path) -> None:
+        super().__init__(f"No job to roll back: {state_dir / _ROLLBACK_DIRNAME} holds no job that is still applied")
+
+
 class JobMoveMissingError(FileNotFoundError):
     """Raised when a move can't be reversed because the file is at neither its old nor new location."""
 
@@ -344,6 +351,30 @@ def load_job(state_dir: Path, job_id: str) -> Job:
     if not _JOB_ID_RE.fullmatch(job_id) or not job_path.exists():
         raise JobNotFoundError(job_id, job_path)
     return Job.model_validate_json(job_path.read_text(encoding="utf-8"))
+
+
+def latest_job(state_dir: Path) -> Job:
+    """The newest job that has not been rolled back, so ``rollback --last`` needn't be given an id.
+
+    Jobs are ordered by when they were created, not by file name, so two jobs made in the same second are
+    still told apart.
+
+    Args:
+        state_dir: The library's ``.microfiche`` folder.
+
+    Returns:
+        The most recently created job whose ``rolled_back_at`` is unset.
+
+    Raises:
+        NoJobToRollBackError: if there is no job, or every job has been rolled back.
+    """
+
+    job_paths = (state_dir / _ROLLBACK_DIRNAME).glob("job_*.json")
+    jobs = (Job.model_validate_json(path.read_text(encoding="utf-8")) for path in job_paths)
+    applied = [job for job in jobs if job.rolled_back_at is None]
+    if not applied:
+        raise NoJobToRollBackError(state_dir)
+    return max(applied, key=lambda job: job.created_at)
 
 
 def save_job(state_dir: Path, job: Job) -> Path:

@@ -3,6 +3,7 @@
 import logging
 import sys
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -12,15 +13,19 @@ from core.filer import (
     JobAlreadyRolledBackError,
     JobMoveMissingError,
     JobNotFoundError,
+    NoJobToRollBackError,
     UnresolvedClassificationError,
     file_batch,
+    latest_job,
     load_job,
     rollback_job,
+    save_job,
 )
 from core.ledger import Ledger
 from core.library.library import Library
 from core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from core.models.document import Document
+from core.models.job import Job
 from core.models.unit import SortableUnit
 from core.utils.filesystem import safe_move
 from core.utils.hashing import file_hash, unit_hash
@@ -625,6 +630,48 @@ def test_rollback_job_invalid_config_still_works(tmp_path: Path) -> None:
     rollback_job(Library(library), job.job_id)  # needs only paths, so never reads the config
 
     assert (library / "_sorting" / "a.md").exists()
+
+
+# endregion
+
+
+# region latest_job
+
+
+def _saved_job(library: Path, job_id: str, created: datetime, *, rolled_back: bool = False) -> Job:
+    job = Job(job_id=job_id, created_at=created, rolled_back_at=created if rolled_back else None)
+    save_job(library / ".microfiche", job)
+    return job
+
+
+def test_latest_job_skips_rolled_back_picks_newest_applied(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _saved_job(library, "old", datetime(2026, 1, 1, 9))
+    _saved_job(library, "newer", datetime(2026, 1, 2, 9))
+    _saved_job(library, "newest-undone", datetime(2026, 1, 3, 9), rolled_back=True)
+
+    assert latest_job(library / ".microfiche").job_id == "newer"
+
+
+def test_latest_job_orders_by_created_not_file_name(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _saved_job(library, "zzz", datetime(2026, 1, 1, 9))  # sorts last by name, but is the older job
+    _saved_job(library, "aaa", datetime(2026, 1, 2, 9))
+
+    assert latest_job(library / ".microfiche").job_id == "aaa"
+
+
+def test_latest_job_no_jobs_raises(tmp_path: Path) -> None:
+    with pytest.raises(NoJobToRollBackError):
+        latest_job(_library(tmp_path) / ".microfiche")
+
+
+def test_latest_job_all_rolled_back_raises(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _saved_job(library, "done", datetime(2026, 1, 1, 9), rolled_back=True)
+
+    with pytest.raises(NoJobToRollBackError):
+        latest_job(library / ".microfiche")
 
 
 # endregion

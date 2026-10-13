@@ -17,6 +17,8 @@ from core.filer import (
     JobAlreadyRolledBackError,
     JobMoveMissingError,
     JobNotFoundError,
+    NoJobToRollBackError,
+    latest_job,
     rollback_job,
 )
 from core.ledger import LedgerCorruptError
@@ -279,20 +281,24 @@ def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quie
 
 def rollback(
     library: Path = _LIBRARY_OPTION,
-    job_id: str = typer.Option(..., "--job-id"),
+    job_id: str | None = typer.Option(None, "--job-id", help="The id `sort` printed. Give this or --last."),
+    last: bool = typer.Option(False, "--last", help="Undo the newest job that has not been undone."),
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Undo a filing job by id (the id `sort` prints)."""
+    """Undo a filing job: by id (the id `sort` prints), or the newest one with --last."""
 
+    if last == (job_id is not None):
+        _fail("Give exactly one of --job-id and --last.")
     lib = Library(library)
     try:
         with (
             _locked(lib, "rollback") as cleared_lock,
             _logging("rollback", lib, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
         ):
-            job = rollback_job(lib, job_id)
-    except (JobNotFoundError, JobAlreadyRolledBackError) as err:
+            # Resolved under the lock, so the job --last names is the one that is undone.
+            job = rollback_job(lib, latest_job(lib.state_dir).job_id if last else str(job_id))
+    except (JobNotFoundError, JobAlreadyRolledBackError, NoJobToRollBackError) as err:
         _fail(str(err))
     except (JobMoveMissingError, FileExistsError) as err:
         _fail(
@@ -302,7 +308,7 @@ def rollback(
     moves = sum(1 for event in job.moves if event.action == "move")
     restored = sum(1 for event in job.moves if event.action == "remove_folder")
     folders = f" and recreated {restored} emptied folder(s)" if restored else ""
-    console.print(f"Reverted {moves} move(s){folders} from job {job_id}.", soft_wrap=True)
+    console.print(f"Reverted {moves} move(s){folders} from job {job.job_id}.", soft_wrap=True)
 
 
 # endregion

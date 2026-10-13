@@ -177,6 +177,8 @@ uv run microfiche config --library ~/Documents/Library   # show the loaded confi
 uv run microfiche config --library ~/Documents/Library --sync   # list new folders in microfiche-library.json
 uv run microfiche audit --library ~/Documents/Library
 uv run microfiche rollback --library ~/Documents/Library --job-id <id>
+uv run microfiche rollback --library ~/Documents/Library --last   # undo the newest job not yet undone
+uv run microfiche --version
 ```
 
 By default only warnings and errors are shown, on stderr; `-v` adds progress messages and `-q` shows errors only. A
@@ -185,7 +187,8 @@ command that changes the library also records what it did, and why, in `.microfi
 
 Every command and option is listed in the [CLI reference](https://richard-gledhill.github.io/microfiche/cli-reference/).
 
-Run `uv run microfiche --help` for the full command reference.
+Run `uv run microfiche --help` for the full command reference. A command exits `0` when it did what was asked, `1` when it
+could not, and `2` for a wrong command line; see [Exit codes](https://richard-gledhill.github.io/microfiche/how-to-use/#exit-codes).
 
 ## Configuration
 

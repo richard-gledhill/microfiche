@@ -27,6 +27,10 @@ Check it works:
 uv run microfiche --help
 ```
 
+```bash
+uv run microfiche --version
+```
+
 **Optional — AI fallback.** To let a local [Ollama](https://ollama.com) model classify documents
 the rules can't, install the `ai` extra:
 
@@ -777,6 +781,22 @@ same command again):
     uv run microfiche rollback --library "$HOME\Documents\Library" --job-id <id>
     ```
 
+To undo the newest job instead, so you needn't copy its id, use `--last`. It means the newest job that has not been
+undone, so running it again steps back through earlier jobs one at a time, and it says which job it undid. Give
+exactly one of `--job-id` and `--last`:
+
+=== "Bash"
+
+    ```bash
+    uv run microfiche rollback --library ~/Documents/Library --last
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    uv run microfiche rollback --library "$HOME\Documents\Library" --last
+    ```
+
 ## 5. Troubleshooting
 
 When a document didn't go where you expected, or a run did less than you thought, microfiche can tell you why.
@@ -868,6 +888,19 @@ category microfiche chose with a confidence and the reason, and which method dec
 2026-10-12 17:06:43,349 DEBUG core.organizer: SolarConstructionNotes.md: left for review (confidence 0.00)
 2026-10-12 17:06:43,354 INFO core.organizer: sort finished: 2 filed, 1 for review, 0 duplicate(s)
 ```
+
+### Exit codes
+
+Every command ends with one of three exit codes, so a script can tell what happened:
+
+| Code | Meaning |
+|---|---|
+| `0` | The command did what was asked. This includes a `sort` that left documents under **Needs review**, a `reclassify` dry run that proposes moves, and `--version`. |
+| `1` | The command could not do what was asked: an invalid config or library file, a library run already in progress, a job that does not exist or was already rolled back, a rollback that stopped part-way, `review` without a terminal, options that contradict each other, or a run you stopped with Ctrl-C. Nothing is half-done silently: the message says what to fix. |
+| `2` | The command line itself was wrong: an unknown command or option, or a required option such as `--library` missing. Nothing ran. |
+
+A run that files some documents and leaves others for review still exits `0`; read the summary, or the **Needs review**
+list, for those.
 
 ## Current limitations
 

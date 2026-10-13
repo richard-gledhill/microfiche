@@ -10,6 +10,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 
 **Options**:
 
+* `--version`: Show the version and exit.
 * `--install-completion`: Install completion for the current shell.
 * `--show-completion`: Show completion for the current shell, to copy it or customize the installation.
 * `--help`: Show this message and exit.
@@ -21,7 +22,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 * `propose-categories`: Suggest new category folder names from...
 * `reclassify`: Re-review already-filed documents and...
 * `audit`: Show the audit log.
-* `rollback`: Undo a filing job by id (the id `sort`...
+* `rollback`: Undo a filing job: by id (the id `sort`...
 * `config`: Show the library configuration, or with...
 
 ## `microfiche sort`
@@ -129,7 +130,7 @@ $ microfiche audit [OPTIONS]
 
 ## `microfiche rollback`
 
-Undo a filing job by id (the id `sort` prints).
+Undo a filing job: by id (the id `sort` prints), or the newest one with --last.
 
 **Usage**:
 
@@ -140,7 +141,8 @@ $ microfiche rollback [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
-* `--job-id <str>`: [required]
+* `--job-id <str>`: The id `sort` printed. Give this or --last.
+* `--last`: Undo the newest job that has not been undone.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

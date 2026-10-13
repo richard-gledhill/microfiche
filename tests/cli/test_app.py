@@ -7,6 +7,7 @@ import re
 import shutil
 from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
@@ -92,6 +93,13 @@ def test_app_help_lists_all_commands() -> None:
         assert command_name in result.stdout
 
 
+def test_app_version_prints_installed_version() -> None:
+    result = runner.invoke(app, ["--version"])  # no command and no --library needed
+
+    assert result.exit_code == 0
+    assert result.stdout == f"microfiche {version('cli')}\n"
+
+
 def test_app_index_command_removed() -> None:
     # `index` regenerated Obsidian folder notes; it left the MVP with the integration (docs/development/feature-backlog.md).
     result = runner.invoke(app, ["index", "--help"])
@@ -172,6 +180,45 @@ def test_rollback_restores_library_and_appears_in_audit(tmp_path: Path) -> None:
     assert f"job={job_id} rollback Project Phoenix/02 Architecture/{_PHOENIX_NOTE} -> _sorting/{_PHOENIX_NOTE}" in (
         audit.stdout
     )
+
+
+def test_rollback_last_undoes_newest_job_then_the_one_before(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+    first = _sort(library)
+    note = library / "Project Phoenix" / "02 Architecture" / _PHOENIX_NOTE
+    (library / "_sorting" / "second.md").write_text(note.read_text(encoding="utf-8") + "\nSecond.", encoding="utf-8")
+    before_second = _tree(library)
+    second = _sort(library)
+    assert second != first
+
+    newest = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+
+    assert newest.exit_code == 0
+    assert f"from job {second}." in newest.stdout
+    assert _tree(library) == before_second
+    older = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+    assert f"from job {first}." in older.stdout
+    assert _tree(library) == before | {"_sorting/second.md"}  # the note added for the second job
+
+
+def test_rollback_last_nothing_to_undo_fails_cleanly(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["rollback", "--library", str(_library(tmp_path)), "--last"])
+
+    assert result.exit_code == 1
+    assert "No job to roll back" in result.stdout
+
+
+@pytest.mark.parametrize("arguments", [[], ["--last", "--job-id", "20260101-000000-abcdef"]])
+def test_rollback_job_choice_not_exactly_one_fails(tmp_path: Path, arguments: list[str]) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), *arguments])
+
+    assert result.exit_code == 1
+    assert "exactly one of --job-id and --last" in result.stdout
+    assert _tree(library) == before
 
 
 def test_rollback_same_job_twice_fails_cleanly(tmp_path: Path) -> None:
