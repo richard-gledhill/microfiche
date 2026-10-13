@@ -5,7 +5,8 @@ free text, then checks the answer against the taxonomy. A second kind of model, 
 classifier that takes text and a fixed list of options and returns one option with a probability), could do
 the same job more cheaply and with a real score. This page records why, which models are candidates, and what
 has to be checked before any is adopted. It feeds
-[Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) of the build plan. Nothing here is built.
+[decision-model classifier](feature-backlog.md#decision-model-classifier) in the feature backlog (formerly Stage 4.5),
+which is under review. Nothing here is built.
 
 ## Why a second kind of model
 
@@ -24,7 +25,7 @@ of suggestions to accept.
 ## Candidates
 
 These came from a web search and have **not** been checked against their model cards or documentation. Check
-each one in Stage 4.5's Plan before relying on any claim below.
+each one before relying on any claim below, as the backlog entry says.
 
 | Model | Maker | What the search results say | To verify |
 |---|---|---|---|

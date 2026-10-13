@@ -60,7 +60,7 @@ library_inbox = "_sorting"
 depth = 2
 ```
 Depth is 1 or 2; any other value is rejected with a message saying so. Loose files and kept-whole folders are filed at the
-leaf. Stage 4.7 plans depth 3 (group, category, subcategory), provisionally; see [library-depth.md](library-depth.md).
+leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
 The word *group* is used at every depth.
 
 **Depth 1 — a flat library** (Stage 4.6). A library of group folders only: a document is filed straight into one. The
@@ -382,7 +382,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
   are reported, never removed.
 * **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (1 and 2;
-  3 from Stage 4.7 if it goes ahead). `levels`, `file_target_level` and `library_templates` are
+  [depth 3](feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.
 * **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
   name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
@@ -398,8 +398,8 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   holds the OpenAI key (`api_key_env`; the key is never in the file), the AI score, and `max_document_chars` (how much of a
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when
   document text goes to OpenAI, and warns once if the length is unlimited. A second kind of classifier, a decision model
-  that returns a bounded choice with a probability, is
-  [Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
+  that returns a bounded choice with a probability, is in the
+  [feature backlog](feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
   a `command` provider is deferred behind a security decision.
 
 ## See also

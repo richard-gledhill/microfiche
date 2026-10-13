@@ -121,10 +121,10 @@ nothing itself, because it is taken before logging is set up and released after 
 yields the holder of a stale lock it cleared, `_locked` passes that on, and `_logging` logs it as a WARNING once logging
 is on. Still open: `-q` hides the AI-unavailable warning, and the stale-lock warning, on screen.
 
-One further step follows it, and it is not built:
-[Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier) (a second AI resolver, a decision model such as
-Jev, Clef or Nimble, whose own probability replaces the flat `0.70`; adopted only if it beats the chat model on the
-calibration corpus; see [ai-classifier-options.md](ai-classifier-options.md)).
+A decision-model classifier (a second AI resolver such as Jev, Clef or Nimble, whose own probability would replace the
+flat `0.70`; adopted only if it beats the chat model on the calibration corpus) was Stage 4.5 and is in the
+[feature backlog](feature-backlog.md#decision-model-classifier), under review; the research is in
+[ai-classifier-options.md](ai-classifier-options.md).
 
 [Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) is built: `[library_structure] depth = 1` is a flat library
 of group folders only, and a document is filed straight into one. `Taxonomy` carries the depth; `Classifier` runs a
@@ -145,11 +145,10 @@ category when the depth is raised. `name_pattern` was dropped in favour of the e
 bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
 [feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced), to be reviewed.
 
-One more concerns the library's shape, from [library-depth.md](library-depth.md), and is not built:
-[Stage 4.7](mvp-build-plan.md#stage-47--subcategories-depth-3-provisional) (depth 3 with subcategories,
-provisional and deferred if it hits a practical limit). The optional filing target mode that was Stage 4.9
-(a `[sorting] file_at` setting: `leaf_only` or `best_level`) is in the
-[feature backlog](feature-backlog.md#filing-target-mode-file_at), under review.
+Two ideas about the library's shape (see [library-depth.md](library-depth.md)) are in the feature backlog, under review:
+[depth 3 with subcategories](feature-backlog.md#subcategories-depth-3), which was Stage 4.7, and the optional
+[filing target mode](feature-backlog.md#filing-target-mode-file_at) (a `[sorting] file_at` setting: `leaf_only` or
+`best_level`), which was Stage 4.9.
 
 [Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
 exclusion-aware, link-skipping walk of the folders to `depth`, and `taxonomy()` is a view of it. `sync_library_file`
@@ -159,7 +158,7 @@ sorting. Entries with no folder are reported every run and kept; one gone and on
 a possible rename. Nothing the user wrote is changed, a `*` entry covers the folders at its level, and the file is
 written through a temporary file and a rename, only when something was added. A preview and plain `config` write
 nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview
-doesn't show what would be added, and the walk reads one or two levels until Stage 4.7.
+doesn't show what would be added, and the walk reads one or two levels ([depth 3](feature-backlog.md#subcategories-depth-3) is in the backlog).
 
 ## Review (Stage 5)
 
@@ -168,8 +167,8 @@ doesn't show what would be added, and the walk reads one or two levels until Sta
 counted but kept out of the queue. A choice is checked as it is made with the checks `sort` uses (`DestinationClaims`,
 `DuplicateIndex`), and `commit` re-checks each one and files them through `file_batch` as one job, recorded with
 `classified_by = "user"`. A new group or category is only planned until a unit is filed into it. The run lock is taken
-only for the commit. Still open: ranked suggestions from a decision model wait for
-[Stage 4.5](mvp-build-plan.md#stage-45--decision-model-classifier); depth 3 will need one more prompt per level; it does
+only for the commit. Still open: ranked suggestions would need the
+[decision-model classifier](feature-backlog.md#decision-model-classifier), and [depth 3](feature-backlog.md#subcategories-depth-3) one more prompt per level (both in the backlog); it does
 not learn from choices; there is no way back to an item once it is passed.
 
 ## Future work and deferred beyond MVP
@@ -232,7 +231,7 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
   warning is useful on a long run. The same applies to `reclassify --apply`.
 - **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
 - **Telemetry:** none, and none is planned.
-- **Depth 4 and above.** Library creation functions are capped at depth 3, and Stage 4.7 may itself be deferred.
+- **Depth 4 and above.** Library creation functions would be capped at depth 3, which is itself [in the backlog](feature-backlog.md#subcategories-depth-3).
 - **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](ai-classifier-options.md)).
 
 ## See also
