@@ -14,18 +14,18 @@ Internal planning/design docs — not published to the user-facing docs site (se
 - **[feature-backlog.md](feature-backlog.md)** — current. Where a deferred or future item goes, and the features kept
   for beyond the MVP, with the design and where to restore removed code from: the Obsidian integration and the plugin
   architecture it should be built on.
-- **[config-review.md](config-review.md)** — planned work. A review of the configuration: which hard-coded
+- **[config-review.md](config-review.md)** — built (Stage 4.1). A review of the configuration: which hard-coded
   constants should become settings, `keep_folders`, a packaged defaults file, AI settings, and moving category
   hints out of the TOML into a library JSON file. Feeds Stage 4.1 of the build plan.
-- **[operations-review.md](operations-review.md)** — planned work. A review of robustness and diagnostics against
+- **[operations-review.md](operations-review.md)** — built (Stages 4.1 to 4.4 and 6). A review of robustness and diagnostics against
   typical CLI file-organiser practice: name collisions, failure isolation, `sort --dry-run`, a run lock, logging,
   release packaging. Feeds Stages 4.2 to 4.4 and Stage 6 of the build plan.
 - **[ai-classifier-options.md](ai-classifier-options.md)** — planned work. Chat-model versus decision-model
   classifiers for the AI fallback, the candidates (Jev, Clef, Nimble, none yet verified) and the rules for adopting
   one. Feeds the decision-model classifier in the feature backlog, under review.
-- **[fuzzy-matching-options.md](fuzzy-matching-options.md)** — planned work. What `thefuzz` is (a wrapper over
+- **[fuzzy-matching-options.md](fuzzy-matching-options.md)** — done (Stage 4.1). What `thefuzz` is (a wrapper over
   RapidFuzz), what was measured, the traps in switching, and why to switch as the last step of Stage 4.1.
-- **[library-depth.md](library-depth.md)** — planned work. Library depth (one, two or three levels), non-library
+- **[library-depth.md](library-depth.md)** — built (Stages 4.6 and 4.8; depth 3 is in the backlog). Library depth (one, two or three levels), non-library
   folders such as bundles filed by `keep_folders`. Feeds Stages 4.6 to 4.8; the optional filing target mode it
   once covered is in the feature backlog, under review.
 - **[calibration.md](calibration.md)** — current. How the default confidence threshold was measured: the
@@ -37,7 +37,7 @@ Internal planning/design docs — not published to the user-facing docs site (se
   `audit.log` format and `.microfiche/` directory layout, as one authoritative page.
 - **[module-diagram.md](module-diagram.md)** — two Mermaid diagrams: the module import graph, generated from
   the actual source imports by `make module-diagram` (not hand-maintained prose), and the `sort` pipeline's
-  runtime data flow, written by hand (including what's implemented but not yet wired in, e.g. the `review` queue).
+  runtime data flow, written by hand.
   Regenerate the graph rather than hand-edit it if it drifts.
 - **[archive/](archive/)** — superseded design history, kept for context but not authoritative.
   Reading order: the original PRD → a three-option concepts brainstorm → concept 1a (SQLite-backed)

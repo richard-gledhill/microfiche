@@ -28,6 +28,8 @@ make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=ter
 make docs       # mkdocs serve
 make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
 make module-diagram   # regenerate the import graph in docs/development/module-diagram.md from the source
+make build            # build the core and cli release wheels into dist/ and check them (scripts/check_wheels.py)
+make smoke-wheels     # ...then install them in a clean environment and run them (scripts/smoke_wheels.sh)
 ```
 
 Single test / narrower run:
@@ -53,6 +55,7 @@ uv workspace, two packages, `core` has no dependency on `cli`:
 packages/core/src/microfiche/core/   # scanning, classification, filing, library logic — the engine
 packages/cli/src/microfiche/cli/     # Typer CLI (app.py registers commands from commands.py) — thin wrapper
 tests/core/, tests/cli/              # mirror the packages/ layout 1:1
+tests/scripts/                       # tests of scripts/ (module diagram, wheel checks, the sample library builder)
 tests/mock_library/       # hand-built library fixture for integration-style tests
 ```
 

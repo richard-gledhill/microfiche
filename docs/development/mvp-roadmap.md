@@ -70,7 +70,7 @@ Ranked by how central they are to the product's core promise, not by ease of imp
    persistence from (1).
 4. ~~**Open decision:** are `review` and `index` in MVP scope?~~ **Decided:** `review` is in the MVP, as
    [Stage 5](mvp-build-plan.md#stage-5--review-workflow) (the only way out of the inbox for a unit below the
-   confidence threshold), and still to build. `index` is out, with the Obsidian integration, and has been removed
+   confidence threshold), and built. `index` is out, with the Obsidian integration, and has been removed
    from the CLI rather than left as a stub that exits 1.
 
 ## Configuration consolidation (Stage 4.1)
@@ -170,6 +170,18 @@ counted but kept out of the queue. A choice is checked as it is made with the ch
 only for the commit. Still open: ranked suggestions would need the
 [decision-model classifier](feature-backlog.md#decision-model-classifier), and [depth 3](feature-backlog.md#subcategories-depth-3) one more prompt per level (both in the backlog); it does
 not learn from choices; there is no way back to an item once it is passed.
+
+## Release (Stage 6)
+
+[Stage 6](mvp-build-plan.md#stage-6--mvp-hardening--release) is in progress. Built so far: `microfiche --version`, `rollback --last` and
+documented exit codes; `core` and `cli` released in lockstep as two wheels (`cli` requires `core==<same version>`) that import as
+`microfiche.core` and `microfiche.cli`; `scripts/check_wheels.py` and `scripts/smoke_wheels.sh`, run by CI and by the release workflow,
+which attaches the wheels to the release; CI on Linux and Windows with a coverage floor (`fail_under`); a sample library builder
+(`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. Still to do: the simplification
+review, the guided manual walkthrough, and cutting `v0.1.6`. Known limits the docs state rather than hide: a bundle moved by hand is
+split by `reclassify`; `Car` matches inside `care` and `scarf` at full confidence; `-q` hides the "AI unavailable" warning; `review`
+cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
+(a silent no-op worth a warning or a validation error after the MVP).
 
 ## Future work and deferred beyond MVP
 

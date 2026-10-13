@@ -4,7 +4,7 @@ A review of what `microfiche-config.toml` holds today, what should move out of t
 should move out of it. The outcome is planned as
 [Stage 4.1 of the build plan](mvp-build-plan.md#stage-41--configuration-consolidation); the resulting
 design is in [architecture.md §10](architecture.md#10-configuration-layout). This page keeps
-the reasoning, so those two can stay short. Nothing here is built yet.
+the reasoning, so those two can stay short. It is built; the present tense below is the review's, from before the change.
 
 The repo is private and unpublished, so there are no existing libraries to migrate: the changes below
 can be a hard cut.

@@ -12,9 +12,14 @@ configuration, and [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guid
 | Module | Purpose |
 |---|---|
 | `app.py` | The Typer application; registers every command. |
-| `commands.py` | Command implementations: `sort`, `review`, `propose-categories`, `reclassify`, `audit`, `rollback`. |
+| `commands.py` | Command implementations: `sort`, `review`, `propose-categories`, `reclassify`, `audit`, `rollback`, `config`. |
 | `display.py` | Rich rendering helpers for CLI output. |
-| `review.py` | Interactive review-queue workflow (not yet implemented). |
+| `review.py` | The prompts of the interactive `review` command; the logic is `core/review.py::ReviewSession`. |
+| `logging.py` | Where log records go: the console (`-v`/`-q`) and the rotating `.microfiche/microfiche.log`. |
+| `progress.py` | The progress bar shown on a terminal. |
+
+The package installs as `microfiche.cli` (a namespace package shared with `microfiche.core`) and provides the
+`microfiche` command.
 
 This package depends on [`core`](../core) for all scanning, classification, and filing logic —
 it is presentation and command orchestration only.

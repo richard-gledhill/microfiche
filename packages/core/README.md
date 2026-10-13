@@ -1,7 +1,7 @@
 # core
 
 Core library for [microfiche](../../README.md): document scanning, classification, filing,
-and library management logic.
+and library management logic. It imports as `microfiche.core`.
 
 This package is part of the microfiche uv workspace and isn't published or used standalone —
 see the [root README](../../README.md) for installation, usage, and configuration, and
@@ -11,11 +11,12 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 
 | Module | Purpose |
 |---|---|
-| `scanner.py`, `classifier.py`, `filer.py`, `ledger.py`, `organizer.py`, `reclassify.py` | The sort pipeline: scan the inbox, classify, file (recording a job, ledger entries and audit lines), and undo. |
+| `scanner.py`, `classifier.py`, `duplicates.py`, `filer.py`, `ledger.py`, `organizer.py`, `reclassify.py` | The sort pipeline: scan the inbox, classify, check for copies, file (recording a job, ledger entries and audit lines), and undo. |
+| `review.py`, `runlock.py` | The `ReviewSession` behind `microfiche review`, and the lock that lets only one changing run go at a time. |
 | `parsers/` | Document parsing (PDF, DOCX, TXT, Markdown, MSG, EML) behind `read_documents`, with unreadable files reported rather than raised. |
 | `rules/` | Deterministic group/category classification rules. |
 | `ai/` | Optional Ollama/OpenAI fallback classification. |
-| `library/` | The `Library` (layout, exclusions, taxonomy), category suggestion, naming, templates. |
+| `library/` | The `Library` (layout, exclusions, taxonomy), the library file and its sync, category suggestion, naming. |
 | `models/` | Shared pydantic models (`Document`, `SortableUnit`, `Taxonomy`, ...). |
 | `config.py` | Per-library TOML config loading. |
 | `utils/` | Filesystem, hashing, logging, and validation helpers. |

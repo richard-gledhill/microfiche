@@ -353,7 +353,7 @@ carries on, and `config --sync` exits with an error.
 
 **Choosing names that work:**
 
-- Groups are matched by name only — there are no keyword hints for groups — so use names that
+- In a library with categories, groups are matched by name only — there are no keyword hints for groups — so use names that
   appear in your documents (project, client or course names usually do). A document that doesn't
   mention any group is listed under **Needs review** and left in the inbox.
 - Categories can use hints, so they don't need to appear literally.
@@ -1057,6 +1057,8 @@ microfiche is pre-release. At the moment:
   again in the summary's **Needs review** list.
 - The log file is written only by commands that change the library, and not by `rollback` when the config can't be
   read.
+- In a library with categories (`depth = 2`), `hints` or `rules` written on a *group's* own entry are accepted but not
+  used: only a flat library matches on them. Put them on the group's category entries (`children`) instead.
 - `-q` also hides the warning that a leftover lock was cleared. It is still in the log file.
 - The progress bar's threshold (20 documents, or any `--use-ai` run) is fixed; there is no setting for it.
 

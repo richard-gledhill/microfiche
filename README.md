@@ -9,7 +9,7 @@ A personal library file manager built in python.
 
 `microfiche` automatically organizes, categorizes, and files reference materials —
 requirements, design notes, research, correspondence — into a structured library. It takes a folder of uncategorized
-documents and sorts them with minimal manual effort. It's Obsidian-friendly, can run as an automated task.
+documents and sorts them with minimal manual effort. It works on any folder tree, including an Obsidian vault, and `sort` can be run from a scheduled task.
 
 - **Documentation**: <https://richard-gledhill.github.io/microfiche/>
 - **Source code**: <https://github.com/richard-gledhill/microfiche>
@@ -146,7 +146,8 @@ Put the keywords in `.microfiche/microfiche-library.json`. Each `name` is a fold
 
 Things to keep in mind when choosing names:
 
-- **Groups are matched by name only** (there are no keyword hints for groups), so pick names that
+- **Groups are matched by name only** (in a library with categories there are no keyword hints for groups; a flat
+  library's groups do have them), so pick names that
   actually appear in your documents — project, client or course names usually do. A document that
   doesn't mention any group goes to **Needs review** and stays in the inbox.
 - **Categories can use hints**, so they don't need to appear literally in the text.
@@ -270,9 +271,12 @@ microfiche/
 │   ├── core/src/microfiche/core/    # scanning, classification, filing, library logic
 │   └── cli/src/microfiche/cli/      # the microfiche Typer CLI
 ├── microfiche/     # default per-library config, copied into a library's .microfiche/
+├── scripts/               # release-wheel checks, the module diagram, the sample library builder
 ├── tests/
 │   ├── core/, cli/        # unit tests, mirrors the packages/ layout
-│   └── mock_library/       # a hand-built library fixture for integration-style tests
+│   ├── scripts/           # tests of the scripts, including the sample library every sort route is checked on
+│   ├── calibration/       # a labelled corpus that measures the confidence threshold
+│   └── mock_library/      # a hand-built library fixture for integration-style tests
 └── docs/                  # PRD, architecture decisions, and mkdocs source
 ```
 

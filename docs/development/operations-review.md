@@ -3,7 +3,8 @@
 A review of the code against what well-run command-line file organisers usually have: robustness, safety
 and diagnostics, as opposed to features. It is scheduled as Stages 4.2 to 4.4 of the
 [build plan](mvp-build-plan.md), with a few items in Stage 6; what is postponed is listed in
-[mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp). Nothing here is built yet. The configuration side of
+[mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp). It is built (gaps 1 to 9 and 11 in Stages 4.1 to 4.4, gap 10 and the rest of 11 in Stage 6); the "what the code does
+today" column is the review's, from before the change. The configuration side of
 the same exercise is in [config-review.md](config-review.md).
 
 ## Gaps worth fixing in the MVP
