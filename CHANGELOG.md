@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - make the link and lock checks import on Linux [`2e304d2`](https://github.com/richard-gledhill/microfiche/commit/2e304d2)
 
 ### Documentation
+- move Stages 4.5 and 4.7 to the feature backlog, under review [`9b61aa9`](https://github.com/richard-gledhill/microfiche/commit/9b61aa9)
+- :robot: changelog file generated [`0a49b77`](https://github.com/richard-gledhill/microfiche/commit/0a49b77)
 - :robot: changelog file generated [`983278a`](https://github.com/richard-gledhill/microfiche/commit/983278a)
 - move Stage 4.9 (filing target mode) to the feature backlog, under review [`174c5f3`](https://github.com/richard-gledhill/microfiche/commit/174c5f3)
 - :robot: changelog file generated [`0a8aca2`](https://github.com/richard-gledhill/microfiche/commit/0a8aca2)
@@ -71,6 +73,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - remove default values from the config models [`5d48100`](https://github.com/richard-gledhill/microfiche/commit/5d48100)
 
 ### Other
+- Merge pull request #58 from richard-gledhill/docs/move-stages-4-5-and-4-7-to-backlog [`b9ebbdb`](https://github.com/richard-gledhill/microfiche/commit/b9ebbdb)
 - Merge pull request #57 from richard-gledhill/feature/review-command [`1ce9650`](https://github.com/richard-gledhill/microfiche/commit/1ce9650)
 - feature: add the interactive review command for units left in the inbox [`132d86a`](https://github.com/richard-gledhill/microfiche/commit/132d86a)
 - Merge pull request #56 from richard-gledhill/docs/move-stage-4-9-to-backlog [`d5cf3f3`](https://github.com/richard-gledhill/microfiche/commit/d5cf3f3)
