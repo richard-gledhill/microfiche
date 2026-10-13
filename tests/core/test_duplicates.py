@@ -175,7 +175,7 @@ def test_find_reads_nothing_until_first_needed(tmp_path: Path, monkeypatch: pyte
     library = _library(tmp_path)
     walked: list[object] = []
     real = os.scandir
-    monkeypatch.setattr(duplicates.os, "scandir", lambda path: walked.append(path) or real(path))
+    monkeypatch.setattr(os, "scandir", lambda path: walked.append(path) or real(path))
     index = DuplicateIndex(library)
 
     assert walked == []
@@ -191,7 +191,7 @@ def test_find_walks_library_once_for_many_files(tmp_path: Path, monkeypatch: pyt
     index.find(_inbox(library, "a.md"))
     walked: list[object] = []
     real = os.scandir
-    monkeypatch.setattr(duplicates.os, "scandir", lambda path: walked.append(path) or real(path))
+    monkeypatch.setattr(os, "scandir", lambda path: walked.append(path) or real(path))
 
     index.find(_inbox(library, "b.md", "other text"))
 
@@ -211,7 +211,7 @@ def test_find_unreadable_folder_skipped_not_fatal(tmp_path: Path, monkeypatch: p
             raise PermissionError(path)
         return real(path)
 
-    monkeypatch.setattr(duplicates.os, "scandir", scandir)
+    monkeypatch.setattr(os, "scandir", scandir)
 
     assert DuplicateIndex(library).find(inbox) == [ExistingCopy(copy)]
 

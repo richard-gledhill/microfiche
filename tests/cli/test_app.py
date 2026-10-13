@@ -149,6 +149,16 @@ def test_sort_prints_job_id_and_undo_hint(tmp_path: Path) -> None:
     assert f"microfiche rollback --library <your library> --job-id {job_id.group(1)}" in result.stdout
 
 
+def test_sort_filed_name_with_square_brackets_is_printed_as_written(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / _PHOENIX_NOTE).rename(library / "_sorting" / "Phoenix [v2] [bold] notes.md")
+
+    result = runner.invoke(app, ["sort", "--library", str(library)])
+
+    assert result.exit_code == 0
+    assert "Phoenix [v2] [bold] notes.md -> Project Phoenix/02 Architecture" in result.stdout
+
+
 def test_sort_nothing_to_file_prints_no_job(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / _PHOENIX_NOTE).unlink()

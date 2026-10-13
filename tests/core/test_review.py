@@ -12,7 +12,7 @@ from microfiche.core.ledger import Ledger
 from microfiche.core.library.library import Library
 from microfiche.core.models.ledger import LedgerRecord
 from microfiche.core.review import AlreadyDecidedError, ReviewError, ReviewItem, ReviewSession
-from microfiche.core.utils.hashing import file_hash
+from microfiche.core.utils.hashing import file_hash, unit_hash
 
 # region Test helpers
 
@@ -352,6 +352,25 @@ def test_decide_second_unit_cannot_take_a_reserved_name(tmp_path: Path) -> None:
 
     assert problem is not None
     assert "another unit in this run is already going to Project Phoenix/03 Research/" in problem
+
+
+def test_decide_unreadable_unit_does_not_keep_its_destination_reserved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = _library(tmp_path)
+    session = _session(root)
+    item = _item(session, _SOLAR)
+    real_hash = unit_hash
+
+    def unreadable(path: Path) -> str:
+        raise PermissionError(path.name)
+
+    monkeypatch.setattr("microfiche.core.review.unit_hash", unreadable)
+    assert "can't be read" in (session.decide(item, _RESEARCH) or "")
+
+    monkeypatch.setattr("microfiche.core.review.unit_hash", real_hash)
+
+    assert session.decide(item, _RESEARCH) is None  # the failed attempt left no claim on the name behind
 
 
 def test_decide_two_identical_inbox_files_second_is_a_copy_of_the_first(tmp_path: Path) -> None:

@@ -1032,8 +1032,8 @@ microfiche is pre-release. At the moment:
   out of the inbox for you.
 - A preview can't tell that a file will be open in another program when the real run happens, and it can be
   out of date if another run is changing the library at the same time.
-- The inbox settings `[sorting] ignore` and the skipping of links apply to `sort`. `reclassify` honours
-  `[parsing] max_file_mb` but not those two.
+- The inbox setting `[sorting] ignore` applies to `sort`, not to `reclassify`, which honours `[parsing] max_file_mb`.
+  Links are skipped by both: `reclassify` never lists a symbolic link or junction, or anything behind one.
 - A file open in another program is not retried: close it and run `sort` again.
 - `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
   cannot go back to an item once you have moved on, and it does not learn from your choices: add a keyword hint to

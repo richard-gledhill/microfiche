@@ -248,8 +248,9 @@ def _render_units(console: Console, report: SortReport) -> None:
 
     for unit, classification in report.filed:
         console.print(
-            f"  {unit.source_path.name} -> {'/'.join(classification.folders or ())} "
-            f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})"
+            f"  {escape(unit.source_path.name)} -> {escape('/'.join(classification.folders or ()))} "
+            f"(confidence {classification.overall_confidence:.2f}, via {classification.classified_by})",
+            soft_wrap=True,
         )
     for unit, classification in report.needs_review:
         console.print(
