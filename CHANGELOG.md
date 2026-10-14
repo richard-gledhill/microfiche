@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
 
 ### Documentation
+- fix the errors, failing steps and gaps found by the Stage 6 docs review [`bcd9e0c`](https://github.com/richard-gledhill/microfiche/commit/bcd9e0c)
+- :robot: changelog file generated [`a7a53d9`](https://github.com/richard-gledhill/microfiche/commit/a7a53d9)
 - :robot: changelog file generated [`8c61033`](https://github.com/richard-gledhill/microfiche/commit/8c61033)
 - :robot: changelog file generated [`e6d1d78`](https://github.com/richard-gledhill/microfiche/commit/e6d1d78)
 - :robot: changelog file generated [`99c79a4`](https://github.com/richard-gledhill/microfiche/commit/99c79a4)
@@ -38,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - import core and cli as microfiche.core and microfiche.cli [`a88e02e`](https://github.com/richard-gledhill/microfiche/commit/a88e02e)
 
 ### Other
+- Merge pull request #68 from richard-gledhill/docs/stage-6-docs-review [`c1ea138`](https://github.com/richard-gledhill/microfiche/commit/c1ea138)
 - Merge pull request #67 from richard-gledhill/fix/stage-6-code-review [`78363fb`](https://github.com/richard-gledhill/microfiche/commit/78363fb)
 - Merge pull request #66 from richard-gledhill/refactor/stage-6-simplify [`ee7f2bf`](https://github.com/richard-gledhill/microfiche/commit/ee7f2bf)
 - Merge pull request #65 from richard-gledhill/fix/stage-6-review-bugs [`ba24b1d`](https://github.com/richard-gledhill/microfiche/commit/ba24b1d)
