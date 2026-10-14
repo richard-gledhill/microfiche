@@ -727,7 +727,7 @@ actual MVP.
 
 **Deploy**
 - Cut the `v0.1.6` release through the repo's release workflow, with the wheels attached.
-- Remove the "No release yet" note from `docs/how-to-use.md` section 1 (and check `gh release download` against the real release), then bump the three package versions and the `cli` pin to `0.1.6` before tagging.
+- *(Done in the release commit)* The three package versions and the `cli` pin are `0.1.6`, and the "No release yet" note is gone from `docs/how-to-use.md` section 1. Still to do after the release exists: check `gh release download` against it.
 - Publish the documentation site for the tagged release.
 
 ### Guided walkthrough session (Stage 6 Test)

@@ -1,6 +1,6 @@
 [project]
 name = "cli"
-version = "0.1.5"
+version = "0.1.6"
 description = "microfiche CLI: organize project reference materials into a structured library."
 readme = "README.md"
 authors = [
@@ -10,7 +10,7 @@ requires-python = ">=3.11, <4.0"
 dependencies = [
     "typer",
     "rich",
-    "core==0.1.5",
+    "core==0.1.6",
 ]
 
 [project.scripts]
