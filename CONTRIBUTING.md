@@ -98,14 +98,17 @@ A test file mirrors its module's sections. The full rules are under "Module layo
 
 7. Commit your changes and push your branch to GitHub:
 
+   Stage the files you changed by name (not `git add .` or `-A`, which sweep up untracked local files). Use a
+   Conventional Commits subject (`feat:`, `fix:`, `docs:`, ...): the changelog is generated from them.
+
    ```bash
-   git add .
-   git commit -m "Your detailed description of your changes."
+   git add path/to/changed_file.py tests/path/to/test_file.py
+   git commit -m "fix: describe what changed and why"
    git push origin feature/name-of-your-feature
    ```
 
 8. Submit a pull request through the GitHub website. CI runs the same checks (`ruff`, `mypy`,
-   `pytest`) across Python 3.11–3.14 automatically, plus the branch-naming check from step 3.
+   `pytest`) across Python 3.11–3.14, on Linux and Windows, automatically, plus the branch-naming check from step 3.
 
 ## Pull Request Guidelines
 

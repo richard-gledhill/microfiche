@@ -98,7 +98,7 @@ are not checked for folders kept whole, and a duplicate is not moved out of the 
 
 [Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) is built. `sort --dry-run` previews a run
 (`run_sort(dry_run=True)`), writing nothing and taking no lock. `sort`, `reclassify --apply` and `rollback` take
-`.microfiche/lock` (`core/runlock.py`) so a second changing run refuses to start; a lock from a dead process is
+`.microfiche/lock` (`core/runlock.py`; `config --sync` joined them in Stage 4.10 and `review`'s filing step in Stage 5) so a second changing run refuses to start; a lock from a dead process is
 cleared. A move is now a plain rename, so a file another program has open fails cleanly and, like any other
 per-unit failure, goes to review with the reason while the rest of the batch is filed (`file_batch` returns a
 `FilingResult`). A failing AI provider switches the AI off for the rest of the run, with one warning. The inbox
@@ -130,8 +130,8 @@ flat `0.70`; adopted only if it beats the chat model on the calibration corpus) 
 of group folders only, and a document is filed straight into one. `Taxonomy` carries the depth; `Classifier` runs a
 single group stage; `ClassificationResult.category` is `None` and `.folders` is what filing uses; a group entry in the
 library file takes `hints` and `rules`, matched as a filename rule, then the group's name, then its hints. The ledger,
-`rollback`, `reclassify` and the duplicate check work on it. `propose-categories` still prints category names, which
-a flat library has none of. Calibrated on a small flat corpus (`tests/calibration/corpus_flat`); see
+`rollback`, `reclassify` and the duplicate check work on it. `propose-categories` says a flat library has no categories
+to propose and exits 0. Calibrated on a small flat corpus (`tests/calibration/corpus_flat`); see
 [calibration.md](calibration.md#flat-libraries-depth-1).
 
 [Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders) is built, reduced to what the principle needs: a folder

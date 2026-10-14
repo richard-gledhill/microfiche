@@ -57,6 +57,7 @@ packages/cli/src/microfiche/cli/     # Typer CLI (app.py registers commands from
 tests/core/, tests/cli/              # mirror the packages/ layout 1:1
 tests/scripts/                       # tests of scripts/ (module diagram, wheel checks, the sample library builder)
 tests/mock_library/       # hand-built library fixture for integration-style tests
+tests/mock_flat_library/  # the same for a flat (depth 1) library
 ```
 
 **Names.** The two distributions are called `core` and `cli`, but they import as `microfiche.core` and
@@ -137,7 +138,7 @@ paths — this works because both are installed editable into the shared workspa
    turns it into a `needs_review` entry. A provider failure switches the AI fallback off for the rest of the run
    (`SortReport.ai_unavailable`).
 6. `sort --dry-run` runs the same pipeline with `file_batch` left out (`run_sort(dry_run=True)`): no job, ledger
-   or audit line, no lock, no state folder. `sort`, `reclassify --apply` and `rollback` take `.microfiche/lock`
+   or audit line, no lock, no state folder. `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files) take `.microfiche/lock`
    (`runlock.py::run_lock`, at the CLI level) so only one changing run is active; a lock from a dead process is
    cleared, an unreadable one counts as held. Never use `os.kill(pid, 0)` to test a process on Windows.
 
@@ -160,7 +161,8 @@ paths — this works because both are installed editable into the shared workspa
   `commit` re-checks and files the chosen units as one `file_batch` job with `classified_by = "user"`. Nothing is
   created or moved before `commit`; the prompts live in `cli/review.py`.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
-  scope; never creates folders itself (requires explicit `--apply` at the CLI layer).
+  scope; never creates folders itself. `propose-categories` only prints, over the inbox; it has no `--apply`, no `--use-ai` and no
+  scope option yet (see `docs/development/architecture.md` §6).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are
   parked in [docs/development/feature-backlog.md](docs/development/feature-backlog.md), with where to restore them
   from. Don't reintroduce an `[obsidian]` config section or an `index` command; the integration is to be designed as

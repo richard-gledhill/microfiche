@@ -11,7 +11,7 @@ nav:
   - Home: index.md
   - How to use: how-to-use.md
   - CLI reference: cli-reference.md
-  - Modules: modules.md
+  - API reference: modules.md
   - Changelog: changelog.md
   - Contributing: contributing.md
   - License: license.md
@@ -34,8 +34,8 @@ plugins:
             heading_level: 2
 theme:
   name: material
-  feature:
-    tabs: true
+  features:
+    - navigation.tabs
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

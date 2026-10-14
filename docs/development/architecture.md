@@ -219,8 +219,9 @@ classify, duplicate and name checks, and any AI calls, but not `file_batch`. It 
 takes no lock, and creates no state folder. Because the real code path is shared, a preview cannot drift from a real run.
 The one piece of new logic is predicting which inbox folders would be removed once emptied.
 
-**Decision — one run at a time.** `sort` (not `--dry-run`), `reclassify --apply` and `rollback` take `.microfiche/lock`
-(`core/runlock.py`) at the CLI level, so `reclassify --apply` can hold it from planning to filing. The file is created
+**Decision — one run at a time.** `sort` (not `--dry-run`), `reclassify --apply`, `rollback`, `config --sync` and `review` (only
+when it files, at the end) take `.microfiche/lock` (`core/runlock.py`) at the CLI level, so `reclassify --apply` can hold it from
+planning to filing. The file is created
 atomically (`O_CREAT | O_EXCL`) and holds the process id, command and start time. A lock whose process no longer exists
 is stale and is cleared; a lock file that cannot be read counts as held and is never cleared, because guessing wrong
 would let two runs through while deleting one file is an easy request to make. On Windows the process check uses the
@@ -234,7 +235,8 @@ when used as a library. Only the CLI installs handlers (`cli/logging.py::configu
 `caplog`. The loggers pass every record on and each handler filters, so `-v` and `-q` can differ from the file: the console
 (stderr) shows WARNING and above, INFO with `-v`, errors only with `-q` (which wins); the file records `[logging] level`,
 or DEBUG with `-v`. The file is a rotating UTF-8 `.microfiche/microfiche.log`, opened lazily, and is attached only by a
-command that holds the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`), so a preview creates
+command that holds the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`, `config --sync`, `review` when
+it files), so a preview creates
 nothing and only the lock holder ever rotates it. The commands enter `_locked` before `_logging`: a run the lock refuses
 raises before logging starts and leaves no trace. `_logging` is a context manager so the handlers are always removed
 when the command ends, and a library whose config cannot be read still rolls back, logging to the screen only.
@@ -276,10 +278,10 @@ User-extendable for anything not covered by those three families.
 ```
 core/library/category_suggester.py
 ```
-Given a scope (the inbox, one group, or the whole library), extract common terms across the documents in scope
-(keyword/TF-IDF frequency by default; `--use-ai` routes the same content through the existing `ai/` abstraction
-for a smarter naming pass) and print candidate new category names with supporting evidence. Creating the actual
-folder always requires an explicit `--apply` from the user — this function only ever suggests.
+Extracts common terms across the documents in the inbox (keyword frequency) and prints candidate new category names with
+supporting evidence. It only ever suggests: it never creates a folder, and a person makes one themselves (or plans one in
+`review`). Built: the inbox scope, and print-only. Designed but not built: a scope of one group or the whole library, a
+`--use-ai` pass for better names, and an `--apply` that creates the chosen folders.
 
 ### Reclassify / re-review existing filings
 ```

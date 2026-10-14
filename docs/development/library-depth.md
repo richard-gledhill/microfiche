@@ -62,7 +62,8 @@ two kinds: a folder microfiche filed as content (a bundle filed whole by `keep_f
 What goes wrong without a rule:
 
 - **`reclassify` splits a bundle.** It walks every file under the library and classifies each one, so the
-  documents of a filed bundle are proposed separately. Today's code has no check for this.
+  documents of a filed bundle would be proposed separately. Stage 4.8 added the check: a folder the ledger records as filed
+  whole is one unit. (One moved by hand is no longer recognised and is split.)
 - **At depth 3 the bundle becomes a subcategory.** The taxonomy walk would read it as one.
 - **`propose-categories`** has to treat the folder as content, and so would any future integration that writes into
   category folders (the Obsidian `index.md` notes, see [feature-backlog.md](feature-backlog.md)).

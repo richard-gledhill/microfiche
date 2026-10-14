@@ -107,7 +107,7 @@ The switch was made with the rounding kept, so a raw score of 84.6 still counts 
 
 Depend on `rapidfuzz` directly, and do it **as the last Build step of Stage 4.1**, as its own commit:
 
-1. **It must land before `v0.1.5`.** Stage 4.1 made `fuzzy_group_threshold` a user-facing setting. Today its
+1. **It had to land before `v0.1.5`** (done, as the last Build step of Stage 4.1). Stage 4.1 made `fuzzy_group_threshold` a user-facing setting. Today its
    documentation names `thefuzz`'s score and the type is a rounded integer. Settling the library before that ships
    means users never see the meaning change.
 2. **The tools it needs now exist.** The calibration harness and the configurable threshold are both in place, so

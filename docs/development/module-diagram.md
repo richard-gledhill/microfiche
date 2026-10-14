@@ -311,7 +311,7 @@ flowchart TD
     Result -->|">= threshold, not a duplicate"| Claim{"DestinationClaims.claim()\nname taken?"}
     Claim -->|"free"| FileUnit["filer.file_batch()\n(one Job per run; a move is a plain rename)"]
     Claim -.->|"--dry-run: stop here, nothing is written"| Preview[["SortReport only\n(labelled a preview)"]]
-    RunLock[(".microfiche/lock\n(sort, reclassify --apply, rollback)")] -.->|"taken before the run starts,\nreleased when it ends"| FileUnit
+    RunLock[(".microfiche/lock\n(sort, reclassify --apply, rollback,\nconfig --sync, review)")] -.->|"taken before the run starts,\nreleased when it ends"| FileUnit
     FileUnit -.->|"a move fails (file open in Word):\nstays in the inbox, nothing recorded"| NeedsReview
     Claim -->|"taken"| NeedsReview[["SortReport.needs_review\n(worked through by microfiche review)"]]
     Result -->|"< threshold"| NeedsReview

@@ -93,7 +93,11 @@ def sort(
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Process the library's inbox: classify and file everything above the confidence threshold."""
+    """Classify and file what is in the inbox.
+
+    Everything classified with enough confidence is filed as one job, which `rollback` can undo; the rest stays in the
+    inbox for `review`.
+    """
 
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
@@ -128,9 +132,9 @@ def review(
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Decide where the documents `sort` left in the inbox should go.
+    """Decide where the leftover documents go.
 
-    For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
+    Works through the documents `sort` left in the inbox. For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
     Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
     then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
     documents already in the library. Needs a terminal.
@@ -161,9 +165,9 @@ def review(
 def propose_categories(
     library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION
 ) -> None:
-    """Suggest new category folder names from common terms across documents in the sorting inbox.
+    """Suggest new category folder names.
 
-    Never creates folders - this only prints suggestions. Scoping to an existing library folder
+    Looks at common terms across the documents in the inbox. Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
     opened = _open_library(library)
@@ -194,9 +198,9 @@ def config(
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Show the library configuration, or with --sync bring its library file in step with its folders.
+    """Show the library's configuration.
 
-    --sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
+    With --sync it instead brings the library file in step with the folders. --sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
     that has none, creating the file if the library has none. It never changes or removes an entry, and never
     creates or removes a folder. An entry whose folder is gone is listed each time, and kept.
     """
@@ -227,9 +231,9 @@ def reclassify(
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Re-review already-filed documents and report where the classifier would file them now.
+    """Re-check where filed documents belong.
 
-    Without --apply this is a dry run. With --apply, the documents the table marks "move" are
+    Reports where the classifier would file each already-filed document now. Without --apply this is a dry run. With --apply, the documents the table marks "move" are
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
@@ -282,7 +286,10 @@ def rollback(
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
-    """Undo a filing job: by id (the id `sort` prints), or the newest one with --last."""
+    """Undo a filing job.
+
+    Give the id `sort` printed, or use --last for the newest job that has not been undone.
+    """
 
     if last == (job_id is not None):
         _fail("Give exactly one of --job-id and --last.")

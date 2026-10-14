@@ -37,15 +37,15 @@ _Avoid_: Library config, taxonomy file, template
 
 **Taxonomy**:
 The library's groups and, within each, its categories, read from the folders that already exist. It also records the library's depth.
+_Avoid_: Schema, category list
 
 **Flat library**:
 A library with one level of folders (`depth = 1`): groups only, with documents filed straight into a group.
 _Avoid_: Single-level library, groups-only library
-_Avoid_: Schema, category list
 
 **Unit**:
 What gets filed as one piece: a single document, or a whole folder of documents kept together.
-_Avoid_: Item, entry
+_Avoid_: Item, entry. The command line says "item" in two messages (`review`'s "Item 1 of N" and `reclassify`'s "filed item(s) sit in folders below the depth"), where it means a unit.
 
 ### Deciding where things go
 
