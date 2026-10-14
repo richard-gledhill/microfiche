@@ -247,6 +247,13 @@ keeps off the screen. `run_lock` logs nothing itself, because it runs outside th
 of a stale lock it cleared, `_locked` passes that to the command, and `_logging` logs it as a WARNING, so the lock-first
 order that keeps a refused run out of the log also leaves a way for the lock to be heard.
 
+**Decision — output is UTF-8 and never aborts a command.** `cli/streams.py::prepare_output_streams` runs first in `main()`. When stdout or
+stderr is a pipe, a file or a pseudo-terminal (Git Bash), Python on Windows uses the legacy code page, so a message's em dash is
+the cp1252 byte `0x97` and shows as a block; it reconfigures them to UTF-8. And when the reader goes away (`microfiche sort | head`)
+the next write fails with `EPIPE`, or `EINVAL` on Windows, which Rich does not treat as a closed pipe; a stream that is not a
+terminal is wrapped so that failure ends the output, not the command, which has already filed and recorded everything before it
+reports. Any other `OSError` is still raised.
+
 **Decision — progress is a callback.** `run_sort` and `run_reclassify` take an optional `progress(done, total)`, called
 first with `(0, total)` and then as each unit finishes, so `core` reports progress without importing Rich. `cli/progress.py`
 turns it into a bar on the same stderr console as the log lines, and decides once, from the first call, whether to draw:

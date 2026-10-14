@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
+from pathlib import Path
 from typing import Any
 
 from microfiche.core.config import MicroficheConfig
@@ -119,12 +120,15 @@ def render_library_sync(console: Console, sync: LibrarySync) -> None:
         )
 
 
-def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal], *, dry_run: bool) -> None:
+def render_reclassify_table(
+    console: Console, proposals: list[ReclassifyProposal], *, root: Path, dry_run: bool
+) -> None:
     """Print one row per reclassify proposal: where it is, where it would go, and what happens.
 
     Args:
         console: Where to print.
         proposals: The proposals to show.
+        root: The library's root; paths are shown relative to it, so the file name is not what a narrow terminal cuts off.
         dry_run: Whether the run is a preview, which is noted in the table's title.
     """
 
@@ -138,7 +142,7 @@ def render_reclassify_table(console: Console, proposals: list[ReclassifyProposal
     table.add_column("Action")
     for proposal in proposals:
         style = _ACTION_STYLES[proposal.action]
-        cells = [escape(str(proposal.current_path)), escape(proposal.proposed_group or "—")]
+        cells = [escape(_shown(proposal.current_path, root)), escape(proposal.proposed_group or "—")]
         if not flat:
             cells.append(escape(proposal.proposed_category or "—"))
         table.add_row(
@@ -151,6 +155,7 @@ def render_reclassify_result(
     console: Console,
     proposals: list[ReclassifyProposal],
     *,
+    root: Path,
     job: Job | None,
     dry_run: bool,
     failed: Sequence[FailedFiling] = (),
@@ -162,6 +167,7 @@ def render_reclassify_result(
     Args:
         console: Where to print.
         proposals: The proposals the run made.
+        root: The library's root; the paths named below are shown relative to it.
         job: The job that filed the moves, or ``None`` for a dry run or if nothing moved.
         dry_run: Whether the run was a preview.
         failed: Documents that could not be moved; they stay where they were.
@@ -182,17 +188,19 @@ def render_reclassify_result(
     for proposal in proposals:
         if proposal.classification.classified_by == "unreadable":
             console.print(
-                f"  [yellow]{escape(str(proposal.current_path))}[/yellow] — {escape(proposal.classification.reason)}",
+                f"  [yellow]{escape(_shown(proposal.current_path, root))}[/yellow] — "
+                f"{escape(proposal.classification.reason)}",
                 soft_wrap=True,
             )
         if proposal.action == "conflict":
             console.print(
-                f"  [red]{escape(str(proposal.current_path))}[/red] — {escape(str(proposal.destination))} is taken",
+                f"  [red]{escape(_shown(proposal.current_path, root))}[/red] — "
+                f"{escape(_shown(proposal.destination, root))} is taken",
                 soft_wrap=True,
             )
     for failure in failed:
         console.print(
-            f"  [red]{escape(str(failure.unit.source_path))}[/red] — could not be moved: {escape(failure.reason)}",
+            f"  [red]{escape(_shown(failure.unit.source_path, root))}[/red] — could not be moved: {escape(failure.reason)}",
             soft_wrap=True,
         )
     if below_depth:
@@ -232,7 +240,20 @@ def _format_value(value: object) -> str:
         return ", ".join(f"{key}={_format_value(item)}" for key, item in value.items()) if value else "—"
     if isinstance(value, list):
         return ", ".join(str(item) for item in value) if value else "—"
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))  # the config stores 120.0; a person means 120
     return str(value)
+
+
+def _shown(path: Path | None, root: Path) -> str:
+    """``path`` relative to the library, with forward slashes; as it is if it lies outside, or there is none."""
+
+    if path is None:
+        return "—"
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return str(path)
 
 
 def _to_items(value: Iterable[tuple[str, Any]] | Mapping[str, Any]) -> list[tuple[str, Any]]:

@@ -62,19 +62,6 @@
           ]
         }
       ]
-    },
-    {
-      "name": "Project Phoenix",
-      "description": "An example of hints for one group only, added to the shared ones above.",
-      "children": [
-        {
-          "name": "02 Architecture",
-          "hints": [
-            "adr",
-            "component diagram"
-          ]
-        }
-      ]
     }
   ]
 }

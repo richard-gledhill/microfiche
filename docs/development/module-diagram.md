@@ -21,6 +21,7 @@ flowchart TD
         cli_review["review.py"]
         cli_logging["logging.py"]
         cli_progress["progress.py"]
+        cli_streams["streams.py"]
     end
 
     subgraph CORE["core (top level)"]
@@ -90,6 +91,7 @@ flowchart TD
     end
 
     cli_init --> cli_app
+    cli_init --> cli_streams
 
     cli_app --> cli_commands
 

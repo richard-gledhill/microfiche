@@ -114,6 +114,17 @@ def test_app_version_not_installed_says_unknown(monkeypatch: pytest.MonkeyPatch)
     assert result.stdout == "microfiche unknown\n"
 
 
+def test_config_whole_number_settings_shown_without_a_decimal_point(tmp_path: Path) -> None:
+    result = runner.invoke(app, ["config", "--library", str(tmp_path)])
+
+    assert re.search(
+        r"timeout\s*[|│]\s*120\s*[|│]", result.stdout
+    )  # the config stores 120.0; the docs, and a person, say 120
+    assert re.search(r"max_file_mb\s*[|│]\s*50\s*[|│]", result.stdout)
+    assert "120.0" not in result.stdout
+    assert re.search(r"ai_confidence\s*[|│]\s*0\.7\s*[|│]", result.stdout)  # a fraction keeps its point
+
+
 def test_app_index_command_removed() -> None:
     # `index` regenerated Obsidian folder notes; it left the MVP with the integration (docs/development/feature-backlog.md).
     result = runner.invoke(app, ["index", "--help"])
@@ -565,6 +576,22 @@ def test_reclassify_apply_moves_file_and_prints_job_id(tmp_path: Path) -> None:
     assert _JOB_LINE.search(result.stdout) is not None
     assert (library / _REFILED).exists()
     assert not (library / _MISFILED).exists()
+
+
+def test_reclassify_table_and_conflict_paths_are_relative_to_the_library(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    original = library / "Project Phoenix" / "01 Requirements" / "functional-requirements.md"
+    shutil.copy(original, library / "Project Phoenix" / "03 Research" / "functional-requirements.md")  # a misfiled copy
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0
+    assert str(tmp_path) not in result.stdout  # no absolute path: it would wrap and hide the file name in the table
+    assert "functional-requirements.md" in result.stdout
+    assert (
+        "Project Phoenix/03 Research/functional-requirements.md — "
+        "Project Phoenix/01 Requirements/functional-requirements.md is taken"
+    ) in result.stdout
 
 
 def test_reclassify_apply_audited_and_rollbackable(tmp_path: Path) -> None:

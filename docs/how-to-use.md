@@ -45,7 +45,9 @@ the code, or to try something that isn't released, [install from source](#instal
     gh release download --repo richard-gledhill/microfiche --pattern "*.whl"
     ```
 
-**2. Install them** as a command-line tool, in an environment of its own so nothing else on your machine is touched:
+**2. Install them** as a command-line tool, in an environment of its own so nothing else on your machine is touched.
+Keep the `./` (or `.\`) in front of each wheel name: without it uv reads `cli-*.whl` as a package name and stops with
+*"The wheel filename … is invalid: Must have a Python tag"*.
 
 === "Bash"
 
@@ -210,13 +212,29 @@ repository: run this from the repo root, or download that folder from
     Copy-Item -Recurse microfiche "$HOME\Documents\Library\.microfiche"
     ```
 
+If the library **already has a `.microfiche` folder** (even an empty one), both commands copy `microfiche` *into* it and
+you end up with `.microfiche/microfiche/...`. Copy the folder's contents instead:
+
+=== "Bash"
+
+    ```bash
+    cp -r microfiche/. ~/Documents/Library/.microfiche/
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    Copy-Item -Recurse microfiche\* "$HOME\Documents\Library\.microfiche"
+    ```
+
 You can skip this step to start with: microfiche then runs on its built-in defaults, and the first real `sort` writes a
 `microfiche-library.json` listing your folders (see [Keeping the file in step with your folders](#keeping-the-file-in-step-with-your-folders)).
-The copy gives you the settings file to edit, a library file with example hints, and a JSON Schema for editor help. Its
-library file names `Project Phoenix` as an example, so `sort` warns about an entry with no folder if you have no such
-group: create it as above, or delete the example entry. The copied config also keeps folders that start with `.` or `_`
-(and ones named like the inbox) out of the library; the built-in defaults exclude none, so a library without the copy treats
-a folder such as `.obsidian` as a group (see **Keeping a folder out** in [section 4](#4-maintain-the-library)).
+The copy gives you the settings file to edit, a library file with example hints, and a JSON Schema for editor help. The
+example hints are for five document-type categories (`01 Requirements` to `05 Correspondence`), under a `"*"` entry that
+applies to every group; they do nothing for categories with other names, so replace them with your own. The copied config
+also keeps folders that start with `.` or `_` (and ones named like the inbox) out of the library; the built-in defaults exclude
+none, so a library without the copy treats a folder such as `.obsidian` as a group (see **Keeping a folder out** in
+[section 4](#4-maintain-the-library)).
 
 The inbox is called `_sorting` by default. To use another name — for example `Incoming`, or `sorting`
 if you already have a folder by that name — set `library_inbox` under `[library_structure]` in the config:
@@ -523,11 +541,20 @@ If documents are being misfiled, the usual causes are in the names, not the thre
 
 - **Group names that are short or common words** (`Car`, `Home`) match inside other words
   (`carrier`, `homework`). Prefer distinctive names, like `Project Phoenix` or `Acme Ltd`.
+- **Category names that are ordinary words** (`Advertising`, `Construction`, `Contracts`) match anywhere in a document's
+  text, so a paper that mentions advertising once is filed under `Advertising` at confidence 0.90. A library whose
+  categories are such words, and that has no hints or filename rules yet, gets confident wrong answers.
 - **Documents that mention another group** can be filed under it: of the groups named in the text, the
   one whose folder name sorts first wins, not the one the document is about. These are filed
   confidently, so they won't appear under **Needs review**; a `reclassify` dry run shows them as **move**.
 - **Overlapping hints** — a word that is a hint for two categories goes to the category whose folder
   name sorts first. Keep hints specific.
+
+**Starting on a library that is already large.** Don't begin with a real `sort`. Run `sort --dry-run` and
+`reclassify` (neither changes anything, and both are quick even on thousands of files) and read what they propose. If
+many of the proposed moves look wrong, set `confidence_threshold = 0.95`: only filename rules then file on their own,
+and everything else waits for `review`. Add hints and filename rules for your categories, check again, and lower the
+threshold when the proposals look right. Every real run can be undone with `rollback`.
 
 **Check it on your own library.** Run `reclassify` (a dry run) on a library whose documents are
 already filed correctly. **keep** means microfiche agrees with where you put a document; **move** means
@@ -963,7 +990,8 @@ it. Leave them out and folders such as `.obsidian` or `_Archive` become groups. 
 **If you reduce the depth.** Say you change `depth` from 2 to 1 (and, as in [a flat library](#a-flat-library-groups-only),
 remove the category entries from `microfiche-library.json`, or every command stops on it). Nothing is moved. The old category folders are now
 plain folders inside their group, an item in one is kept where it is while it is still in the group it belongs to, and
-`reclassify` tells you how many filed items sit below the new depth:
+`reclassify` tells you how many filed items sit below the new depth (it counts the items microfiche filed itself, from
+its ledger, so documents you put there by hand are not in the number):
 
 ```text
 12 filed item(s) sit in folders below the library's depth (1). Those folders are no longer groups or categories; ...
