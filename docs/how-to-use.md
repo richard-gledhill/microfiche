@@ -11,10 +11,6 @@ microfiche isn't on PyPI. Each [GitHub release](https://github.com/richard-gledh
 files, `core-<version>-py3-none-any.whl` and `cli-<version>-py3-none-any.whl`, and you install them together. To change
 the code, or to try something that isn't released, [install from source](#install-from-source) instead.
 
-!!! note "No release yet"
-    The first release is `v0.1.6`. Until it is published there is nothing to download, and `gh release download` finds no
-    release; use [Install from source](#install-from-source).
-
 ### Install a release
 
 !!! warning "Install both files, by path"
