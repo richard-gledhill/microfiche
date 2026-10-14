@@ -17,17 +17,20 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
-* `sort`: Process the library&#x27;s inbox: classify and...
-* `review`: Decide where the documents `sort` left in...
-* `propose-categories`: Suggest new category folder names from...
-* `reclassify`: Re-review already-filed documents and...
+* `sort`: Classify and file what is in the inbox.
+* `review`: Decide where the leftover documents go.
+* `propose-categories`: Suggest new category folder names.
+* `reclassify`: Re-check where filed documents belong.
 * `audit`: Show the audit log.
-* `rollback`: Undo a filing job: by id (the id `sort`...
-* `config`: Show the library configuration, or with...
+* `rollback`: Undo a filing job.
+* `config`: Show the library's configuration.
 
 ## `microfiche sort`
 
-Process the library&#x27;s inbox: classify and file everything above the confidence threshold.
+Classify and file what is in the inbox.
+
+Everything classified with enough confidence is filed as one job, which `rollback` can undo; the rest stays in the
+inbox for `review`.
 
 **Usage**:
 
@@ -39,8 +42,8 @@ $ microfiche sort [OPTIONS]
 
 * `--library <directory>`: Path to the library root.  [required]
 * `--keep-folders`: Sort whole folders from the inbox intact, filed under the group or category most of their documents belong to, for this run.
-* `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library&#x27;s keep_folders setting says.
-* `--use-ai`: Fall back to the AI named in the library&#x27;s config (Ollama unless it says otherwise) for classifications the rules engine can&#x27;t resolve.
+* `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library's keep_folders setting says.
+* `--use-ai`: Fall back to the AI named in the library's config (Ollama unless it says otherwise) for classifications the rules engine can't resolve.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
@@ -48,9 +51,9 @@ $ microfiche sort [OPTIONS]
 
 ## `microfiche review`
 
-Decide where the documents `sort` left in the inbox should go.
+Decide where the leftover documents go.
 
-For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
+Works through the documents `sort` left in the inbox. For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
 Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
 then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
 documents already in the library. Needs a terminal.
@@ -64,17 +67,17 @@ $ microfiche review [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
-* `--use-ai`: Ask the AI named in the library&#x27;s config for a best guess where the rules have none, as `sort` does.
+* `--use-ai`: Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
 
 ## `microfiche propose-categories`
 
-Suggest new category folder names from common terms across documents in the sorting inbox.
+Suggest new category folder names.
 
-Never creates folders - this only prints suggestions. Scoping to an existing library folder
-instead of the inbox isn&#x27;t implemented yet.
+Looks at common terms across the documents in the inbox. Never creates folders - this only prints suggestions. Scoping to an existing library folder
+instead of the inbox isn't implemented yet.
 
 **Usage**:
 
@@ -91,9 +94,9 @@ $ microfiche propose-categories [OPTIONS]
 
 ## `microfiche reclassify`
 
-Re-review already-filed documents and report where the classifier would file them now.
+Re-check where filed documents belong.
 
-Without --apply this is a dry run. With --apply, the documents the table marks &quot;move&quot; are
+Reports where the classifier would file each already-filed document now. Without --apply this is a dry run. With --apply, the documents the table marks "move" are
 re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
 
 **Usage**:
@@ -106,7 +109,7 @@ $ microfiche reclassify [OPTIONS]
 
 * `--library <directory>`: Path to the library root.  [required]
 * `--folder <path>`: Limit to this folder; defaults to the whole library.
-* `--apply`: Actually move files; without this it&#x27;s a dry run.
+* `--apply`: Actually move files; without this it's a dry run.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -130,7 +133,9 @@ $ microfiche audit [OPTIONS]
 
 ## `microfiche rollback`
 
-Undo a filing job: by id (the id `sort` prints), or the newest one with --last.
+Undo a filing job.
+
+Give the id `sort` printed, or use --last for the newest job that has not been undone.
 
 **Usage**:
 
@@ -149,9 +154,9 @@ $ microfiche rollback [OPTIONS]
 
 ## `microfiche config`
 
-Show the library configuration, or with --sync bring its library file in step with its folders.
+Show the library's configuration.
 
---sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
+With --sync it instead brings the library file in step with the folders. --sync adds an entry, with no hints, to .microfiche/microfiche-library.json for each group and category folder
 that has none, creating the file if the library has none. It never changes or removes an entry, and never
 creates or removes a folder. An entry whose folder is gone is listed each time, and kept.
 

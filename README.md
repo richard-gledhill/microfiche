@@ -38,7 +38,7 @@ documents and sorts them with minimal manual effort. It works on any folder tree
 - **Your library's folders *are* the taxonomy** — microfiche discovers groups and categories
   from the structure that's already there, rather than imposing a separate category list to
   maintain.
-- **Never deletes files** — every move is recorded and reversible with `microfiche rollback`. A name clash or an
+- **Never deletes files** — every move is recorded and reversible with `microfiche rollback`. A name collision or an
   exact duplicate is left in the inbox with the reason, never overwritten. A file another program has open, or one
   that is too big, stays put without stopping the run, and `sort --dry-run` previews a run first.
 - **Vault-friendly** — works on any folder tree, including an Obsidian vault: microfiche's own state lives in a hidden
@@ -216,8 +216,8 @@ Obsidian's or similar file explorer). To set up a new library, copy the defaults
 | `sorting` | `keep_folders` (default `true`): file a folder dropped in the inbox whole, under its dominant category. `sort --keep-folders-off` files the documents inside folders one by one for one run, then removes each folder once it is empty; `--keep-folders` does the opposite. `ignore` (default `~$*`, `.DS_Store`, `Thumbs.db`, `*.tmp`): file and folder names the inbox scan skips without comment. |
 | `parsing` | `max_file_mb` (default 50): a file bigger than this is not read; it stays in the inbox for review, with the reason. |
 | `logging` | The diagnostic log, separate from the audit log. `level` (default `INFO`): how much the log file records. `file` (default `microfiche.log`): its name, kept in `.microfiche/`. `max_bytes` (default 1048576) and `backup_count` (default 3): when the file is rotated and how many backups are kept. |
-| `exclusions` | Folders never treated as a category and never scanned into. |
-| `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
+| `exclusions` | Folders never treated as a group or category and never scanned into: names or globs, matched at any level. The shipped config lists `sorting*`, `_sorting*`, `.*` and `_*`; a list you write replaces it. |
+| `naming_rules` | Regex rename rules applied to filenames before filing, as `rules = { 'pattern' = "replacement" }` (empty by default); see [Renaming on the way in](https://richard-gledhill.github.io/microfiche/how-to-use/#renaming-on-the-way-in). |
 
 Keyword hints and filename rules are not in the config. They live in `.microfiche/microfiche-library.json`, a tree of
 folder names with `hints` and `rules`; a `"*"` entry applies to every group, and a named group adds to it for that
@@ -276,8 +276,9 @@ microfiche/
 │   ├── core/, cli/        # unit tests, mirrors the packages/ layout
 │   ├── scripts/           # tests of the scripts, including the sample library every sort route is checked on
 │   ├── calibration/       # a labelled corpus that measures the confidence threshold
-│   └── mock_library/      # a hand-built library fixture for integration-style tests
-└── docs/                  # PRD, architecture decisions, and mkdocs source
+│   ├── mock_library/      # a hand-built library fixture for integration-style tests
+│   └── mock_flat_library/ # the same for a flat (depth 1) library
+└── docs/                  # the published guide (mkdocs source) and, in development/, the design docs
 ```
 
 ## Contributing

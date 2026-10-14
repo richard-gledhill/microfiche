@@ -9,7 +9,11 @@ from microfiche.cli import commands
 
 # region Constants and types
 
-app = typer.Typer(name="microfiche", help="Organize project reference materials into a structured library.")
+app = typer.Typer(
+    name="microfiche",
+    help="Organize project reference materials into a structured library.",
+    rich_markup_mode="markdown",
+)
 
 # endregion
 

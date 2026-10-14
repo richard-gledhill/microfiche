@@ -405,7 +405,7 @@ there is nothing to read afterwards. Stages 5 and 6 are easier to build and debu
   - `level`: the file's level when `-v` is not given; a level name checked with `logging.getLevelNamesMapping()`; default `"INFO"`.
   - `file`: a plain file name kept inside `.microfiche/`, validated like `library_inbox` so it cannot point outside the state folder; default `"microfiche.log"`.
   - `max_bytes`: greater than 0; default 1048576. `backup_count`: 0 or more; default 3.
-- Design when the file handler attaches: only in commands that hold the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`). A dry run then still writes no state folder (Stage 4.3), and only the lock holder rotates the file, which fails on Windows if two processes hold it. Other commands log to the console only.
+- Design when the file handler attaches: only in commands that hold the run lock (`sort` without `--dry-run`, `reclassify --apply`, `rollback`; `config --sync` and `review`'s filing step took the lock later and log too). A dry run then still writes no state folder (Stage 4.3), and only the lock holder rotates the file, which fails on Windows if two processes hold it. Other commands log to the console only.
   - Setup goes through one helper that every command passes through (`rollback` and `audit` open the library without `_open_library` today).
   - It is idempotent: it removes and closes the handlers it added before adding them again, so repeated invocations in one process do not duplicate lines or leave the file open.
 - Design how a condition the user is already told about is shown once.
@@ -660,7 +660,7 @@ Decisions taken:
 - Safety found in review: a planned folder is refused if anything is already on disk by that name (a link, a loose file, a folder filed whole), if it is the inbox or state folder in any case, or if it is a reserved Windows name or over 255 characters. A unit's content hash is taken when it is chosen and checked again at the commit, so a document replaced meanwhile is left in the inbox. A folder made for a move that then fails is taken back, and the session's choices are used up after a commit.
 - `review` also says how many documents `sort` would file (it does not ask about them) and how many copies it is leaving.
 - `--use-ai`, `-v` and `-q` as on `sort`. The old test that pinned the stub's help text was replaced by one for the real command.
-- The `v0.1.5` tag is a release step and was not created.
+- The `v0.1.5` tag is a release step; it was created afterwards.
 
 **Deferred:** ranked suggestions from a decision model, and an extra prompt per level at depth 3 (both in the backlog); going back to an item once passed; learning hints from choices.
 
@@ -674,7 +674,7 @@ baseline enforced in CI, and its documentation is accurate against shipped behav
 actual MVP.
 
 **Carried in from Stage 5 (2026-10-13).**
-- CI is Ubuntu-only. The Windows-specific code (junctions, locked files, the `FILE_IN_USE` handling) runs only on the
+- *(Done in Stage 6.)* CI was Ubuntu-only. The Windows-specific code (junctions, locked files, the `FILE_IN_USE` handling) runs only on the
   maintainer's machine, and the 6 skipped tests are the ones that need Windows. A Windows CI job is the most valuable
   item in this stage.
 - Typer forces coloured output when `GITHUB_ACTIONS` is set, so tests must not assert on raw `--help` text. To reproduce
@@ -707,7 +707,7 @@ actual MVP.
 
 **Design**
 - Design the coverage gate: which modules are expected at what coverage level before a `fail_under` is set.
-- Design how a release is installed. `core` and `cli` are separate workspace packages and `cli` depends on `core`, so decide whether a release ships both wheels or `cli` pins `core` by version. Today the release workflow only builds the documentation.
+- Design how a release is installed. `core` and `cli` are separate workspace packages and `cli` depends on `core`, so decide whether a release ships both wheels or `cli` pins `core` by version. At the time the release workflow only built the documentation; it now builds, checks and attaches both wheels.
 
 **Build**
 - Build out a fixture library with representative data covering every classification and filing path. *(Built: `scripts/make_sample_library.py`, below.)*
@@ -720,13 +720,14 @@ actual MVP.
 
 **Test**
 - Run the full test suite across every supported Python version and confirm parity.
-- Run the test suite on Windows as well as Linux (add `windows-latest` to the CI matrix); CI is Ubuntu-only today, while the docs and the project's own development use Windows paths and PowerShell.
+- Run the test suite on Windows as well as Linux (add `windows-latest` to the CI matrix); CI was Ubuntu-only, while the docs and the project's own development use Windows paths and PowerShell. *(Done: the matrix is Linux and Windows.)*
 - Install the built wheels into a clean virtual environment and run `microfiche --version` and a sort against the mock library.
 - Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps). It is run as a guided session, once per test library setup: see [Guided walkthrough session](#guided-walkthrough-session-stage-6-test).
 - Last step of the tests: an independent `/code-review` of everything Stage 6 changed (the diff from `main` as Stage 6 began to the release candidate, including any simplifications agreed above), spawned as a sub-agent in a clean session, so it has none of the build session's context or conclusions. It reports findings and changes nothing; the maintainer decides which to fix before the release is cut.
 
 **Deploy**
 - Cut the `v0.1.6` release through the repo's release workflow, with the wheels attached.
+- Remove the "No release yet" note from `docs/how-to-use.md` section 1 (and check `gh release download` against the real release), then bump the three package versions and the `cli` pin to `0.1.6` before tagging.
 - Publish the documentation site for the tagged release.
 
 ### Guided walkthrough session (Stage 6 Test)

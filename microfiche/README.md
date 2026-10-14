@@ -2,12 +2,12 @@
 
 These are the default config files microfiche ships with. They are **not** read from here at
 runtime — each library microfiche manages has its own `<library_root>/.microfiche/`
-folder, read by `core.config.load_config`. Copy this folder there (renamed to
+folder, read by `microfiche.core.config.load_config`. Copy this folder there (renamed to
 `.microfiche`) when setting up a new library — dot-prefixed so it's hidden from
 Obsidian's file explorer by default.
 
 A `microfiche init` command to automate that copy is a natural next step but isn't implemented
-yet — see [docs/development/architecture.md](../docs/development/architecture.md).
+yet — see the [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/feature-backlog.md#library-creation-init-and-group-templates).
 
 | Section | Purpose |
 |---|---|
@@ -17,8 +17,8 @@ yet — see [docs/development/architecture.md](../docs/development/architecture.
 | `logging` | The diagnostic log, separate from the audit log. `level` (default `INFO`): how much the log file records. `file` (default `microfiche.log`): its name, kept in `.microfiche/`. `max_bytes` (default 1048576) and `backup_count` (default 3): when the file is rotated and how many backups are kept. |
 | `classification` | `confidence_threshold` (default 0.75): how sure microfiche must be to file without review. `name_match_confidence` (0.9), `filename_match_confidence` (0.95) and `hint_match_confidence` (0.75): how sure each kind of match is. `fuzzy_group_threshold` (0–100, default 85): how close a near-miss must be to a group's name. |
 | `ai` | `provider` (`"ollama"` or `"openai"`), `model`, `host`, `timeout` and `api_key_env` (the name of the variable holding the OpenAI key). `ai_confidence` (0–1, default 0.70): how sure any AI-fallback answer is. `max_document_chars` (default 4000; `0` = all of it, with a warning): how much of a document's text is sent. |
-| `exclusions` | Folders never treated as a category and never scanned into. |
-| `naming_rules` | Regex rename rules applied to filenames before filing (empty by default). |
+| `exclusions` | Folders never treated as a group or category and never scanned into: names or globs, matched at any level. The list in this file is `sorting*`, `_sorting*`, `.*`, `_*`; a list you write replaces it, so keep those and add yours. |
+| `naming_rules` | Regex rename rules applied to filenames before filing, as `rules = { 'pattern' = "replacement" }`, in order, to the whole name (empty by default). See [Renaming on the way in](https://richard-gledhill.github.io/microfiche/how-to-use/#renaming-on-the-way-in). |
 
 Keyword hints and filename rules are not in the config. They live in `microfiche-library.json` beside it,
 a tree of folder names with `hints` and `rules` (see the file here, and `microfiche-library.schema.json`

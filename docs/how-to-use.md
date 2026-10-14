@@ -11,6 +11,10 @@ microfiche isn't on PyPI. Each [GitHub release](https://github.com/richard-gledh
 files, `core-<version>-py3-none-any.whl` and `cli-<version>-py3-none-any.whl`, and you install them together. To change
 the code, or to try something that isn't released, [install from source](#install-from-source) instead.
 
+!!! note "No release yet"
+    The first release is `v0.1.6`. Until it is published there is nothing to download, and `gh release download` finds no
+    release; use [Install from source](#install-from-source).
+
 ### Install a release
 
 !!! warning "Install both files, by path"
@@ -73,7 +77,7 @@ your `PATH` yet.
 === "Bash"
 
     ```bash
-    python -m venv .venv && source .venv/bin/activate
+    python -m venv .venv && source .venv/bin/activate   # Git Bash on Windows: source .venv/Scripts/activate
     ```
 
     ```bash
@@ -168,12 +172,16 @@ Library/                      <- library root
     └── 03 Research/
 ```
 
-Create the inbox:
+Create the inbox and, to have something to sort into, one group with three categories:
 
 === "Bash"
 
     ```bash
     mkdir -p ~/Documents/Library/_sorting
+    ```
+
+    ```bash
+    mkdir -p "$HOME/Documents/Library/Project Phoenix/01 Requirements" "$HOME/Documents/Library/Project Phoenix/02 Architecture" "$HOME/Documents/Library/Project Phoenix/03 Research"
     ```
 
 === "PowerShell"
@@ -182,7 +190,13 @@ Create the inbox:
     New-Item -ItemType Directory -Force "$HOME\Documents\Library\_sorting"
     ```
 
-Copy the default config into the library as `.microfiche/` (run from the repo root):
+    ```powershell
+    "01 Requirements", "02 Architecture", "03 Research" | ForEach-Object { New-Item -ItemType Directory -Force "$HOME\Documents\Library\Project Phoenix\$_" }
+    ```
+
+Copy the default config into the library as `.microfiche/`. The default config is the `microfiche/` folder of the
+repository: run this from the repo root, or download that folder from
+[GitHub](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) if you installed a release.
 
 === "Bash"
 
@@ -195,6 +209,14 @@ Copy the default config into the library as `.microfiche/` (run from the repo ro
     ```powershell
     Copy-Item -Recurse microfiche "$HOME\Documents\Library\.microfiche"
     ```
+
+You can skip this step to start with: microfiche then runs on its built-in defaults, and the first real `sort` writes a
+`microfiche-library.json` listing your folders (see [Keeping the file in step with your folders](#keeping-the-file-in-step-with-your-folders)).
+The copy gives you the settings file to edit, a library file with example hints, and a JSON Schema for editor help. Its
+library file names `Project Phoenix` as an example, so `sort` warns about an entry with no folder if you have no such
+group: create it as above, or delete the example entry. The copied config also keeps folders that start with `.` or `_`
+(and ones named like the inbox) out of the library; the built-in defaults exclude none, so a library without the copy treats
+a folder such as `.obsidian` as a group (see **Keeping a folder out** in [section 4](#4-maintain-the-library)).
 
 The inbox is called `_sorting` by default. To use another name — for example `Incoming`, or `sorting`
 if you already have a folder by that name — set `library_inbox` under `[library_structure]` in the config:
@@ -229,12 +251,12 @@ If the config has a mistake, such as a mistyped section or setting, or a value o
 command stops and tells you what to fix instead of carrying on with the defaults:
 
 ```text
-Config file error: Library\.microfiche\microfiche-config.toml:
+Config file error: C:\Users\you\Documents\Library\.microfiche\microfiche-config.toml:
   classification.confidence_threshhold: unknown setting
 ```
 
-`sort`, `reclassify` and `propose-categories` check the config the same way before they touch any file.
-`audit` and `rollback` don't read it, so you can still undo a job while you fix the config.
+`sort`, `review`, `reclassify`, `propose-categories` and `config` check the config the same way before they touch any
+file. `audit` and `rollback` don't read it, so you can still undo a job while you fix the config.
 
 ### Other ways to organise a library
 
@@ -296,9 +318,19 @@ library's folders decide what exists.
 { "name": "Project Phoenix", "children": [{ "name": "02 Design", "hints": ["storyboard"] }] }
 ```
 
+A few things about the file:
+
+- A category is matched by its name appearing anywhere in the text, as a plain case-insensitive substring (with the
+  leading number dropped), so `Research` also matches `researchers`. A hint is matched the same way. Prefer
+  distinctive names and hints, as for group names (see **Choosing names that work** below).
+- A filing rule's `pattern` is a shell-style glob (`*` any characters, `?` one character, `[ab]` one of a set) matched
+  against the whole file name, including the extension, ignoring case.
+- Each entry may also have a `description`, a note for people reading the file that microfiche does not use. The `$schema`
+  line at the top of the shipped file points editors at `microfiche-library.schema.json` for completion and checking.
+
 A library with no `microfiche-library.json` still works: documents are matched on group and
-category names alone. A mistake in the file (a misspelt key, say) stops `sort` and `reclassify`
-with a message saying where in the file the mistake is, and nothing is moved.
+category names alone. A mistake in the file (a misspelt key, say) stops `sort`, `review`, `reclassify` and
+`config --sync` with a message saying where in the file the mistake is, and nothing is moved.
 
 #### Keeping the file in step with your folders
 
@@ -359,6 +391,10 @@ carries on, and `config --sync` exits with an error.
 - Categories can use hints, so they don't need to appear literally.
 - A leading number such as `01 ` is ignored when matching names, so you can use it to order
   folders.
+- A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
+  `[exclusions] exclude`. The config you copy excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot
+  or an underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which
+  is usually what you want for such folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
 - One or two levels are supported: group and category, or groups alone (see
   [a flat library](#a-flat-library-groups-only)). Folders deeper than that aren't part of the taxonomy.
 
@@ -370,6 +406,11 @@ If you don't need categories, give the library one level of folders. Set the dep
 [library_structure]
 depth = 1
 ```
+
+Then take the category entries out of `.microfiche/microfiche-library.json`: a file that describes more levels than the
+depth is an error, and the shipped file (like one `sort` wrote while the depth was 2) lists categories under a `"*"` group.
+Delete those `children` (or the whole `"*"` entry), and put hints on the groups themselves, as below. Until you do,
+`sort`, `review`, `reclassify` and `config --sync` stop with "it describes 2 levels of folders, but the library's depth is 1".
 
 ```text
 Library/
@@ -451,7 +492,7 @@ confidence_threshold = 0.75
 | `0.8` – `0.9` | the same, but keyword-hint matches are held for review |
 | `0.95` | filename rules only |
 
-The scores in the first table are settings too, and these are their defaults. You rarely need to
+The confidence values in the first table are settings too, and these are their defaults. You rarely need to
 change them: moving the threshold gives the same effect, and the defaults were
 [measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
 Change one if a kind of evidence is more or less trustworthy in your library, for example if you
@@ -469,11 +510,11 @@ ai_confidence = 0.70              # any answer from the AI fallback
 max_document_chars = 4000         # how much of a document's text is sent to the AI
 ```
 
-Each score is from 0 to 1 and `fuzzy_group_threshold` from 0 to 100; `max_document_chars` must be at
-least 1. Setting a score at or above the threshold lets that kind of evidence file on its own.
+Each of these is from 0 to 1 and `fuzzy_group_threshold` from 0 to 100; `max_document_chars` must be at
+least 0 (0 sends the whole document). Setting one at or above the threshold lets that kind of evidence file on its own.
 
-**Raising the threshold files less; it doesn't file more accurately.** The score says what *kind* of
-evidence was found, not how reliable it is, so a stray word in the text can score higher than a
+**Raising the threshold files less; it doesn't file more accurately.** The confidence says what *kind* of
+evidence was found, not how reliable it is, so a stray word in the text can rate higher than a
 correct hint. In testing, the share of automatically filed documents that were wrong was about the
 same at `0.75` as at `0.8` — the higher setting just held back far more documents. Measurements and
 method: [calibration write-up](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
@@ -496,7 +537,7 @@ bulk.
 
 ## 3. Sort documents
 
-Drop files (`.docx`, `.pdf`, `.md`, `.txt`, `.eml`, `.msg`) into the inbox (`_sorting/` unless you named another), then run:
+Drop files (`.docx`, `.pdf`, `.md`, `.markdown`, `.txt`, `.eml`, `.msg`) into the inbox (`_sorting/` unless you named another), then run:
 
 === "Bash"
 
@@ -517,6 +558,13 @@ its id (`Job: <id>`) — keep it if you might want to undo the run. No file is e
 A file microfiche can't open (corrupt or truncated, say) doesn't stop the run: it is listed under
 **Needs review** as `Could not read '<file>': <reason>`, left in the inbox, and everything else is sorted
 as normal. Fix or replace the file and sort again.
+
+A file of any other type (a photo, a spreadsheet) is not a document to microfiche: `sort` leaves it in the inbox without
+a word, and it is not counted in the summary. A folder with no document in it is ignored the same way.
+
+If `sort` prints `Filed: 0`, `Needs review: 0` and `Duplicates: 0` and exits 0, nothing was found to sort. Check that
+`--library` is the library's root, that the inbox has the name in `library_inbox` (`_sorting` by default), and that its
+files are of the types above.
 
 microfiche's own records live in the hidden `.microfiche/` folder inside your library: a ledger
 of what was filed where and why (`ledger.jsonl`), a readable `audit.log`, one rollback file
@@ -577,11 +625,12 @@ Two things a preview cannot know. It still classifies, so with `--use-ai` it ask
 sends document text and costs money. And it cannot see that a file will be open in another program when you
 do the real run (see below).
 
-### Name clashes and duplicates
+### Name collisions and duplicates
 
-`sort` never overwrites, renames or deletes a file. Two situations leave a file where it is:
+`sort` never overwrites or deletes a file, and renames one only if you have set a [naming rule](#renaming-on-the-way-in). Two
+situations leave a file where it is:
 
-- **A name clash.** The file would be filed under a name that is already taken, either by a different file
+- **A name collision.** The file would be filed under a name that is already taken, either by a different file
   already in that category folder or by another document in the same run (the first one is filed, the
   next is held). It is listed under **Needs review** with the reason, for example
   `... but 'notes.md' already exists in Project Phoenix/02 Architecture`. Rename it, or the file that is
@@ -598,6 +647,21 @@ Only the new files in the inbox are checked, against the library. Copies already
 reference document kept in two projects, are normal and are never reported. An empty file is never counted as a
 duplicate, and a folder kept whole is not checked as a duplicate (turn `keep_folders` off to check its files one
 by one).
+
+### Renaming on the way in
+
+By default a file keeps its name when it is filed. To tidy names as they are filed, add rules to the `[naming_rules]` table of
+the config: each rule is a regular expression and what to replace it with, applied in order to the whole file name,
+extension included. This turns every run of spaces into one hyphen, so `My  Atlas Notes.md` is filed as `My-Atlas-Notes.md`:
+
+```toml
+[naming_rules]
+rules = { '\s+' = "-" }
+```
+
+The name checks above use the new name, and `rollback` puts the file back under its old one. A rule that changes a name
+into one already taken is a name collision, like any other. Use single quotes around a pattern so TOML doesn't read its
+backslashes as escapes.
 
 ### The AI fallback
 
@@ -679,11 +743,18 @@ time and asks you what to do with each:
     ```
 
 ```text
-Item 1 of 2: PhoenixArchitectureNotes.md (file)
-  Classifier said: Category name '02 Architecture' found in document text
+Item 1 of 6: phoenix-loose-ends.md (file)
+  Classifier said: No category keyword or name matched
+  (m) modify   (s) skip   (q) quit
+What now? [s]:
+```
+
+That is a document with a group but no category. When the classifier has a guess that `sort` held back (for instance a
+0.90 match in a library whose `confidence_threshold` you raised to 0.95), it is shown, and `(a)` is offered:
+
+```text
   Best guess: Project Phoenix/02 Architecture (confidence 0.90; 0.95 is needed to file without asking)
   (a) accept the best guess   (m) modify   (s) skip   (q) quit
-What now? [s]:
 ```
 
 - **(a) accept** files it where the classifier would have, if that is possible. It is not offered when the guess is
@@ -705,16 +776,17 @@ Pressing Ctrl-C before that confirmation moves nothing.
 - **New folders are made when a document is filed into them.** A folder you planned but never used is never created,
   and one made for a move that then failed is taken back. A name is refused if it is already there (as a folder
   microfiche filed whole, a link or a file), is the inbox or state folder, matches `[exclusions]`, or is a reserved
-  Windows name such as `CON`. Undoing the job moves the documents back but leaves a folder that had documents in it,
-  because microfiche never deletes. The next
+  Windows name such as `CON`. Undoing the job moves the documents back but leaves the new folder in place, empty, because
+  microfiche never deletes a folder it created. The next
   `sort`, or `config --sync`, lists the new folder in `microfiche-library.json`.
-- **A folder dropped into the inbox is one item.** You choose one destination for all of it. To file its documents
+- **A folder dropped into the inbox is one unit.** You choose one destination for all of it. To file its documents
   separately, run `sort --keep-folders-off`.
 - **Copies are not in the queue.** A document that is identical to another one stays in the inbox; `review` says how
   many, and `sort` lists them. It also says how many documents are confident enough for `sort` to file, which it does
   not ask about.
 - **The run lock is taken only when filing.** You can take as long as you like to decide. If another run holds the lock
   when you confirm, `review` says so and asks whether to try again; your choices are kept until you say no.
+- In the group and category lists, press Enter without a number to go back.
 - `--use-ai` asks the AI for a best guess where the rules have none, as `sort --use-ai` does. `-v` and `-q` work as
   elsewhere.
 
@@ -727,8 +799,10 @@ One awkward file never stops a run. It stays where it is, and the summary says w
 
 - **Open in another program.** A document that Word (or another program) has open cannot be moved on
   Windows. It is listed under **Needs review** as `... but it could not be moved: it is open in another program;
-  close it and sort again`. Moves are plain renames, so a failed move leaves nothing behind: no stray copy, and
-  nothing recorded in the job, ledger or audit log. Close the file and sort again. With `--keep-folders-off`, a
+  close it and sort again`. A program that holds the file so that it can't even be read (Word with a document open for
+  editing, say) gives `Could not read '<file>': PermissionError ...` instead, with the same remedy. Moves are plain
+  renames, so a failed move leaves nothing behind: no stray copy, and nothing recorded in the job, ledger or audit log.
+  Close the file and sort again. With `--keep-folders-off`, a
   folder with a file that could not be moved stays in the inbox; a folder kept whole is not moved at all.
 - **Too big.** A file over `[parsing] max_file_mb` (default 50) is not read. It is listed as
   `Could not read 'x.pdf': it is 120.0 MB, over the 50 MB limit ([parsing] max_file_mb)` and left in the inbox.
@@ -751,8 +825,9 @@ One awkward file never stops a run. It stays where it is, and the summary says w
 
 ### Two runs at once
 
-`sort`, `reclassify --apply` and `rollback` change the library, so only one can run at a time. Each takes a lock
-(a small `lock` file in `.microfiche/`, removed when the run ends), and a second one refuses to start:
+`sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files, at the end) change the library,
+so only one can run at a time. Each takes a lock (a small `lock` file in `.microfiche/`, removed when the run ends), and a
+second one refuses to start:
 
 ```text
 Another microfiche run is already in progress (sort, process 4242, started 2026-10-12 09:30:12). Wait for it to
@@ -764,8 +839,37 @@ lock records the process that took it, and a lock whose process is gone is clear
 it warns you (`cleared a stale run lock left by a run that did not finish (sort, process 4242, started ...)`) and
 records that in the log, which tells you an earlier run never finished. If the lock
 file is damaged so that microfiche can't tell, it is treated as held, and the message names the file to delete.
-A preview (`sort --dry-run`), `reclassify` without `--apply`, `audit`, `config` and `propose-categories` only read,
-so they need no lock and run beside anything.
+A preview (`sort --dry-run`), `reclassify` without `--apply`, `audit`, `config` without `--sync` and `propose-categories`
+only read, so they need no lock and run beside anything.
+
+### Running unattended
+
+`sort` asks no questions, so it can run from a scheduler. The things that matter when it does:
+
+- **Use the full path to the command**, since a scheduler has a shorter `PATH` than your terminal: `which microfiche`
+  (Bash) or `(Get-Command microfiche).Source` (PowerShell) prints it.
+- **Add `-q`**, so that only errors are printed. Look at the exit code: `0` means the run did what was asked (including
+  leaving some documents for review), `1` means it could not (a bad config, another run in progress). See
+  [Exit codes](#exit-codes).
+- **Overlapping runs are refused**, not queued (see above), so a slow run and the next scheduled one cannot collide.
+- **`review` is never part of it.** Whatever `sort` leaves is waiting under **Needs review** until you run `review`.
+
+=== "Bash"
+
+    ```bash
+    # cron: every day at 07:00 (crontab -e)
+    0 7 * * * /home/you/.local/bin/microfiche sort --library /home/you/Documents/Library -q
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    # Task Scheduler: every day at 07:00
+    schtasks /Create /SC DAILY /ST 07:00 /TN "microfiche sort" /TR "C:\Users\you\.local\bin\microfiche.exe sort --library C:\Users\you\Documents\Library -q"
+    ```
+
+Try the command by hand first, with `--dry-run`, and check `.microfiche/microfiche.log` afterwards: it records every run
+that changes the library.
 
 ## 4. Maintain the library
 
@@ -850,10 +954,14 @@ at any level, so this skips every folder whose name starts with a date such as `
 
 ```toml
 [exclusions]
-exclude = ["attachments", "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*"]
+exclude = ["sorting*", "_sorting*", ".*", "_*", "attachments", "[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*"]
 ```
 
-**If you reduce the depth.** Say you change `depth` from 2 to 1. Nothing is moved. The old category folders are now
+The first four patterns are the ones the shipped config already has: a list you write **replaces** the list, it doesn't add to
+it. Leave them out and folders such as `.obsidian` or `_Archive` become groups. Keep them, and add yours at the end.
+
+**If you reduce the depth.** Say you change `depth` from 2 to 1 (and, as in [a flat library](#a-flat-library-groups-only),
+remove the category entries from `microfiche-library.json`, or every command stops on it). Nothing is moved. The old category folders are now
 plain folders inside their group, an item in one is kept where it is while it is still in the group it belongs to, and
 `reclassify` tells you how many filed items sit below the new depth:
 
@@ -916,7 +1024,7 @@ When a document didn't go where you expected, or a run did less than you thought
 ### What microfiche shows while it runs
 
 By default it shows only what needs your attention: warnings and errors. They are printed on screen (stderr), so the
-summary `sort` prints (stdout) stays clean to pipe or redirect. Two options, on `sort`, `reclassify`, `rollback`,
+summary `sort` prints (stdout) stays clean to pipe or redirect. Two options, on `sort`, `review`, `reclassify`, `rollback`,
 `audit`, `config` and `propose-categories`, change how much you see:
 
 | Option | What you see |
@@ -952,9 +1060,9 @@ no setting for it.
 Every run that changes the library records what it did in `<library>/.microfiche/microfiche.log`. It is separate
 from `audit.log`: the audit log is the permanent record of moves, and the log is for explaining a run.
 
-- **Who writes it.** `sort`, `reclassify --apply` and `rollback`, the commands that take the lock. A preview
-  (`sort --dry-run`, `reclassify` without `--apply`) and the read-only commands (`audit`, `config`,
-  `propose-categories`) write nothing, and a preview never creates `.microfiche/`. A run that is refused because
+- **Who writes it.** `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files), the commands
+  that take the lock. A preview (`sort --dry-run`, `reclassify` without `--apply`) and the read-only commands (`audit`,
+  `config` without `--sync`, `propose-categories`) write nothing, and a preview never creates `.microfiche/`. A run that is refused because
   another is in progress leaves no trace either.
 - **What is in it.** By default (level `INFO`), the number of documents found, each warning (a file that could
   not be moved, the AI being unreachable, a leftover lock being cleared) and a summary of how the run ended. With `-v` it also has one line for
@@ -1048,9 +1156,9 @@ microfiche is pre-release. At the moment:
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
   inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md#flat-libraries-depth-1).
-  `propose-categories` still prints category names, which a flat library does not use.
+  `propose-categories` has nothing to propose in a flat library and says so.
 - The library file is synced on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
-  list folders that would be added or entries with no folder. The sync reads only down to the library's depth (2).
+  list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).
   A folder that is a link or junction is not a group or category.
 - `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and

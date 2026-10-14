@@ -79,7 +79,7 @@ left completely empty (`original_path` is the folder, `new_path` is `None`). It 
 
 ## `Job`
 
-`core/models/job.py` — the set of moves made by one `sort` or `reclassify --apply` run:
+`core/models/job.py` — the set of moves made by one `sort`, `reclassify --apply` or `review` filing:
 
 ```python
 class Job(BaseModel):
@@ -116,6 +116,8 @@ class Job(BaseModel):
   `JobMoveMissingError` (a unit is at neither location) or `FileExistsError` (something now
   occupies the original location). Job ids are restricted to letters, digits, `-` and `_`.
 - `load_job` / `save_job` — read and write the job file.
+- `latest_job(state_dir)` — the newest job (by `created_at`) that has not been rolled back, for `rollback --last`. A job file that
+  cannot be read is skipped with a warning; if no readable job is left it raises `NoJobToRollBackError`, naming those files.
 
 Rollback only ever moves things back and recreates folders; it deletes nothing.
 
@@ -138,16 +140,22 @@ ledger and the job file are the machine-readable records.
 
 ```text
 <library_root>/.microfiche/
-├── microfiche-config.toml # the library's config — read, not written, by microfiche
-├── lock                   # exists only while a sort / reclassify --apply / rollback is running (see below)
+├── microfiche-config.toml # the library's settings — read, not written, by microfiche
+├── microfiche-library.json # the library's hints and filing rules; created, and kept in step with the folders, by `sort`
+│                          #   and `config --sync` (never changing an entry the user wrote)
+├── microfiche-library.schema.json # editor schema for the file above (copied in with the template; not written by microfiche)
+├── README.md              # the template's notes on these files (copied in with the template; not used by microfiche)
+├── microfiche.log         # the diagnostic log (+ microfiche.log.1 ... .N when rotated); written by changing commands
+├── lock                   # exists only while a changing run (sort, reclassify --apply, rollback, config --sync, review's filing) is going
 ├── ledger.jsonl           # append-only classification ledger (above)
 ├── audit.log              # human-readable trail; read by `microfiche audit`
 └── rollback/
-    └── job_<id>.json       # one Job per sort / reclassify --apply run; read by `microfiche rollback`
+    └── job_<id>.json       # one Job per sort / reclassify --apply / review filing; read by `microfiche rollback`
 ```
 
 `ledger.jsonl`, `audit.log` and `rollback/` are created the first time something is filed; a
-`sort` that files nothing writes none of them. A `sort --dry-run` writes nothing at all.
+`sort` that files nothing writes none of them (it may still write the log and the library file). A `sort --dry-run` writes nothing at all.
+Only `microfiche-config.toml` is required to exist, and not even that: without it the built-in defaults apply.
 
 `lock` is the run lock (`core/runlock.py`): JSON holding the `pid`, `command` and `started` time of the run that
 took it, created atomically and removed when the run ends. A second changing command refuses to start while it
