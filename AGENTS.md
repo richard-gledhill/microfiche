@@ -24,7 +24,7 @@ actually implemented vs. still partial or deferred. See
 ```bash
 make install    # uv sync across the workspace + install pre-commit hooks
 make check      # uv lock --locked, pre-commit run -a, mypy (Linux, then Windows), deptry (core, then cli)
-make test       # pytest --doctest-modules --cov=core --cov=cli --cov-report=term-missing
+make test       # pytest --doctest-modules --cov (the packages come from [tool.coverage.run]) --cov-report=term-missing
 make docs       # mkdocs serve
 make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
 make module-diagram   # regenerate the import graph in docs/development/module-diagram.md from the source

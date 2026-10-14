@@ -7,7 +7,7 @@
 # never shows that, because there the file is always on disk beside the code.
 #
 # It checks that `microfiche --version` prints the wheels' version, that `sort` files a document from a copy of
-# tests/mock_library, and that `rollback --last` undoes it.
+# tests/mock_library, and that `rollback --last` puts every file back exactly as it was (compared by hash).
 #
 # Usage: scripts/smoke_wheels.sh <dist-dir>
 # Needs uv and network access (for the wheels' dependencies). Exit code 0 means every step worked.
@@ -38,12 +38,27 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 cp -R "$repo/tests/mock_library" "$work/library"
 
+# Every file under the library except microfiche's own records, with its hash: what a sort must change and a rollback restore.
+manifest() {
+  (cd "$1" && find . -path ./.microfiche -prune -o -type f -print0 | sort -z | xargs -0 sha256sum)
+}
+before="$(manifest "$work/library")"
+
 sorted="$(microfiche sort --library "$work/library")"
 if ! grep -q '^Job: ' <<<"$sorted" || grep -q '^Filed: 0' <<<"$sorted"; then
   echo "error: \`microfiche sort\` filed nothing from the mock library:" >&2
   echo "$sorted" >&2
   exit 1
 fi
+if [ "$(manifest "$work/library")" = "$before" ]; then
+  echo "error: \`microfiche sort\` filed a document but changed nothing on disk" >&2
+  exit 1
+fi
 microfiche rollback --library "$work/library" --last >/dev/null
+if [ "$(manifest "$work/library")" != "$before" ]; then
+  echo "error: \`microfiche rollback --last\` did not put the library back as it was:" >&2
+  diff <(echo "$before") <(manifest "$work/library") >&2 || true
+  exit 1
+fi
 
 echo "ok: $(basename "${core[0]}") and $(basename "${cli[0]}") install in a clean environment; --version, sort and rollback --last work"

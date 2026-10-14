@@ -245,7 +245,6 @@ flowchart TD
     core_duplicates --> m_classification
     core_duplicates --> m_unit
     core_duplicates --> u_hashing
-    core_duplicates --> u_filesystem
 
     core_runlock --> l_library
     core_runlock --> u_errors

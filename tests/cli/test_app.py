@@ -226,6 +226,36 @@ def test_rollback_last_undoes_newest_job_then_the_one_before(tmp_path: Path) -> 
     assert _tree(library) == before | {"_sorting/second.md"}  # the note added for the second job
 
 
+def test_rollback_last_skips_a_damaged_job_file_and_undoes_the_good_one(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+    job_id = _sort(library)
+    (library / ".microfiche" / "rollback" / "job_20260101-000000-abcdef.json").write_text(
+        "{ truncated", encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+
+    assert result.exit_code == 0
+    assert f"from job {job_id}." in result.stdout
+    assert "Traceback" not in result.stdout
+    assert _tree(library) == before
+
+
+def test_rollback_last_only_a_damaged_job_file_names_it(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / ".microfiche" / "rollback").mkdir(parents=True)
+    (library / ".microfiche" / "rollback" / "job_20260101-000000-abcdef.json").write_text(
+        "{ truncated", encoding="utf-8"
+    )
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+
+    assert result.exit_code == 1
+    assert "job_20260101-000000-abcdef.json" in result.stdout
+    assert "Traceback" not in result.stdout
+
+
 def test_rollback_last_nothing_to_undo_fails_cleanly(tmp_path: Path) -> None:
     result = runner.invoke(app, ["rollback", "--library", str(_library(tmp_path)), "--last"])
 

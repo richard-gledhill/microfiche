@@ -268,12 +268,14 @@ def test_sample_flat_sort_every_item_has_its_expected_outcome(tmp_path: Path) ->
     report = run_sort(Library(built.root))
 
     filed = _filed_where(report)
-    held = {unit.source_path.name for unit, _ in report.needs_review}
+    held = {unit.source_path.name: classification.group.reason for unit, classification in report.needs_review}
     for item in built.items:
         if item.outcome == "filed":
             assert filed.get(item.name) == item.destination, item.name
         else:
             assert item.name in held, item.name
+            assert item.reason is not None
+            assert item.reason in held[item.name], item.name  # held for the reason the sample says, not just held
 
 
 def test_sample_flat_sort_short_group_name_inside_a_word_is_a_known_limit(tmp_path: Path) -> None:

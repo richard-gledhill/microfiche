@@ -570,7 +570,7 @@ def _flat_items() -> tuple[Item, ...]:
             "md",
             "Ideas for the break: a budget for flights and the invoice for the deposit.",
             "review",
-            reason="",
+            reason="Keyword hints of several groups matched",
             covers={"group-unresolved"},
             note="Hints from two different groups (budget, invoice): microfiche does not choose, so it is left for review.",
         ),

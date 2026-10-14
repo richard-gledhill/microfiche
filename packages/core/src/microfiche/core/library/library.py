@@ -215,7 +215,8 @@ class Library:
             Each file's entry, folders in sorted path order and the files and folders in each in that order too.
 
         Raises:
-            ScopeOutsideLibraryError: if ``scope`` isn't inside the library.
+            ScopeOutsideLibraryError: if ``scope`` isn't inside the library. This is a generator, so it is raised when the
+                first entry is asked for, not when ``walk`` is called; ``files`` collects the list and so raises at once.
         """
 
         start = self._search_root(scope)

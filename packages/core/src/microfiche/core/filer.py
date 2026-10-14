@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -35,7 +36,7 @@ from microfiche.core.models.job import Job
 from microfiche.core.models.ledger import LedgerRecord
 from microfiche.core.models.unit import SortableUnit
 from microfiche.core.utils.errors import describe_error
-from microfiche.core.utils.filesystem import safe_move
+from microfiche.core.utils.filesystem import is_link, safe_move
 from microfiche.core.utils.hashing import unit_hash
 
 # region Constants and types
@@ -109,10 +110,19 @@ class JobAlreadyRolledBackError(RuntimeError):
 
 
 class NoJobToRollBackError(LookupError):
-    """Raised when the library has no job that is still waiting to be rolled back."""
+    """Raised when the library has no job that is still waiting to be rolled back.
 
-    def __init__(self, state_dir: Path) -> None:
-        super().__init__(f"No job to roll back: {state_dir / _ROLLBACK_DIRNAME} holds no job that is still applied")
+    Attributes:
+        unreadable: The job files that could not be read, which are why a job may be missing.
+    """
+
+    def __init__(self, state_dir: Path, unreadable: Sequence[Path] = ()) -> None:
+        self.unreadable = list(unreadable)
+        message = f"No job to roll back: {state_dir / _ROLLBACK_DIRNAME} holds no job that is still applied"
+        if self.unreadable:
+            names = ", ".join(path.name for path in self.unreadable)
+            message += f". {len(self.unreadable)} job file(s) could not be read ({names}); fix or remove them"
+        super().__init__(message)
 
 
 class JobMoveMissingError(FileNotFoundError):
@@ -365,15 +375,26 @@ def latest_job(state_dir: Path) -> Job:
     Returns:
         The most recently created job whose ``rolled_back_at`` is unset.
 
+    A job file that cannot be read (truncated, hand-edited, from another version) is skipped with a warning rather than
+    stopping the command, so one damaged file does not make the healthy jobs unreachable.
+
     Raises:
-        NoJobToRollBackError: if there is no job, or every job has been rolled back.
+        NoJobToRollBackError: if there is no readable job that is still applied, naming any files that could not be read.
     """
 
-    job_paths = (state_dir / _ROLLBACK_DIRNAME).glob("job_*.json")
-    jobs = (Job.model_validate_json(path.read_text(encoding="utf-8")) for path in job_paths)
-    applied = [job for job in jobs if job.rolled_back_at is None]
+    applied: list[Job] = []
+    unreadable: list[Path] = []
+    for path in sorted((state_dir / _ROLLBACK_DIRNAME).glob("job_*.json")):
+        try:
+            job = Job.model_validate_json(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as err:  # a pydantic ValidationError is a ValueError, and so is a bad encoding
+            _logger.warning("skipped unreadable job file %s: %s", path.name, describe_error(err))
+            unreadable.append(path)
+            continue
+        if job.rolled_back_at is None:
+            applied.append(job)
     if not applied:
-        raise NoJobToRollBackError(state_dir)
+        raise NoJobToRollBackError(state_dir, unreadable)
     return max(applied, key=lambda job: job.created_at)
 
 
@@ -490,9 +511,13 @@ def _remove_emptied_folders(library: Library, job: Job, units: list[SortableUnit
 
 
 def _holds_anything(folder: Path) -> bool:
-    """Whether ``folder`` contains anything other than real (non-link) sub-folders."""
+    """Whether ``folder`` contains anything other than real sub-folders, which are themselves empty of anything else.
 
-    return any(not path.is_dir() or path.is_symlink() for path in folder.rglob("*"))
+    A symbolic link or junction counts as something, and is never entered: what it points at is not this folder's
+    to clear, and ``Path.rglob`` would walk straight through a junction.
+    """
+
+    return any(is_link(entry) or not entry.is_dir() or _holds_anything(entry) for entry in folder.iterdir())
 
 
 def _append_audit_lines(library: Library, job_id: str, events: list[AuditEvent]) -> None:
