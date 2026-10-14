@@ -32,11 +32,11 @@ def test_core_logger_has_null_handler() -> None:
 
 def test_core_import_adds_no_handler_of_its_own_to_root() -> None:
     # pytest owns the root logger's other handlers, so look for the kinds core could have added: a plain
-    # NullHandler (what the package logger gets), or a handler class from core or from Rich.
+    # NullHandler (what the package logger gets), or a handler class from microfiche.core or from Rich.
     ours = [
         handler
         for handler in logging.getLogger().handlers
-        if type(handler) is logging.NullHandler or type(handler).__module__.split(".")[0] in {"core", "rich"}
+        if type(handler) is logging.NullHandler or type(handler).__module__.startswith(("microfiche.core", "rich"))
     ]
 
     assert ours == []

@@ -3,8 +3,8 @@
 The `microfiche` command-line interface, built with [Typer](https://typer.tiangolo.com/) and
 [Rich](https://rich.readthedocs.io/).
 
-This package is part of the [microfiche](../../README.md) uv workspace and isn't published or
-used standalone — see the [root README](../../README.md) for installation, usage, and
+This package is part of the [microfiche](../../README.md) uv workspace. It is released as a wheel together with `core` (never
+alone, and not on PyPI) and isn't used standalone — see the [root README](../../README.md) for installation, usage, and
 configuration, and [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
 
 ## Contents

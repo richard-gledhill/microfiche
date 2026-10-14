@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
+from conftest import LinkMaker
 from microfiche.core.filer import (
     AUDIT_LOG_FILENAME,
     DestinationClaims,
@@ -274,6 +275,26 @@ def test_file_batch_emptied_origin_folder_removed_and_recorded(tmp_path: Path) -
         ["remove_folder", "_sorting/pack -> -"],
     ]
     assert len(Ledger(library / ".microfiche").current()) == 2  # a folder removal is not a filed unit
+
+
+@pytest.mark.parametrize("maker", ["make_symlink", "make_junction"])
+def test_file_batch_inbox_folder_holding_a_link_is_kept_and_the_link_target_untouched(
+    tmp_path: Path, request: pytest.FixtureRequest, maker: str
+) -> None:
+    make_link: LinkMaker = request.getfixturevalue(maker)
+    library = _library(tmp_path)
+    unit = _unit_from_folder(library, "pack/one.md")
+    outside = tmp_path / "elsewhere"
+    (outside / "empty" / "deeper").mkdir(parents=True)
+    make_link(library / "_sorting" / "pack" / "link", outside)
+
+    job = file_batch(Library(library), [(unit, _classified())]).job
+
+    assert job is not None
+    assert (library / GROUP / REQUIREMENTS / "one.md").exists()
+    assert (outside / "empty" / "deeper").is_dir()  # nothing behind the link is removed
+    assert (library / "_sorting" / "pack" / "link").exists()  # and the link, which is something in the folder, stays
+    assert [event.action for event in job.moves] == ["move"]
 
 
 def test_file_batch_folder_that_cannot_be_removed_left_and_unrecorded(
@@ -671,6 +692,28 @@ def test_latest_job_all_rolled_back_raises(tmp_path: Path) -> None:
     _saved_job(library, "done", datetime(2026, 1, 1, 9), rolled_back=True)
 
     with pytest.raises(NoJobToRollBackError):
+        latest_job(library / ".microfiche")
+
+
+def test_latest_job_unreadable_file_skipped_with_a_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    library = _library(tmp_path)
+    _saved_job(library, "good", datetime(2026, 1, 1, 9))
+    broken = library / ".microfiche" / "rollback" / "job_broken.json"
+    broken.write_text('{"job_id": "broken", "moves": [', encoding="utf-8")  # truncated
+
+    with caplog.at_level(logging.WARNING, logger="microfiche.core"):
+        job = latest_job(library / ".microfiche")
+
+    assert job.job_id == "good"
+    assert any("job_broken.json" in record.getMessage() for record in caplog.records)
+
+
+def test_latest_job_only_unreadable_files_says_so(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / ".microfiche" / "rollback").mkdir(parents=True)
+    (library / ".microfiche" / "rollback" / "job_broken.json").write_text("not json", encoding="utf-8")
+
+    with pytest.raises(NoJobToRollBackError, match=r"job_broken\.json"):
         latest_job(library / ".microfiche")
 
 

@@ -1008,7 +1008,7 @@ Every command ends with one of three exit codes, so a script can tell what happe
 | Code | Meaning |
 |---|---|
 | `0` | The command did what was asked. This includes a `sort` that left documents under **Needs review**, a `reclassify` dry run that proposes moves, and `--version`. |
-| `1` | The command could not do what was asked: an invalid config or library file, a library run already in progress, a job that does not exist or was already rolled back, a rollback that stopped part-way, `review` without a terminal, options that contradict each other, or a run you stopped with Ctrl-C. Nothing is half-done silently: the message says what to fix. |
+| `1` | The command could not do what was asked: an invalid config or library file, a library run already in progress, a job that does not exist or was already rolled back, a rollback that stopped part-way, `review` without a terminal, options that contradict each other or leave out a choice microfiche checks itself (`rollback` with neither `--job-id` nor `--last`), or a run you stopped with Ctrl-C. Nothing is half-done silently: the message says what to fix. |
 | `2` | The command line itself was wrong: an unknown command or option, or a required option such as `--library` missing. Nothing ran. |
 
 A run that files some documents and leaves others for review still exits `0`; read the summary, or the **Needs review**
@@ -1059,6 +1059,9 @@ microfiche is pre-release. At the moment:
   read.
 - In a library with categories (`depth = 2`), `hints` or `rules` written on a *group's* own entry are accepted but not
   used: only a flat library matches on them. Put them on the group's category entries (`children`) instead.
+- If an undo stops part-way (for example a filed document was moved by hand), that job stays the newest one not undone, so
+  `rollback --last` tries it again and never reaches an older job. Fix the cause, or undo an older job by its id. "Newest"
+  is by the time the job was made on this computer's clock. A job file that cannot be read is skipped with a warning.
 - `-q` also hides the warning that a leftover lock was cleared. It is still in the log file.
 - The progress bar's threshold (20 documents, or any `--use-ai` run) is fixed; there is no setting for it.
 

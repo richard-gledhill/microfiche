@@ -3,7 +3,8 @@
 Core library for [microfiche](../../README.md): document scanning, classification, filing,
 and library management logic. It imports as `microfiche.core`.
 
-This package is part of the microfiche uv workspace and isn't published or used standalone —
+This package is part of the microfiche uv workspace. It is released as a wheel together with `cli` (not on PyPI) and isn't used
+standalone —
 see the [root README](../../README.md) for installation, usage, and configuration, and
 [CONTRIBUTING.md](../../CONTRIBUTING.md) for development guidelines.
 
