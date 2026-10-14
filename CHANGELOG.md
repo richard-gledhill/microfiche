@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Chore
+- added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
+
+### Other
+- Merge pull request #71 from richard-gledhill/chore/ignore-wheels [`f3b1d6e`](https://github.com/richard-gledhill/microfiche/commit/f3b1d6e)
+
+## v0.1.6 (2026-10-14)
+
 ### Feature
 - add a sample library builder covering every sort route [`2d94eeb`](https://github.com/richard-gledhill/microfiche/commit/2d94eeb)
 - release core and cli wheels in lockstep, with a coverage floor and Windows CI [`5392578`](https://github.com/richard-gledhill/microfiche/commit/5392578)
@@ -19,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
 
 ### Documentation
+- :robot: changelog file generated [`45a0525`](https://github.com/richard-gledhill/microfiche/commit/45a0525)
 - :robot: changelog file generated [`c326395`](https://github.com/richard-gledhill/microfiche/commit/c326395)
 - :robot: changelog file generated [`426947d`](https://github.com/richard-gledhill/microfiche/commit/426947d)
 - fix the errors, failing steps and gaps found by the Stage 6 docs review [`bcd9e0c`](https://github.com/richard-gledhill/microfiche/commit/bcd9e0c)
