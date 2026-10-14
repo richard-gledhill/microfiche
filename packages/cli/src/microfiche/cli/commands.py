@@ -251,13 +251,14 @@ def reclassify(
             _fail(str(err))
         except LedgerCorruptError as err:
             _fail(f"The ledger can't be read, so filed folders can't be told apart: {err}")
-        render_reclassify_table(console, proposals, dry_run=not apply)
+        render_reclassify_table(console, proposals, root=lib.root, dry_run=not apply)
         result = apply_reclassification(lib, proposals) if apply else None
         below_depth = items_below_depth(lib)  # after any move, so it is what is still below
     depth = lib.config.library_structure.depth
     render_reclassify_result(
         console,
         proposals,
+        root=lib.root,
         job=result.job if result else None,
         failed=result.failed if result else (),
         dry_run=result is None,

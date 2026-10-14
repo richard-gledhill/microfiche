@@ -177,8 +177,8 @@ not learn from choices; there is no way back to an item once it is passed.
 documented exit codes; `core` and `cli` released in lockstep as two wheels (`cli` requires `core==<same version>`) that import as
 `microfiche.core` and `microfiche.cli`; `scripts/check_wheels.py` and `scripts/smoke_wheels.sh`, run by CI and by the release workflow,
 which attaches the wheels to the release; CI on Linux and Windows with a coverage floor (`fail_under`); a sample library builder
-(`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. Still to do: the simplification
-review, the guided manual walkthrough, and cutting `v0.1.6`. Known limits the docs state rather than hide: a bundle moved by hand is
+(`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. The simplification review, an independent code review, an independent docs review and a guided manual walkthrough (both shells, a
+31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed; what is left is cutting `v0.1.6`. Known limits the docs state rather than hide: a bundle moved by hand is
 split by `reclassify`; `Car` matches inside `care` and `scarf` at full confidence; `-q` hides the "AI unavailable" warning; `review`
 cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
 (a silent no-op worth a warning or a validation error after the MVP).

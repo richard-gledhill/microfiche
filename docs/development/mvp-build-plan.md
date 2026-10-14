@@ -722,7 +722,7 @@ actual MVP.
 - Run the full test suite across every supported Python version and confirm parity.
 - Run the test suite on Windows as well as Linux (add `windows-latest` to the CI matrix); CI was Ubuntu-only, while the docs and the project's own development use Windows paths and PowerShell. *(Done: the matrix is Linux and Windows.)*
 - Install the built wheels into a clean virtual environment and run `microfiche --version` and a sort against the mock library.
-- Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps). It is run as a guided session, once per test library setup: see [Guided walkthrough session](#guided-walkthrough-session-stage-6-test).
+- Run a manual end-to-end walkthrough against a realistic sample library, following `docs/how-to-use.md` verbatim (both the Bash and PowerShell steps). It is run as a guided session, once per test library setup: see [Guided walkthrough session](#guided-walkthrough-session-stage-6-test). *(Done 2026-10-14: A in both shells, C, B, and a 7,871-file engineering library; it found the output-encoding bug, a crash on a closed pipe, a truncated `reclassify` table and four doc gaps, all fixed.)*
 - Last step of the tests: an independent `/code-review` of everything Stage 6 changed (the diff from `main` as Stage 6 began to the release candidate, including any simplifications agreed above), spawned as a sub-agent in a clean session, so it has none of the build session's context or conclusions. It reports findings and changes nothing; the maintainer decides which to fix before the release is cut.
 
 **Deploy**
