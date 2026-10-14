@@ -12,12 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - add --version, rollback --last and documented exit codes [`999cebc`](https://github.com/richard-gledhill/microfiche/commit/999cebc)
 
 ### Bug Fixes
+- UTF-8 output, quiet on a closed pipe, readable reclassify paths, and the walkthrough's doc gaps [`1438a42`](https://github.com/richard-gledhill/microfiche/commit/1438a42)
 - address the independent code review of Stage 6 [`aac95e3`](https://github.com/richard-gledhill/microfiche/commit/aac95e3)
 - a scope that is a link out of the library is refused, not listed as empty [`2c7b842`](https://github.com/richard-gledhill/microfiche/commit/2c7b842)
 - stop reclassify following links, free a review reservation on a read error, escape filed names [`a40c07b`](https://github.com/richard-gledhill/microfiche/commit/a40c07b)
 - take the coverage source from pyproject.toml so CI measures the renamed packages [`e5dcfca`](https://github.com/richard-gledhill/microfiche/commit/e5dcfca)
 
 ### Documentation
+- :robot: changelog file generated [`426947d`](https://github.com/richard-gledhill/microfiche/commit/426947d)
 - fix the errors, failing steps and gaps found by the Stage 6 docs review [`bcd9e0c`](https://github.com/richard-gledhill/microfiche/commit/bcd9e0c)
 - :robot: changelog file generated [`a7a53d9`](https://github.com/richard-gledhill/microfiche/commit/a7a53d9)
 - :robot: changelog file generated [`8c61033`](https://github.com/richard-gledhill/microfiche/commit/8c61033)
@@ -40,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - import core and cli as microfiche.core and microfiche.cli [`a88e02e`](https://github.com/richard-gledhill/microfiche/commit/a88e02e)
 
 ### Other
+- Merge pull request #69 from richard-gledhill/fix/stage-6-walkthrough [`41ae0af`](https://github.com/richard-gledhill/microfiche/commit/41ae0af)
 - Merge pull request #68 from richard-gledhill/docs/stage-6-docs-review [`c1ea138`](https://github.com/richard-gledhill/microfiche/commit/c1ea138)
 - Merge pull request #67 from richard-gledhill/fix/stage-6-code-review [`78363fb`](https://github.com/richard-gledhill/microfiche/commit/78363fb)
 - Merge pull request #66 from richard-gledhill/refactor/stage-6-simplify [`ee7f2bf`](https://github.com/richard-gledhill/microfiche/commit/ee7f2bf)
