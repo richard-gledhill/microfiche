@@ -2,7 +2,8 @@
 
 Features taken out of the MVP on purpose, and ideas for beyond it, kept here with enough detail to bring them back.
 Entries are placeholders, not commitments: none is tied to a release or can block one, they are not in priority order,
-and each needs more specification and planning before it is built.
+and each needs more specification and planning before it is built. Each entry is in effect a draft RFC: when one is
+taken up for discussion, it becomes an `RFC-NNN-title.md` here (see [README.md](README.md)), and the entry links to it.
 
 ## Where a deferred or future item goes
 
@@ -10,13 +11,13 @@ Record an item once, in the first row that fits, and link to it from anywhere el
 
 | The item is... | It goes in |
 |---|---|
-| What the product should do, ready to specify | A new doc in [requirements/](requirements/README.md); the work itself is specified in [plan/](plan/README.md) |
-| A gap, an improvement to what is built, or a small postponed item (OCR, a lock timeout, watch mode) | [mvp-roadmap.md](mvp-roadmap.md#future-work-and-deferred-beyond-mvp) |
+| What the product should do, ready to specify | A new doc in [requirements/](../requirements/README.md); the work itself is specified in [plan/](../plan/README.md) |
+| A gap, an improvement to what is built, or a small postponed item (OCR, a lock timeout, watch mode) | [mvp-roadmap.md](../requirements/mvp-roadmap.md#future-work-and-deferred-beyond-mvp) |
 | A feature outside the MVP with a design to keep, code removed from the MVP, or an idea that needs specifying | This file |
 
-An entry here moves to a requirement in [requirements/](requirements/README.md) when it is picked up, and is removed
-from this file. The [MVP build plan](plan/archive/2026-10-mvp/plan.md) is archived; what it left open is in
-[mvp-followups-prd.md](requirements/mvp-followups-prd.md).
+An entry here moves to a requirement in [requirements/](../requirements/README.md) when it is picked up, and is removed
+from this file. The [MVP build plan](../plan/archive/2026-10-mvp/plan.md) is archived; what it left open is in
+[mvp-followups-prd.md](../requirements/mvp-followups-prd.md).
 
 Each entry says why it was deferred, what was removed and where to restore it from, the design to keep, and the
 questions to settle before building it again.
@@ -34,7 +35,7 @@ questions to settle before building it again.
 ## Obsidian integration
 
 **Status:** removed from the MVP on 2026-10-12. It was implemented and unit-tested but never wired into `sort`, so no
-user-visible behaviour was lost. It was Stage 5 of the [MVP build plan](plan/archive/2026-10-mvp/plan.md) together with `review`;
+user-visible behaviour was lost. It was Stage 5 of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md) together with `review`;
 `review` stayed in the MVP and this half moved here.
 
 **Why deferred.** It widened the MVP past "classify, file, undo, and work the review queue". It is also one of what
@@ -77,7 +78,7 @@ relative link, so the notes read normally in Obsidian:
 # 01 Requirements
 
 - [[architecture_review]] — #requirements #phoenix (filed 2026-09-07, confidence 0.91)
-- [spec](spec.pdf) — #architecture (filed 2026-09-07, confidence 0.80)
+- [spec](../spec.pdf) — #architecture (filed 2026-09-07, confidence 0.80)
 ```
 
 The intent was to regenerate it for every folder touched by a sort, a reclassify or a rollback, so it always matches
@@ -89,7 +90,7 @@ from the canonical list. `load` returns an empty index if the file is missing; `
 already canonical; `save` rewrites the file with canonical tags first and the proposed ones after.
 
 **Suggest-only tag governance** (`tag_mapper.map_tags(candidates, tag_index, mode)`). The decision, first recorded in
-[architecture/overview.md §6](architecture/overview.md#obsidian-integration): a tag with no close canonical match is still applied to
+[architecture/overview.md §6](../architecture/overview.md#obsidian-integration): a tag with no close canonical match is still applied to
 the document and is added to `## Proposed`, never merged into the reviewed list. Three modes:
 
 | Mode | A close canonical match | No close match |
@@ -126,7 +127,7 @@ Kept from the build plan so the intent is not lost:
 - Define the suggest-only tag governance contract: what happens to a tag with no canonical match.
 - Design the `index.md` folder-note format (wikilinks for `.md` files, relative links for other formats).
 - Design the `TagIndex.md` parser and the `## Proposed` section convention for ungoverned tags.
-- Decide how tags with accents match (see above, and [ADR-002](adr/ADR-002-switch-to-rapidfuzz.md)).
+- Decide how tags with accents match (see above, and [ADR-002](../adr/ADR-002-switch-to-rapidfuzz.md)).
 - Regenerate a touched folder's `index.md` after every sort, reclassify and rollback.
 - Fuzzy-match extracted keywords against `TagIndex.md` and append unmatched ones to `## Proposed`.
 - Add an `[obsidian]` settings section (enable switch, tag mode, tag index path, a tag match threshold).
@@ -137,10 +138,10 @@ Kept from the build plan so the intent is not lost:
 ### Questions to settle before building it again
 
 - **Where do tags come from?** The modules only mapped tags handed to them. Nothing in microfiche extracts keywords
-  from a document, and the ledger has no `tags` field ([data-model.md](architecture/data-model.md)). Both are needed first, and
+  from a document, and the ledger has no `tags` field ([data-model.md](../architecture/data-model.md)). Both are needed first, and
   tag extraction may be useful beyond Obsidian.
 - **Generated files inside the library.** An `index.md` is a file microfiche writes among the user's documents, the
-  thing the ledger was introduced to avoid ([architecture/overview.md §7](architecture/overview.md#7-classification-ledger-replaces-per-file-sidecars)).
+  thing the ledger was introduced to avoid ([architecture/overview.md §7](../architecture/overview.md#7-classification-ledger-replaces-per-file-sidecars)).
   If it comes back, then `reclassify` (which walks every file under the library) and `DuplicateIndex` (which hashes
   same-size library files) would both see it, so it must be recognised and skipped, and `rollback` must either record
   its writes or regenerate it. The same applies to `TagIndex.md` at the library root.
@@ -161,7 +162,7 @@ Kept from the build plan so the intent is not lost:
 each of them by adding modules and a config section to `core` would grow `core` with every tool and make each one
 a permanent part of the product.
 
-**Why not now.** [AGENTS.md](../../AGENTS.md) says to add a seam only where something actually varies, and one
+**Why not now.** [AGENTS.md](../../../AGENTS.md) says to add a seam only where something actually varies, and one
 implementation is not a seam. With zero integrations in the MVP there is nothing to vary, and a framework designed
 first would be shaped by guesses. Design it when the first integration is built, using that integration as the
 test of the interface, and check it against a second use before treating it as stable.
@@ -206,7 +207,7 @@ notes.
 ## Opt-in flatten when the depth is reduced
 
 **Status:** to be reviewed for future implementation. Raised on 2026-10-12 while building
-[Stage 4.8](plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders); it needs specifying before it is planned.
+[Stage 4.8](../plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders); it needs specifying before it is planned.
 
 **The situation.** A user reduces `[library_structure] depth` (from 2 to 1 today, and from 3 to 2 if
 [depth 3](#subcategories-depth-3) is ever built). The folders that were categories
@@ -242,7 +243,7 @@ rejected, and so was a stored "previous depth" to detect the change; the ledger'
 
 ## Filing target mode (`file_at`)
 
-**Status:** under review. It was Stage 4.9 of the [MVP build plan](plan/archive/2026-10-mvp/plan.md), an optional stage; on review it was
+**Status:** under review. It was Stage 4.9 of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md), an optional stage; on review it was
 moved here on 2026-10-12 and the number is not reused. Nothing was built: there is no `file_at` setting in the code.
 
 **Why it is under review.**
@@ -305,21 +306,21 @@ as scanning subfolders, so the setting would name where the file lands:
 
 ## Decision-model classifier
 
-**Status:** under review. It was Stage 4.5 of the [MVP build plan](plan/archive/2026-10-mvp/plan.md); it was moved here on 2026-10-13
+**Status:** under review. It was Stage 4.5 of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md); it was moved here on 2026-10-13
 and the number is not reused. Nothing was built.
 
 **Why it is under review.** It was gated on a measurement and has not been started, and the gate cannot be run from the
 repository alone: the candidates (Jev, Clef, Nimble) came from an unverified web search, a model has to be run somewhere
 to be measured (a GPU model locally, or a hosted account), and a hosted one sends document text off the machine. The
 AI fallback is only asked where the rules are unsure, and the calibration already shows it adds little as built
-([calibration.md](testing/calibration.md)), so the expected gain for the first release is small. The research, with its sources
-and the rules for adopting a model, is in [ai-classifier-options.md](architecture/ai-classifier-options.md).
+([calibration.md](../testing/calibration.md)), so the expected gain for the first release is small. The research, with its sources
+and the rules for adopting a model, is in [ai-classifier-options.md](../architecture/ai-classifier-options.md).
 
 **The proposal.** `sort --use-ai` could use either a chat model (as today) or a **decision model**, a classifier that
 takes text and a fixed list of options and returns one option with a probability. Both would sit behind `Classifier` as
 resolvers. The model's own probability would become the confidence instead of a flat `0.70`, and the calibration report
 would show on the same corpus how each performs, so the choice is a measurement. It also shortens a path to ranked
-suggestions for [`review`](plan/archive/2026-10-mvp/plan.md#stage-5--review-workflow), which today offers only the classifier's best guess.
+suggestions for [`review`](../plan/archive/2026-10-mvp/plan.md#stage-5--review-workflow), which today offers only the classifier's best guess.
 
 ### The design to keep
 
@@ -356,14 +357,14 @@ suggestions for [`review`](plan/archive/2026-10-mvp/plan.md#stage-5--review-work
 
 ## Subcategories (depth 3)
 
-**Status:** under review. It was Stage 4.7 of the [MVP build plan](plan/archive/2026-10-mvp/plan.md), provisional from the start; it was
+**Status:** under review. It was Stage 4.7 of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md), provisional from the start; it was
 moved here on 2026-10-13 and the number is not reused. Nothing was built: `depth` accepts 1 and 2.
 
 **Why it is under review.** It is the largest change to the model, it was gated on a measurement that has not been run, and
-depth 3 is not needed for the first release. Its prerequisites are built: [Stage 4.6](plan/archive/2026-10-mvp/plan.md#stage-46--flat-libraries-depth-1)
-made the category optional, and [Stage 4.8](plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders) gave the rule for telling a
+depth 3 is not needed for the first release. Its prerequisites are built: [Stage 4.6](../plan/archive/2026-10-mvp/plan.md#stage-46--flat-libraries-depth-1)
+made the category optional, and [Stage 4.8](../plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders) gave the rule for telling a
 subcategory from a filed bundle (`Library.structure()` already skips folders the ledger records as filed whole). The
-vocabulary, the limits and the depth model are in [library-depth.md](architecture/library-depth.md).
+vocabulary, the limits and the depth model are in [library-depth.md](../architecture/library-depth.md).
 
 **The proposal.** With `depth = 3`, `sort` would classify group, then category, then subcategory, and file into the
 subcategory folder. The ledger, `rollback` and `reclassify` would handle three levels, and the library creation functions
@@ -422,7 +423,7 @@ Both are small enough to rewrite from the table, and the first should be rewritt
 ### The design to keep
 
 - A template is a tree of folder names in the library file's own node shape, so one format describes a library, a template
-  and a taxonomy ([ADR-001](adr/ADR-001-configuration-layout.md) section 6 has the reasoning).
+  and a taxonomy ([ADR-001](../adr/ADR-001-configuration-layout.md) section 6 has the reasoning).
 - Creation is explicit and never happens during `sort`: the folders are the authority, and only a command the user runs may
   make them.
 - At depth 3 ([subcategories](#subcategories-depth-3)) creation makes up to three levels, and depth 4 and above is not planned.

@@ -546,7 +546,7 @@ def test_config_section_unknown_key_rejected(name: str, section: type[BaseModel]
 )
 def test_load_config_settings_moved_or_removed_rejected(tmp_path: Path, text: str, expected: str) -> None:
     # Hints and rules moved to microfiche-library.json; the others had no effect and were dropped. The
-    # [obsidian] section went with the integration it configured (docs/development/feature-backlog.md).
+    # [obsidian] section went with the integration it configured (docs/development/rfcs/feature-backlog.md).
     (tmp_path / "microfiche-config.toml").write_text(text, encoding="utf-8")
 
     with pytest.raises(ConfigError, match=expected):

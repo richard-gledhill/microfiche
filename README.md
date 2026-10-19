@@ -44,7 +44,7 @@ documents and sorts them with minimal manual effort. It works on any folder tree
 - **Vault-friendly** — works on any folder tree, including an Obsidian vault: microfiche's own state lives in a hidden
   `.microfiche/` folder and nothing is written next to your documents. Obsidian-specific features (folder notes,
   tag governance) are planned as an optional integration after the MVP; see the
-  [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/feature-backlog.md).
+  [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/feature-backlog.md).
 - **Fully offline-capable** — no cloud service is required; AI classification is opt-in.
 
 ## Requirements

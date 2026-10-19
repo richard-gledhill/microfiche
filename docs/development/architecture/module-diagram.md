@@ -276,9 +276,9 @@ flowchart TD
 ```
 
 Every module in the graph is imported by another. `library/templates.py` and `utils/validation.py` were removed as unused
-in the Stage 6 simplification review (see [feature-backlog.md](../feature-backlog.md#library-creation-init-and-group-templates)). The
+in the Stage 6 simplification review (see [feature-backlog.md](../rfcs/feature-backlog.md#library-creation-init-and-group-templates)). The
 Obsidian modules that used to sit here were removed from the MVP and are kept in
-[feature-backlog.md](../feature-backlog.md#obsidian-integration).
+[feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration).
 
 ## 2. Sort pipeline data flow
 
@@ -341,5 +341,5 @@ instead of the `_sorting/` inbox; with `--apply` it files its `move` proposals t
 ## See also
 
 - [architecture/overview.md](overview.md) — the design narrative these diagrams visualize.
-- [mvp-roadmap.md](../mvp-roadmap.md) — status per feature.
+- [mvp-roadmap.md](../requirements/mvp-roadmap.md) — status per feature.
 - [data-model.md](data-model.md) — the ledger, `AuditEvent`, `Job` and `audit.log` schemas referenced here.

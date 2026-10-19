@@ -126,7 +126,7 @@ def test_config_whole_number_settings_shown_without_a_decimal_point(tmp_path: Pa
 
 
 def test_app_index_command_removed() -> None:
-    # `index` regenerated Obsidian folder notes; it left the MVP with the integration (docs/development/feature-backlog.md).
+    # `index` regenerated Obsidian folder notes; it left the MVP with the integration (docs/development/rfcs/feature-backlog.md).
     result = runner.invoke(app, ["index", "--help"])
 
     assert result.exit_code == 2
