@@ -6,10 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Documentation
+- restructure development docs to the cookiecutter-uv layout [`290543f`](https://github.com/richard-gledhill/microfiche/commit/290543f)
+- :robot: changelog file generated [`ed0da18`](https://github.com/richard-gledhill/microfiche/commit/ed0da18)
+
 ### Chore
 - added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
 
 ### Other
+- Merge pull request #72 from richard-gledhill/docs/restructure-development-docs [`3dfb70a`](https://github.com/richard-gledhill/microfiche/commit/3dfb70a)
 - Merge pull request #71 from richard-gledhill/chore/ignore-wheels [`f3b1d6e`](https://github.com/richard-gledhill/microfiche/commit/f3b1d6e)
 
 ## v0.1.6 (2026-10-14)
