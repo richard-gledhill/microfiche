@@ -7,7 +7,7 @@ folder, read by `core.config.load_config`. Copy this folder there (renamed to
 Obsidian's file explorer by default.
 
 A `microfiche init` command to automate that copy is a natural next step but isn't implemented
-yet — see [docs/development/architecture.md](../docs/development/architecture.md).
+yet — see [docs/development/architecture/overview.md](../docs/development/architecture/overview.md).
 
 | Section | Purpose |
 |---|---|

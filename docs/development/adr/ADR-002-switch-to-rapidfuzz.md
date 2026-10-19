@@ -1,20 +1,30 @@
-# Fuzzy matching options
+# ADR-002: Switch from `thefuzz` to `rapidfuzz`
+
+- **Status:** Accepted (built in Stage 4.1)
+- **Date:** 2026-10-10
+- **Decision:** Depend on `rapidfuzz` directly instead of `thefuzz`, keeping the rounded integer score so
+  `fuzzy_group_threshold` keeps its meaning. Calibration results were unchanged and group matching got 1.8 times faster
+  (see [Outcome](#outcome)).
+
+The rest of this record is the options comparison that led to the decision, kept as it was written.
+
+## Review
 
 microfiche uses fuzzy string matching to match group names. It also used it for tags, until the Obsidian integration
-was removed from the MVP ([feature-backlog.md](feature-backlog.md#obsidian-integration)); the tag parts below are
+was removed from the MVP ([feature-backlog.md](../feature-backlog.md#obsidian-integration)); the tag parts below are
 kept as history. This page records what `thefuzz` actually is, how it
 compares with RapidFuzz and the other options, what was measured, and when in the build plan to switch. It feeds
-[Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation) of the build plan. The switch was made as the last Build step of Stage 4.1; the "Outcome" section at the end
+[Stage 4.1](../plan/archive/2026-10-mvp/plan.md#stage-41--configuration-consolidation) of the build plan. The switch was made as the last Build step of Stage 4.1; the "Outcome" section at the end
 records what was done and what it showed.
 
-## Where it is used
+### Where it is used
 
 | Where | Call | What for |
 |---|---|---|
 | `rules/group_rules.py` | `fuzz.partial_ratio(group, text)` for every group name, on every document | A near-miss of a group's name in the document text (`Projct Phoenix`), scored 0 to 100 and compared with `[classification] fuzzy_group_threshold` (85). This is on the `sort` path. |
 | `obsidian/tag_mapper.py` | `process.extractOne(candidate, canonical_tags)` | Map an extracted tag onto the library's `TagIndex.md` vocabulary. Never called from `sort`; removed with the Obsidian integration. |
 
-## What `thefuzz` is
+### What `thefuzz` is
 
 `thefuzz` 0.22.1 is a thin wrapper over RapidFuzz. Its `fuzz.partial_ratio` is RapidFuzz's `partial_ratio` with the
 score rounded to an integer, and `RapidFuzz` is already installed as `thefuzz`'s only dependency (3.14.5 in
@@ -29,7 +39,7 @@ and using it directly.
 | Score | `int`, rounded | `float` |
 | Match position | not available | `partial_ratio_alignment` returns where the match starts and ends |
 
-## What was measured
+### What was measured
 
 One machine, synthetic text (random words, 30 group names), best of three runs. The absolute numbers will differ
 elsewhere; the ratios are the point.
@@ -48,10 +58,10 @@ elsewhere; the ratios are the point.
 - **Neither is a bottleneck.** Group matching costs about 2 ms per 20,000-character document. Parsing a PDF or Word
   file is likely to cost more, though that was not measured here. Speed is a reason to take the cheap win, not to rush.
 - **Accuracy is unchanged.** With RapidFuzz patched in for the group match (float scores, and again rounded to
-  integers), the calibration report ([calibration.md](calibration.md)) is byte-for-byte identical to the
+  integers), the calibration report ([calibration.md](../testing/calibration.md)) is byte-for-byte identical to the
   `thefuzz` report on the 136-document corpus.
 
-## Traps when switching
+### Traps when switching
 
 1. **`extractOne` preprocesses by default in `thefuzz`, not in RapidFuzz.** `thefuzz.process.extractOne` lowercases
    and strips punctuation before comparing (its `full_process`). `rapidfuzz.process.extractOne` does nothing by
@@ -66,17 +76,17 @@ elsewhere; the ratios are the point.
 3. **`rapidfuzz` must be declared.** Once code imports it, `deptry` expects it in `core`'s dependencies, and
    `thefuzz` (and its mypy override in the root `pyproject.toml`) can go.
 
-## What switching enables
+### What switching enables
 
 - **`score_cutoff`** for the group match, as above.
 - **Word-boundary matching.** The roadmap's open item "`Car` matches `carrier`" has two halves. The exact check
   (`group_name in text`) needs a regular expression with `\b`, whatever the library. The fuzzy check can use
   `partial_ratio_alignment` to find where the near-miss sits and apply the same boundary test to that stretch of text.
-  That feature is still unscheduled (see [mvp-roadmap.md](mvp-roadmap.md), Future work); this page only records that
+  That feature is still unscheduled (see [mvp-roadmap.md](../mvp-roadmap.md), Future work); this page only records that
   RapidFuzz makes the fuzzy half possible.
 - **A shorter dependency list**: one fewer package, and the `thefuzz` locked here dates from January 2024.
 
-## Alternatives
+### Alternatives
 
 These are from general knowledge and were **not** benchmarked here; none gives a reason to leave RapidFuzz.
 
@@ -88,7 +98,7 @@ These are from general knowledge and were **not** benchmarked here; none gives a
 | `textdistance` | Many algorithms in pure Python: slower, with no substring score. |
 | `regex` (approximate matching) | Fuzzy substring matching with `{e<=2}`, but hard to score, tune and explain, and slower. |
 
-## Outcome
+### Outcome
 
 The switch was made with the rounding kept, so a raw score of 84.6 still counts as 85. RapidFuzz is also given a
 `score_cutoff` of the threshold less one, which can only skip scores that could not have rounded up to the threshold.
@@ -101,9 +111,9 @@ The switch was made with the rounding kept, so a raw score of 84.6 still counts 
 - **One deliberate behaviour change:** tag matching now keeps accents, as above. `tag_mapper` was never called from
   `sort`, so no user saw either behaviour, and it has since been removed with the Obsidian integration. Whether to
   fold accents on purpose (so `munchen` matches `münchen`) is still open and is listed in
-  [feature-backlog.md](feature-backlog.md#obsidian-integration).
+  [feature-backlog.md](../feature-backlog.md#obsidian-integration).
 
-## Recommendation and timing
+### Recommendation and timing
 
 Depend on `rapidfuzz` directly, and do it **as the last Build step of Stage 4.1**, as its own commit:
 
@@ -118,5 +128,5 @@ Depend on `rapidfuzz` directly, and do it **as the last Build step of Stage 4.1*
 4. **It is small and independent.** Two files change, apart from dependency metadata and docs, so a separate commit
    (or a separate branch, if the Stage 4.1 branch is already large) keeps the review easy.
 
-The steps are in the Stage 4.1 section of [mvp-build-plan.md](mvp-build-plan.md). Word-boundary matching stays in
+The steps are in the Stage 4.1 section of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md). Word-boundary matching stays in
 Future work until it is measured on real documents.

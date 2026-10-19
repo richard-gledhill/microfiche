@@ -1,6 +1,6 @@
 """microfiche core: scanning, classification, filing, and library management logic.
 
-See docs/development/architecture.md for the architecture this package implements.
+See docs/development/architecture/overview.md for the architecture this package implements.
 """
 
 import logging

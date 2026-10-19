@@ -2,7 +2,7 @@
 
 Never creates folders itself - the caller (the CLI's `propose-categories` command) decides
 whether to apply a suggestion. Deterministic keyword-frequency scoring only; an AI-assisted variant is designed but
-not built (docs/development/architecture.md, section 6).
+not built (docs/development/architecture/overview.md, section 6).
 """
 
 from __future__ import annotations

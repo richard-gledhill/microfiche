@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 # The confidence a classification must reach before microfiche files a unit on its own.
-# Chosen by measurement, not guesswork: see docs/development/calibration.md. It equals the keyword-hint
+# Chosen by measurement, not guesswork: see docs/development/testing/calibration.md. It equals the keyword-hint
 # score, so exact names (0.9-1.0), filename rules (0.95), near-exact fuzzy group matches (>= 0.85) and
 # keyword-hint matches (0.75) all file automatically, while AI-only answers (0.70) go to review. On the
 # calibration corpus a higher threshold files less but is no more accurate about what it does file.

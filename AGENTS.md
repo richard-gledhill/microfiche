@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `microfiche` scans a "library" folder (e.g. an Obsidian vault of `group/category` subfolders) for
 loose documents dropped into a `_sorting/` inbox, classifies each one (group, then category),
 and files it — recording every move so it can be rolled back. No file is ever deleted. Full
-design rationale: [docs/development/architecture.md](docs/development/architecture.md)
-(supersedes the earlier concept docs archived under `docs/development/archive/` where they conflict).
+design rationale: [docs/development/architecture/overview.md](docs/development/architecture/overview.md)
+(supersedes the earlier concept docs archived under `docs/development/requirements/archive/` where they conflict).
 Domain language (library, group, category, unit, job, ledger, ...) is defined in
 [CONTEXT.md](CONTEXT.md) — use those terms.
 
@@ -16,8 +16,8 @@ Domain language (library, group, category, unit, job, ledger, ...) is defined in
 [docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
 actually implemented vs. still partial or deferred. See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
-[data-model.md](docs/development/data-model.md) (ledger/audit/rollback schemas) and
-[mvp-build-plan.md](docs/development/mvp-build-plan.md) (staged build-from-scratch plan).
+[data-model.md](docs/development/architecture/data-model.md) (ledger/audit/rollback schemas) and
+[MVP build plan](docs/development/plan/archive/2026-10-mvp/plan.md) (staged build-from-scratch plan).
 
 ## Commands
 
@@ -27,7 +27,7 @@ make check      # uv lock --locked, pre-commit run -a, mypy (Linux, then Windows
 make test       # pytest --doctest-modules --cov (the packages come from [tool.coverage.run]) --cov-report=term-missing
 make docs       # mkdocs serve
 make library-schema   # regenerate microfiche/microfiche-library.schema.json from the model
-make module-diagram   # regenerate the import graph in docs/development/module-diagram.md from the source
+make module-diagram   # regenerate the import graph in docs/development/architecture/module-diagram.md from the source
 make build            # build the core and cli release wheels into dist/ and check them (scripts/check_wheels.py)
 make smoke-wheels     # ...then install them in a clean environment and run them (scripts/smoke_wheels.sh)
 ```
@@ -114,7 +114,7 @@ paths — this works because both are installed editable into the shared workspa
    - A result is `confident` when both stages resolved and the overall confidence reaches the
      threshold: `[classification] confidence_threshold` in the library's config, defaulting to
      0.75 (in the packaged `core/defaults/microfiche-config.toml`, chosen by measurement — see
-     `docs/development/calibration.md`). At the default, keyword-hint matches (0.75) file but AI-only
+     `docs/development/testing/calibration.md`). At the default, keyword-hint matches (0.75) file but AI-only
      answers (0.70) go to review; a higher threshold files less without filing more accurately.
      `classified_by` names which resolver(s) decided: `rules_engine`, `ai_fallback` or
      `rules_engine+ai_fallback`.
@@ -148,7 +148,7 @@ paths — this works because both are installed editable into the shared workspa
   measures what each confidence threshold does to auto-filing and misfiling, plus saved AI-fallback
   answers. `uv run python tests/calibration/report.py` prints the report; `test_calibration.py` pins
   the findings behind the default threshold, so changing the classifier or the default means
-  re-running it and updating `docs/development/calibration.md`.
+  re-running it and updating `docs/development/testing/calibration.md`.
 - **`reclassify.py`** (the `reclassify` command) re-runs the two-stage classifier against
   already-filed documents and plans each one: `move` / `keep` (already under the right category) /
   `review` (unresolved or below threshold) / `conflict` (destination taken). Dry-run by default;
@@ -162,7 +162,7 @@ paths — this works because both are installed editable into the shared workspa
   created or moved before `commit`; the prompts live in `cli/review.py`.
 - **`library/category_suggester.py`** proposes new category names from term frequency across a
   scope; never creates folders itself. `propose-categories` only prints, over the inbox; it has no `--apply`, no `--use-ai` and no
-  scope option yet (see `docs/development/architecture.md` §6).
+  scope option yet (see `docs/development/architecture/overview.md` §6).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are
   parked in [docs/development/feature-backlog.md](docs/development/feature-backlog.md), with where to restore them
   from. Don't reintroduce an `[obsidian]` config section or an `index` command; the integration is to be designed as
@@ -175,7 +175,7 @@ paths — this works because both are installed editable into the shared workspa
   content hash, group, category, reasons, confidence, `classified_by`) and rollback. Keyed by
   path + content hash; `Ledger.current()` replays it to get what's filed now. It replaced the old
   per-file `*.metadata.json` sidecars — don't reintroduce files next to the user's documents.
-  Schema: `docs/development/data-model.md`.
+  Schema: `docs/development/architecture/data-model.md`.
 
 ### Config resolution
 
@@ -199,99 +199,11 @@ it becomes a unit (or proposal) left for review, with the reason.
 
 ## Conventions
 
-**Design**
-- Prefer deep modules: a small interface with a lot of behaviour behind it.
-- Before adding a module, apply the deletion test: if removing it would just move one line into its callers,
-  don't add it.
-- Locality: each concern lives in one place, so a fix is made once.
-- Add a seam (a `Protocol` or swappable adapter) only where something actually varies. One implementation is not a seam.
-- Test through the interface and fake at the seams (resolvers, the AI provider). If a test needs to reach past the
-  interface, the module is probably the wrong shape.
+Read [`docs/development/conventions.md`](docs/development/conventions.md) (design, code, module layout, tests, docs
+and git) and [`docs/development/constraints.md`](docs/development/constraints.md) (the enforced quality bar) before
+writing code. Don't change either without asking, and never to make them match code you just wrote.
 
-**Code**
-- Docstrings: Google style (`Args:`/`Returns:`/`Raises:`) — `mkdocstrings` renders them for the
-  published docs.
-- Use the [CONTEXT.md](CONTEXT.md) terms in code, docs and commits; add a term there when you
-  introduce a domain concept.
-- Name a module's logger `_logger = logging.getLogger(__name__)`, among the module's constants below the imports.
-  The underscore marks it private: never import another module's logger, so a record is always attributed to the
-  module that emitted it. Only `cli` configures logging (handlers and levels); `core` just emits, and
-  `core/__init__.py` adds a `NullHandler` to the `microfiche.core` logger and nothing else.
-- `ruff` config lives only in the root `pyproject.toml`; per-package `pyproject.toml` files carry
-  just their own dependencies. mypy is strict and covers `packages/*/src` (not tests).
-- Code must import and type-check on Linux (CI) and Windows. Some names exist on one only: `stat.IO_REPARSE_TAG_*`,
-  `ctypes.WinDLL`, `PermissionError.winerror`. Write such constants out, import platform modules inside the function
-  that uses them, and guard the body with `if sys.platform == "win32":` so mypy skips it elsewhere. `make check` runs
-  mypy for both platforms for this reason.
-
-**Module layout**
-- Order a module like this, omitting what it doesn't have:
-  1. Module docstring.
-  2. Imports: `from __future__`, then standard library, third-party, local (`ruff` sorts them).
-  3. Module dunders (`__all__`, `__version__`). These go after the imports, unlike PEP 8, which puts them
-     before; it matches `cli/app.py` and `parsers/__init__.py`.
-  4. Constants and types: constants, type aliases, `TypeVar`s, `Protocol`s and plain data models (dataclasses,
-     Pydantic). Code further down uses them in signatures.
-  5. Errors: custom exceptions.
-  6. Public API: the functions and classes other modules import. High up, so a reader sees what the module offers first.
-  7. Helpers: `_`-prefixed, module-private functions, kept last as implementation detail.
-- Order matters only for names used at import time (constants, decorators, default arguments, class bodies):
-  those must be defined above their use. A function body can call a helper defined below it.
-- In a module of about 150+ lines with at least three of sections 4-7, wrap each in `# region <name>` ...
-  `# endregion` (PyCharm and VS Code fold them), using exactly these names: `Constants and types`, `Errors`,
-  `Public API`, `Helpers`. Shorter modules get no regions. Don't use `# ---` divider comments.
-- A test file mirrors its module. It opens with a `Test helpers` region (shared constants, builders, fakes,
-  fixtures; a helper used by one section stays in that section). Then come regions in the module's order with
-  the module's names. Inside `Public API`, nest one region per function or class under test, or per behaviour
-  when one class has many tests. If the module has no regions, use one top-level region per function, class or
-  behaviour. Keep a decorator (`@pytest.mark.parametrize`) with its test, never a region marker between them.
-
-**Tests**
-- Use `tmp_path` and `Library(path)`; copy `tests/mock_library` for integration tests. Use fake
-  resolvers/providers: no network or Ollama in the suite.
-- Lay test files out as described under Module layout.
-- Name tests `test_<subject>_<scenario>_<result>`, in the present tense:
-  - `<subject>` is the function, class, command or behaviour under test (`file_batch`, `rollback_job`,
-    `classify_unit`), so `pytest -k` and a failure's node id say what broke.
-  - Leave out articles and filler (a, an, the, is, are, can, be, that, should) and keep it to about 50 characters
-    after `test_`.
-  - Leave out `<result>` when the scenario already implies it (`test_classify_document_threshold_boundary_inclusive`).
-  - Put anything that doesn't fit in a short comment in the test body. A parametrized test's name describes
-    the whole family.
-  - Don't reuse a name within a file; pytest runs only the last one.
-
-**Docs**
-- User docs track the CLI: any change to a command, an option, or a command's status in
-  `docs/development/mvp-roadmap.md` must also update
-  [docs/how-to-use.md](docs/how-to-use.md) (the command in both its Bash and PowerShell tabs,
-  plus its "Current limitations" list) and the Usage section of [README.md](README.md#usage).
-- [docs/cli-reference.md](docs/cli-reference.md) is generated from the Typer app (command docstrings and
-  option `help=` text): run `make docs-cli` after changing either. `make docs`/`make docs-test` do it for you,
-  and a test fails if the file is stale. Write command docstrings for users, not as API docs - Typer
-  prints them as `--help`.
-- `microfiche/microfiche-library.schema.json` is generated from the library file model (`json_schema()` in
-  `core/library/library_file.py`): run `make library-schema` after changing a field or its description. A test
-  fails if the committed file is stale.
-- `README.md` and `docs/how-to-use.md` are published; `docs/development/` is not, so link to it
-  by GitHub URL.
-- Record a deferred or future item once, and link to it. A gap or small postponed item goes in
-  `docs/development/mvp-roadmap.md`; a feature outside the MVP, or code removed from it, goes in
-  `docs/development/feature-backlog.md`. `mvp-build-plan.md` covers the MVP only.
-- After a rename or behaviour change, grep the docs for the old name or number.
-  `architecture.md`, `mvp-roadmap.md` and `module-diagram.md` go stale first. Run `make module-diagram` when
-  imports change: it rewrites the import graph's nodes and edges from the source (add `--check` to only report),
-  and the second, data-flow diagram is still edited by hand.
-
-**Git**
-- Branches follow `<type>/<short-description>`, `<type>` being a Conventional Commits type
-  (`feat`/`feature`, `fix`, `chore`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`,
-  `revert`) — e.g. `feature/config-command`, `chore/refactor-configs`. Checked, advisory-only,
-  by `.github/workflows/branch-naming.yml`. One concern per branch, from an up-to-date `main`.
-- Commit subjects use Conventional Commits (`feat:` or `feature:`, `fix:`, `refactor:`, `docs:`, `test:`,
-  `chore:`): the changelog is generated from them.
-- Stage by explicit path, never `git add <dir>` or `-A`; untracked local files get swept in.
-- `make check` only sees tracked files: `git add -N` new files first, or they go unchecked.
-- Local scratch files go in `.temp/` (gitignored).
+In a `SPEC.md`, reference `conventions.md` instead of restating code style. Only record feature-specific deviations.
 
 ## Verifying your work
 
@@ -320,11 +232,9 @@ make test    # pytest --doctest-modules with coverage for core and cli
 
 ### Rules
 
-- Fix the code, not the check. Never skip, delete, or weaken a test, and never silence a check:
-  no `# type: ignore`, `# noqa`, `SKIP=`, `--no-verify`, or loosened mypy/deptry/pre-commit config,
-  unless I've asked for it.
+- The quality bar, including what never to silence or weaken, is in
+  [`docs/development/constraints.md`](docs/development/constraints.md). Fix the code, not the check.
 - If you believe a test is wrong, explain why in your final response before changing it.
-- Add or update tests for any behavior you change.
 - If a failure persists that you can't fix, or that existed before your change, or is caused by the
   environment (network, missing tools), stop. Don't report the task as complete. Say what failed and why.
 

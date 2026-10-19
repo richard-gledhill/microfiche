@@ -11,7 +11,7 @@ automatically, and whether that was right. Rules-only confidence doesn't depend 
 the corpus is classified once and every threshold is evaluated against the same results.
 
 The same harness works on any library whose files are already correctly filed: point ``load_corpus`` at
-a folder whose subfolders are such libraries (see docs/development/calibration.md). Files in the inbox,
+a folder whose subfolders are such libraries (see docs/development/testing/calibration.md). Files in the inbox,
 in excluded folders, or loose at the top of a group are skipped; files nested below a category count as
 belonging to it.
 """

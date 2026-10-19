@@ -5,7 +5,7 @@ free text, then checks the answer against the taxonomy. A second kind of model, 
 classifier that takes text and a fixed list of options and returns one option with a probability), could do
 the same job more cheaply and with a real score. This page records why, which models are candidates, and what
 has to be checked before any is adopted. It feeds
-[decision-model classifier](feature-backlog.md#decision-model-classifier) in the feature backlog (formerly Stage 4.5),
+[decision-model classifier](../feature-backlog.md#decision-model-classifier) in the feature backlog (formerly Stage 4.5),
 which is under review. Nothing here is built.
 
 ## Why a second kind of model
@@ -15,7 +15,7 @@ which is under review. Nothing here is built.
 | Output | Free text, parsed and matched against the taxonomy | One of the supplied options, or none, with a probability per option |
 | Confidence | A flat `0.70` for any answer from any model (`_AI_CONFIDENCE`) | The model's own probability, so a sure answer can pass the threshold and an unsure one can't |
 | Can it invent a folder? | It can name one; `Classifier` rejects it afterwards | No: the output is bounded to the options |
-| Cost and speed | One Ollama call took about 5 s on the model measured ([calibration.md](calibration.md)) | Described as faster and cheaper than a general chat model |
+| Cost and speed | One Ollama call took about 5 s on the model measured ([calibration.md](../testing/calibration.md)) | Described as faster and cheaper than a general chat model |
 | Fit with the design | `LLMClassifier`, a `Resolver` | A second `Resolver` beside it; `Classifier` does not change |
 
 It also helps two items already on the roadmap: "always scores 0.70 whatever model is behind it" and "use the AI

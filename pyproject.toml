@@ -100,7 +100,7 @@ exclude_lines = [
 ]
 # The floor CI and `make test` enforce on the whole of core and cli. The measured baseline was 97.6% (Windows,
 # 2026-10-13); it is set below that so a platform-specific branch that one OS does not run cannot fail the build.
-# Raise it, never lower it, once the Linux figure from CI is known (docs/development/mvp-build-plan.md, Stage 6).
+# Raise it, never lower it, once the Linux figure from CI is known (docs/development/requirements/mvp-followups-prd.md, R3).
 fail_under = 95
 
 [tool.ruff]

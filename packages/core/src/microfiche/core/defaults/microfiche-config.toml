@@ -9,7 +9,7 @@ library_inbox = "_sorting"
 depth = 2
 
 [classification]
-# A document files without asking only if its confidence reaches this (see docs/development/calibration.md).
+# A document files without asking only if its confidence reaches this (see docs/development/testing/calibration.md).
 confidence_threshold = 0.75
 # How sure each kind of match is. The threshold above decides which of them file on their own.
 name_match_confidence = 0.9

@@ -47,7 +47,7 @@ library-schema: ## Regenerate microfiche/microfiche-library.schema.json from the
 	@uv run python -c "import json, pathlib; from microfiche.core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
 
 .PHONY: module-diagram
-module-diagram: ## Regenerate the import graph in docs/development/module-diagram.md from the source
+module-diagram: ## Regenerate the import graph in docs/development/architecture/module-diagram.md from the source
 	@uv run python scripts/module_diagram.py
 
 .PHONY: docs-test

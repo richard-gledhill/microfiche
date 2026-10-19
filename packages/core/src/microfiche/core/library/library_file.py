@@ -3,7 +3,7 @@
 This lives in ``<library>/.microfiche/microfiche-library.json``, apart from ``microfiche-config.toml``: the
 config holds *settings* (how sure to be, which AI to ask), this file holds *data about this library's folders*.
 
-The folders stay the authority on what exists (docs/development/architecture.md, section 1). An entry with no
+The folders stay the authority on what exists (docs/development/architecture/overview.md, section 1). An entry with no
 folder is never filed into, and the file never creates or removes a folder.
 """
 

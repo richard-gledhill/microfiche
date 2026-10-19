@@ -4,7 +4,7 @@ The target schema for everything microfiche writes to disk outside of the moved 
 themselves. Everything lives under the library's dot-prefixed `.microfiche/` state folder
 (`core.config.MICROFICHE_DIRNAME`, `Library.state_dir`), so Obsidian's file explorer hides it and no file ever gets
 a companion file written next to it. Where the current implementation doesn't yet produce data
-matching this, that's tracked as an open item in [mvp-roadmap.md](mvp-roadmap.md), not restated
+matching this, that's tracked as an open item in [mvp-roadmap.md](../mvp-roadmap.md), not restated
 here.
 
 All of it is written by `core/filer.py` (`file_batch` and `rollback_job`); `core/ledger.py`
@@ -46,8 +46,8 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   rather than being skipped — a bad line means a record of something microfiche did is missing.
 
 Not recorded yet: `tags` (nothing extracts tags, and tag governance left the MVP with the Obsidian integration —
-[feature-backlog.md](feature-backlog.md#obsidian-integration)), and the per-document breakdown behind a folder unit's
-dominant-category vote ([architecture.md](architecture.md) §4).
+[feature-backlog.md](../feature-backlog.md#obsidian-integration)), and the per-document breakdown behind a folder unit's
+dominant-category vote ([architecture/overview.md](overview.md) §4).
 
 This replaced the per-file `*.metadata.json` sidecars the earlier design wrote beside every
 filed document: nothing ever read them, rollback left them behind, and they doubled the file
@@ -164,5 +164,5 @@ held and is never cleared automatically.
 
 ## See also
 
-- [architecture.md](architecture.md) §7 — why the ledger replaced per-file sidecars.
-- [mvp-roadmap.md](mvp-roadmap.md) — tracks which parts of this schema aren't produced yet.
+- [architecture/overview.md](overview.md) §7 — why the ledger replaced per-file sidecars.
+- [mvp-roadmap.md](../mvp-roadmap.md) — tracks which parts of this schema aren't produced yet.

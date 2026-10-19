@@ -16,9 +16,8 @@ nav:
   - Contributing: contributing.md
   - License: license.md
 
-# docs/development/ holds internal planning docs - the current architecture.md, archived
-# superseded PRD/concept docs, and a README template - not published user-facing
-# documentation. Exclude it from the built site rather than force it into the nav.
+# docs/development/ holds internal development docs (architecture, ADRs, plans, requirements,
+# testing) - not published user-facing documentation. Exclude it from the built site rather than force it into the nav.
 exclude_docs: |
   development/
 

@@ -1,6 +1,6 @@
 """Keeping the library file in step with the library's folders.
 
-The folders stay the authority on what exists (docs/development/architecture.md, section 1). The sync compares
+The folders stay the authority on what exists (docs/development/architecture/overview.md, section 1). The sync compares
 ``Library.structure()`` with ``microfiche-library.json`` and appends an entry, with no hints, for each folder that
 has none. It never changes or removes an entry the user wrote, and never creates or removes a folder: an entry
 whose folder has gone is only reported.

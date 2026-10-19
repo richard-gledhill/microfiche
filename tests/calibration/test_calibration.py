@@ -485,7 +485,7 @@ def test_format_report_has_every_section_and_marks_default() -> None:
 
 
 #
-# These tests state the findings in docs/development/calibration.md. If one fails, the classifier
+# These tests state the findings in docs/development/testing/calibration.md. If one fails, the classifier
 # or the corpus changed enough that the evidence behind DEFAULT_CONFIDENCE_THRESHOLD may no longer
 # hold: re-run tests/calibration/report.py, re-read the document, and update both together.
 

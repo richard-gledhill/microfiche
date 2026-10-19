@@ -205,7 +205,7 @@ def test_load_config_nested_table_merges_with_default(tmp_path: Path, monkeypatc
 
 
 def test_default_confidence_threshold_equals_keyword_hint_score() -> None:
-    """Set by calibration (docs/development/calibration.md): hint matches file, AI answers do not."""
+    """Set by calibration (docs/development/testing/calibration.md): hint matches file, AI answers do not."""
 
     assert DEFAULT_CONFIDENCE_THRESHOLD == 0.75
 
