@@ -10,7 +10,7 @@ class Taxonomy(BaseModel):
 
     This is rebuilt by ``microfiche.core.library.library.Library.taxonomy`` on every run rather than
     persisted - the library's own folders are the taxonomy, per
-    docs/development/architecture.md.
+    docs/development/architecture/overview.md.
 
     Attributes:
         groups: Each group and its category names. In a flat library (``depth`` 1) the lists are empty

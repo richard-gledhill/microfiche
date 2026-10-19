@@ -13,7 +13,7 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> G
     is used if its score clears the fuzzy threshold.
 
     Callers should route a result with ``name=None`` to the review queue with a "create new
-    group" option rather than treating it as an error (see docs/development/architecture.md,
+    group" option rather than treating it as an error (see docs/development/architecture/overview.md,
     section 3).
 
     Args:

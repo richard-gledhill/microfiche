@@ -1,13 +1,24 @@
-# Operations review
+# ADR-003: Operational safety policies
+
+- **Status:** Accepted (built in Stages 4.1 to 4.4 and 6)
+- **Date:** 2026-10-09
+- **Decision:** A name collision or a content duplicate stays in the inbox for review (no rename, overwrite or delete);
+  a move is a plain rename with no copy fallback; changing commands take a run lock at the CLI level; a failure belongs
+  to a unit unless it belongs to the run; the audit log and ledger are product data, separate from the diagnostic log.
+  See [Decisions](#decisions).
+
+The rest of this record is the operations review that led to the decision, kept as it was written.
+
+## Review
 
 A review of the code against what well-run command-line file organisers usually have: robustness, safety
 and diagnostics, as opposed to features. It is scheduled as Stages 4.2 to 4.4 of the
-[build plan](mvp-build-plan.md), with a few items in Stage 6; what is postponed is listed in
-[mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp). It is built (gaps 1 to 9 and 11 in Stages 4.1 to 4.4, gap 10 and the rest of 11 in Stage 6); the "what the code does
+[build plan](../plan/archive/2026-10-mvp/plan.md), with a few items in Stage 6; what is postponed is listed in
+[mvp-roadmap.md](../mvp-roadmap.md#deferred-beyond-mvp). It is built (gaps 1 to 9 and 11 in Stages 4.1 to 4.4, gap 10 and the rest of 11 in Stage 6); the "what the code does
 today" column is the review's, from before the change. The configuration side of
-the same exercise is in [config-review.md](config-review.md).
+the same exercise is in [ADR-001](ADR-001-configuration-layout.md).
 
-## Gaps worth fixing in the MVP
+### Gaps worth fixing in the MVP
 
 | # | Gap | What the code does today | Where it goes |
 |---|---|---|---|
@@ -23,7 +34,7 @@ the same exercise is in [config-review.md](config-review.md).
 | 10 | Release and CI gaps | The release workflow only builds the docs, so there is no wheel build or install test although Stage 6 promises "installable from a tagged release". `core` and `cli` are separate packages, so `cli` alone won't install. CI runs on Ubuntu only. | Stage 6 |
 | 11 | CLI polish | No `--version`, no `rollback --last` (the job id has to be copied from `audit`), no progress feedback on long runs, and no documented exit codes. | Stage 4.4 (progress), Stage 6 (the rest) |
 
-## Decisions
+### Decisions
 
 - **Collision policy:** a unit whose destination is taken stays in the inbox for review, with the reason.
   Nothing is renamed, suffixed or overwritten, which matches `reclassify`'s `conflict`. Renaming on collision

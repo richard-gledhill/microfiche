@@ -404,7 +404,7 @@ def test_main_prints_what_it_changed(tmp_path: Path, capsys: pytest.CaptureFixtu
 
 
 def test_real_source_regenerates_into_a_valid_graph() -> None:
-    diagram = (_REPO_ROOT / "docs" / "development" / "module-diagram.md").read_text(encoding="utf-8")
+    diagram = (_REPO_ROOT / "docs" / "development" / "architecture" / "module-diagram.md").read_text(encoding="utf-8")
 
     text, _ = module_diagram.update_diagram(diagram, module_diagram.PACKAGE_ROOTS, _TODAY)
 
@@ -415,7 +415,7 @@ def test_real_source_regenerates_into_a_valid_graph() -> None:
 
 
 def test_real_source_every_diagram_node_is_a_real_file() -> None:
-    diagram = (_REPO_ROOT / "docs" / "development" / "module-diagram.md").read_text(encoding="utf-8")
+    diagram = (_REPO_ROOT / "docs" / "development" / "architecture" / "module-diagram.md").read_text(encoding="utf-8")
     text, _ = module_diagram.update_diagram(diagram, module_diagram.PACKAGE_ROOTS, _TODAY)
 
     graph = text.split("```mermaid")[1].split("```")[0]

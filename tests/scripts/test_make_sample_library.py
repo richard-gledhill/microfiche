@@ -283,7 +283,7 @@ def test_sample_flat_sort_short_group_name_inside_a_word_is_a_known_limit(tmp_pa
 
     report = run_sort(Library(built.root))
 
-    # Documented in docs/how-to-use.md ("Current limitations") and docs/development/calibration.md.
+    # Documented in docs/how-to-use.md ("Current limitations") and docs/development/testing/calibration.md.
     assert _filed_where(report)["scarf-pattern.md"] == "Car"
 
 

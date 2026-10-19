@@ -2,7 +2,7 @@
 
 How `DEFAULT_CONFIDENCE_THRESHOLD` (`core/rules/confidence.py`) was chosen, what the measurements
 showed, and how to repeat them on your own documents. The harness, the labelled corpus and the saved
-AI results are in [`tests/calibration/`](../../tests/calibration/).
+AI results are in [`tests/calibration/`](../../../tests/calibration/).
 
 ## Summary
 
@@ -181,7 +181,7 @@ measure yours with `ai_arm.py`.
 
 ## Follow-ups
 
-Recorded on the [roadmap](mvp-roadmap.md); none is implemented.
+Recorded on the [roadmap](../mvp-roadmap.md); none is implemented.
 
 1. **Ambiguity check.** Hold a document when more than one group is named in its text, or more than one
    category has evidence (a filename rule counts as unambiguous). On this corpus: at 0.75, misfires
@@ -273,6 +273,6 @@ the default makes one fail, re-run the report, re-read this page, and update bot
 
 ## See also
 
-- [mvp-roadmap.md](mvp-roadmap.md) — the follow-ups above, and the rest of what's open.
-- [architecture.md](architecture.md) — where the confidence threshold sits in the classification flow.
-- The user-facing guidance: [How sure microfiche has to be](../how-to-use.md#how-sure-microfiche-has-to-be).
+- [mvp-roadmap.md](../mvp-roadmap.md) — the follow-ups above, and the rest of what's open.
+- [architecture/overview.md](../architecture/overview.md) — where the confidence threshold sits in the classification flow.
+- The user-facing guidance: [How sure microfiche has to be](../../how-to-use.md#how-sure-microfiche-has-to-be).

@@ -1,8 +1,8 @@
 # MVP roadmap
 
-What's actually implemented vs. what `architecture.md` describes, and what's still blocking
+What's actually implemented vs. what `architecture/overview.md` describes, and what's still blocking
 a real MVP. Edit this in place as commands move from stub → partial → done — it's a living
-doc, not a dated snapshot (same convention as `architecture.md`). When a command's status
+doc, not a dated snapshot (same convention as `architecture/overview.md`). When a command's status
 changes here, update the "Current limitations" list and usage steps in the user-facing
 [how-to-use.md](../how-to-use.md) in the same change.
 
@@ -24,7 +24,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
   section picks the provider (`ollama` or `openai`), model, host, timeout and the OpenAI key variable;
   `core.ai.factory.build_provider` builds it, and `sort` says when document text goes to OpenAI. At the default confidence threshold (0.75) an AI-only answer (0.70) is left for
   review, not filed — lower `[classification] confidence_threshold` to 0.7 to let it file. Measured at
-  98% precision on one local model (see [calibration.md](calibration.md)), but only consulted where
+  98% precision on one local model (see [calibration.md](testing/calibration.md)), but only consulted where
   the rules are unsure, so it adds little as built.
 - **Obsidian integration** — removed from the MVP, along with the `index` command and the `[obsidian]` config section;
   it was never called from the sort pipeline. See [feature-backlog.md](feature-backlog.md#obsidian-integration).
@@ -69,14 +69,14 @@ Ranked by how central they are to the product's core promise, not by ease of imp
    files the previewed `move`s via `core.filer.file_batch`, reusing the job/ledger/audit
    persistence from (1).
 4. ~~**Open decision:** are `review` and `index` in MVP scope?~~ **Decided:** `review` is in the MVP, as
-   [Stage 5](mvp-build-plan.md#stage-5--review-workflow) (the only way out of the inbox for a unit below the
+   [Stage 5](plan/archive/2026-10-mvp/plan.md#stage-5--review-workflow) (the only way out of the inbox for a unit below the
    confidence threshold), and built. `index` is out, with the Obsidian integration, and has been removed
    from the CLI rather than left as a stub that exits 1.
 
 ## Configuration consolidation (Stage 4.1)
 
-Built. Reviewed in [config-review.md](config-review.md) and described in
-[architecture.md §10](architecture.md#10-configuration-layout). In short: one packaged defaults file with a layered
+Built. Reviewed in [ADR-001](adr/ADR-001-configuration-layout.md) and described in
+[architecture/overview.md §10](architecture/overview.md#10-configuration-layout). In short: one packaged defaults file with a layered
 loader; the match strengths and group fuzzy threshold as `[classification]` settings, and the AI score and
 `max_document_chars` as `[ai]` settings; `[sorting] keep_folders` (default on) with `--keep-folders` and
 `--keep-folders-off`; an `[ai]` provider section that makes `OpenAIProvider` reachable from `sort --use-ai`; category
@@ -84,10 +84,10 @@ hints and filing rules moved to `.microfiche/microfiche-library.json`; the unuse
 `file_target_level` removed and `depth` validated; and `thefuzz` replaced by `rapidfuzz`.
 
 Not part of it: the library file was written by hand until
-[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) (built, below) created it from the folders and kept it in step.
+[Stage 4.10](plan/archive/2026-10-mvp/plan.md#stage-410--library-file-sync) (built, below) created it from the folders and kept it in step.
 
-[Stage 4.2](mvp-build-plan.md#stage-42--folder-handling--name-collisions) is built, from
-[operations-review.md](operations-review.md). A name collision no longer crashes `sort`: the unit stays in the inbox
+[Stage 4.2](plan/archive/2026-10-mvp/plan.md#stage-42--folder-handling--name-collisions) is built, from
+[ADR-003](adr/ADR-003-operational-safety.md). A name collision no longer crashes `sort`: the unit stays in the inbox
 for review with the reason (`core.filer.DestinationClaims`, shared with `reclassify`). An inbox file whose content is
 identical to a file already in the library, or to one filed earlier in the same run, is classified but held in the
 inbox and listed under Duplicates, with the reason saying where the copy is and where this one would have gone
@@ -96,7 +96,7 @@ has no setting. `keep_folders = false` descends into inbox folders, files each d
 folder once it is empty, recorded as a `remove_folder` event so `rollback` recreates it. Still open: duplicates
 are not checked for folders kept whole, and a duplicate is not moved out of the inbox for you.
 
-[Stage 4.3](mvp-build-plan.md#stage-43--safe-runs--input-hardening) is built. `sort --dry-run` previews a run
+[Stage 4.3](plan/archive/2026-10-mvp/plan.md#stage-43--safe-runs--input-hardening) is built. `sort --dry-run` previews a run
 (`run_sort(dry_run=True)`), writing nothing and taking no lock. `sort`, `reclassify --apply` and `rollback` take
 `.microfiche/lock` (`core/runlock.py`; `config --sync` joined them in Stage 4.10 and `review`'s filing step in Stage 5) so a second changing run refuses to start; a lock from a dead process is
 cleared. A move is now a plain rename, so a file another program has open fails cleanly and, like any other
@@ -106,7 +106,7 @@ scan skips `[sorting] ignore` names, symlinks and junctions, and a file over `[p
 review unread. Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
 the inbox's `ignore` rule. (It skips links: `Library.files` was made to in Stage 6, after a review found it followed a junction.)
 
-[Stage 4.4](mvp-build-plan.md#stage-44--logging--diagnostics) is built. `core` emits records through module loggers
+[Stage 4.4](plan/archive/2026-10-mvp/plan.md#stage-44--logging--diagnostics) is built. `core` emits records through module loggers
 (`_logger = logging.getLogger(__name__)`) and installs no handlers; `core/__init__.py` puts a `NullHandler` on its
 package logger. The CLI configures them (`cli/logging.py`): a Rich console handler on stderr (WARNING and above, INFO
 with `-v`, errors only with `-q`, which wins) and, for a command that holds the run lock, a rotating UTF-8
@@ -124,17 +124,17 @@ is on. Still open: `-q` hides the AI-unavailable warning, and the stale-lock war
 A decision-model classifier (a second AI resolver such as Jev, Clef or Nimble, whose own probability would replace the
 flat `0.70`; adopted only if it beats the chat model on the calibration corpus) was Stage 4.5 and is in the
 [feature backlog](feature-backlog.md#decision-model-classifier), under review; the research is in
-[ai-classifier-options.md](ai-classifier-options.md).
+[ai-classifier-options.md](architecture/ai-classifier-options.md).
 
-[Stage 4.6](mvp-build-plan.md#stage-46--flat-libraries-depth-1) is built: `[library_structure] depth = 1` is a flat library
+[Stage 4.6](plan/archive/2026-10-mvp/plan.md#stage-46--flat-libraries-depth-1) is built: `[library_structure] depth = 1` is a flat library
 of group folders only, and a document is filed straight into one. `Taxonomy` carries the depth; `Classifier` runs a
 single group stage; `ClassificationResult.category` is `None` and `.folders` is what filing uses; a group entry in the
 library file takes `hints` and `rules`, matched as a filename rule, then the group's name, then its hints. The ledger,
 `rollback`, `reclassify` and the duplicate check work on it. `propose-categories` says a flat library has no categories
 to propose and exits 0. Calibrated on a small flat corpus (`tests/calibration/corpus_flat`); see
-[calibration.md](calibration.md#flat-libraries-depth-1).
+[calibration.md](testing/calibration.md#flat-libraries-depth-1).
 
-[Stage 4.8](mvp-build-plan.md#stage-48--non-library-folders) is built, reduced to what the principle needs: a folder
+[Stage 4.8](plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders) is built, reduced to what the principle needs: a folder
 within the depth is a filing target unless `[exclusions]` skips it, and a folder beyond the depth is content. A folder
 microfiche filed whole is recorded in the ledger (`Ledger.folder_units()`), and `reclassify` now classifies it as one
 unit and proposes it whole (`keep`, `move`, `review` or `conflict`) instead of splitting its documents. Any other folder
@@ -145,12 +145,12 @@ category when the depth is raised. `name_pattern` was dropped in favour of the e
 bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
 [feature-backlog.md](feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced), to be reviewed.
 
-Two ideas about the library's shape (see [library-depth.md](library-depth.md)) are in the feature backlog, under review:
+Two ideas about the library's shape (see [library-depth.md](architecture/library-depth.md)) are in the feature backlog, under review:
 [depth 3 with subcategories](feature-backlog.md#subcategories-depth-3), which was Stage 4.7, and the optional
 [filing target mode](feature-backlog.md#filing-target-mode-file_at) (a `[sorting] file_at` setting: `leaf_only` or
 `best_level`), which was Stage 4.9.
 
-[Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
+[Stage 4.10](plan/archive/2026-10-mvp/plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
 exclusion-aware, link-skipping walk of the folders to `depth`, and `taxonomy()` is a view of it. `sync_library_file`
 (`core/library/library_sync.py`) diffs it against the library file: the first real `sort` creates the file, later
 ones append an entry (no hints) for each new folder and report it once, and `config --sync` does the same without
@@ -162,7 +162,7 @@ doesn't show what would be added, and the walk reads one or two levels ([depth 3
 
 ## Review (Stage 5)
 
-[Stage 5](mvp-build-plan.md#stage-5--review-workflow) is built. The queue is not stored: `ReviewSession.start` previews a sort
+[Stage 5](plan/archive/2026-10-mvp/plan.md#stage-5--review-workflow) is built. The queue is not stored: `ReviewSession.start` previews a sort
 (`run_sort(dry_run=True)`) and takes what it would leave in the inbox, so nothing has to be kept in step. Duplicates are
 counted but kept out of the queue. A choice is checked as it is made with the checks `sort` uses (`DestinationClaims`,
 `DuplicateIndex`), and `commit` re-checks each one and files them through `file_batch` as one job, recorded with
@@ -173,12 +173,14 @@ not learn from choices; there is no way back to an item once it is passed.
 
 ## Release (Stage 6)
 
-[Stage 6](mvp-build-plan.md#stage-6--mvp-hardening--release) is in progress. Built so far: `microfiche --version`, `rollback --last` and
+[Stage 6](plan/archive/2026-10-mvp/plan.md#stage-6--mvp-hardening--release) is built, and `v0.1.6` was released on 2026-10-14 with both
+wheels attached. Built: `microfiche --version`, `rollback --last` and
 documented exit codes; `core` and `cli` released in lockstep as two wheels (`cli` requires `core==<same version>`) that import as
 `microfiche.core` and `microfiche.cli`; `scripts/check_wheels.py` and `scripts/smoke_wheels.sh`, run by CI and by the release workflow,
 which attaches the wheels to the release; CI on Linux and Windows with a coverage floor (`fail_under`); a sample library builder
 (`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. The simplification review, an independent code review, an independent docs review and a guided manual walkthrough (both shells, a
-31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed; what is left is cutting `v0.1.6`. Known limits the docs state rather than hide: a bundle moved by hand is
+31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed. Left open: publishing the docs site, checking `gh release download` against the
+release, and raising the coverage floor ([mvp-followups-prd.md](requirements/mvp-followups-prd.md#release-close-out-stage-6)). Known limits the docs state rather than hide: a bundle moved by hand is
 split by `reclassify`; `Car` matches inside `care` and `scarf` at full confidence; `-q` hides the "AI unavailable" warning; `review`
 cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
 (a silent no-op worth a warning or a validation error after the MVP).
@@ -193,7 +195,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 ### Future work
 
 - ~~**Calibrate the confidence threshold against test documents, and tell users how to set it.**~~ **Done**
-  — see [calibration.md](calibration.md). Default changed from 0.8 to 0.75; user guidance is in
+  — see [calibration.md](testing/calibration.md). Default changed from 0.8 to 0.75; user guidance is in
   `how-to-use.md`. It was measured on a synthetic corpus of short documents, so it still wants a pass
   on real ones (below).
 - **Calibrate on real, longer documents.** Add them to `tests/calibration/corpus/` (or point
@@ -205,7 +207,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 - **Match group names on word boundaries.** `Car` matches `carrier` and `card`; short or common group
   names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
   regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
-  the same boundary test to fuzzy matches (see [fuzzy-matching-options.md](fuzzy-matching-options.md)).
+  the same boundary test to fuzzy matches (see [ADR-002](adr/ADR-002-switch-to-rapidfuzz.md)).
 - **Use the AI where the rules are ambiguous or hint-level.** Today it is asked only when the rules are unsure,
   never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is
   behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call
@@ -226,7 +228,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 ### Deferred beyond MVP
 
 No database, vector store or semantic search, and `ai/` stays a fallback rather than an always-on pass
-([architecture.md](architecture.md) §9). Postponed after the review in [operations-review.md](operations-review.md):
+([architecture/overview.md](architecture/overview.md) §9). Postponed after the review in [ADR-003](adr/ADR-003-operational-safety.md):
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
 - **A lock timeout or `--force` override** for the run lock, and nested-library detection.
@@ -244,12 +246,12 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
 - **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
 - **Telemetry:** none, and none is planned.
 - **Depth 4 and above.** Library creation functions would be capped at depth 3, which is itself [in the backlog](feature-backlog.md#subcategories-depth-3).
-- **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](ai-classifier-options.md)).
+- **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](architecture/ai-classifier-options.md)).
 
 ## See also
 
-- [architecture.md](architecture.md) — the current design this status is measured against.
-- [data-model.md](data-model.md) — the ledger/audit/rollback schemas referenced above.
-- [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to MVP
-  (Plan/Design/Build/Test/Deploy per stage), if you're sequencing the work in this doc rather
-  than just tracking status.
+- [architecture/overview.md](architecture/overview.md) — the current design this status is measured against.
+- [data-model.md](architecture/data-model.md) — the ledger/audit/rollback schemas referenced above.
+- [MVP build plan](plan/archive/2026-10-mvp/plan.md) — archived. The staged process the MVP was built by
+  (Plan/Design/Build/Test/Deploy per stage); what it left open is in
+  [mvp-followups-prd.md](requirements/mvp-followups-prd.md).

@@ -1,7 +1,7 @@
 _Last updated: 20260707_
 
 > **Historical.** Original product vision and requirements. The architecture and implementation
-> details here are superseded by [architecture.md](../architecture.md); the problem statement and
+> details here are superseded by [architecture/overview.md](../../architecture/overview.md); the problem statement and
 > user-flow sections remain useful background.
 
 # Product Requirements Document (PRD)

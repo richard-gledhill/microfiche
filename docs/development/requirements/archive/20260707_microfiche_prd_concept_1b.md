@@ -1,6 +1,6 @@
 _Last updated: 20260707_
 
-> **Historical.** Superseded by [architecture.md](../architecture.md); kept for design-history context.
+> **Historical.** Superseded by [architecture/overview.md](../../architecture/overview.md); kept for design-history context.
 
 That's a better fit for the product vision.
 

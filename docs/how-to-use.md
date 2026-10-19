@@ -508,7 +508,7 @@ confidence_threshold = 0.75
 
 The confidence values in the first table are settings too, and these are their defaults. You rarely need to
 change them: moving the threshold gives the same effect, and the defaults were
-[measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
+[measured](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md).
 Change one if a kind of evidence is more or less trustworthy in your library, for example if you
 want keyword hints to count for less:
 
@@ -531,7 +531,7 @@ least 0 (0 sends the whole document). Setting one at or above the threshold lets
 evidence was found, not how reliable it is, so a stray word in the text can rate higher than a
 correct hint. In testing, the share of automatically filed documents that were wrong was about the
 same at `0.75` as at `0.8` — the higher setting just held back far more documents. Measurements and
-method: [calibration write-up](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md).
+method: [calibration write-up](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md).
 
 If documents are being misfiled, the usual causes are in the names, not the threshold:
 
@@ -1179,7 +1179,7 @@ microfiche is pre-release. At the moment:
   is recorded as an idea, to be reviewed.
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
   inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
-  [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/calibration.md#flat-libraries-depth-1).
+  [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).
   `propose-categories` has nothing to propose in a flat library and says so.
 - The library file is synced on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).

@@ -1,7 +1,7 @@
 """Build a sample library that exercises every path through `sort`, `review` and `reclassify`.
 
 The tests use it (`tests/scripts/test_make_sample_library.py` sorts it and checks that each document ends up where
-its label says), and so does the manual walkthrough in `docs/development/mvp-build-plan.md` (Stage 6): run the script,
+its label says), and so does the manual walkthrough in `docs/development/plan/archive/2026-10-mvp/plan.md` (Stage 6): run the script,
 then follow `docs/how-to-use.md` against the folder it makes.
 
     uv run python scripts/make_sample_library.py <destination> [--shape depth2|flat]

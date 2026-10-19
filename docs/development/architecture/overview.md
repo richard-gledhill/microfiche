@@ -1,6 +1,6 @@
 # Architecture: library-aware sorting
 
-This supersedes the folder/module layout in [20260707_microfiche_prd_concept_1b.md](archive/20260707_microfiche_prd_concept_1b.md)
+This supersedes the folder/module layout in [20260707_microfiche_prd_concept_1b.md](../requirements/archive/20260707_microfiche_prd_concept_1b.md)
 for the points below. Concept 1b's core principle — **the filesystem is the source of truth, no database,
 plain files only (originally JSON sidecars; now a JSONL ledger in `.microfiche/`, see §7) plus JSON rollback jobs**
 — is unchanged and still governs everything here.
@@ -53,8 +53,8 @@ Library/
 "Group" and "category" are roles, not meanings. A project is the usual group, but the same two-level shape fits
 other taxonomies — for example project › stage (`Project Phoenix/03 Build/`), client › document type, or
 course › topic. The classifier only ever matches group *names* against document text and category names or
-keyword hints, so the user guides ([README](../../README.md#how-a-library-is-organised),
-[how-to-use](../how-to-use.md#other-ways-to-organise-a-library)) show how to pick names that work.
+keyword hints, so the user guides ([README](../../../README.md#how-a-library-is-organised),
+[how-to-use](../../how-to-use.md#other-ways-to-organise-a-library)) show how to pick names that work.
 
 `.microfiche/microfiche-config.toml`'s `[library_structure]` table:
 ```toml
@@ -63,7 +63,7 @@ library_inbox = "_sorting"
 depth = 2
 ```
 Depth is 1 or 2; any other value is rejected with a message saying so. Loose files and kept-whole folders are filed at the
-leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
+leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](../feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
 The word *group* is used at every depth.
 
 **Depth 1 — a flat library** (Stage 4.6). A library of group folders only: a document is filed straight into one. The
@@ -111,7 +111,7 @@ when both stages resolved and that overall confidence reaches the **confidence t
 exact group name, 0.95 for a filename rule, 0.90 for a category name, 0.85–0.99 for a fuzzy group match, 0.75
 for a category keyword hint and 0.70 for an AI answer, so at the default threshold everything but AI-only
 answers files; a library raises the threshold to hold hint matches for review, or lowers it to 0.7 to file AI
-answers. The default was set by measurement ([calibration.md](calibration.md)), which found that a higher
+answers. The default was set by measurement ([calibration.md](../testing/calibration.md)), which found that a higher
 threshold files less without filing more accurately: the scores reflect the kind of evidence, not how reliable
 it is. Anything below the
 threshold goes to the review queue, and
@@ -311,7 +311,7 @@ there — left alone rather than overwritten).
 **Not part of the MVP.** The `index.md` folder notes and the `TagIndex.md` tag governance (suggest-only) were never
 called from the pipeline, and were removed so the MVP stays at "classify, file, undo and review". They are to come back
 as a plugin rather than as code in `core`; the design, the code to restore and the open questions are in
-[feature-backlog.md](feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
+[feature-backlog.md](../feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
 in the hidden `.microfiche/` folder (§7), so no file is added beside the user's documents.
 
 ## 7. Classification ledger (replaces per-file sidecars)
@@ -352,7 +352,7 @@ planned in the session and made by filing into it.
 
 Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
 `-q`/`--quiet`. Scoping `propose-categories` to a library folder, and its `--use-ai`
-variant (§6), are designed but not built; see [mvp-roadmap.md](mvp-roadmap.md) for each command's status. An `index`
+variant (§6), are designed but not built; see [mvp-roadmap.md](../mvp-roadmap.md) for each command's status. An `index`
 command, for regenerating Obsidian folder notes, was part of this surface and left the MVP with the Obsidian
 integration (§6).
 
@@ -362,13 +362,13 @@ No database, no vector store, no semantic search in this MVP — `ai/` is a fall
 resolution and for `propose-categories --use-ai`, not an always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
 
-Other deferred work is in [mvp-roadmap.md](mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and
-[feature-backlog.md](feature-backlog.md).
+Other deferred work is in [mvp-roadmap.md](../mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and
+[feature-backlog.md](../feature-backlog.md).
 
 ## 10. Configuration layout
 
-Built in [Stage 4.1](mvp-build-plan.md#stage-41--configuration-consolidation). The reasoning for each point is in
-[config-review.md](config-review.md).
+Built in [Stage 4.1](../plan/archive/2026-10-mvp/plan.md#stage-41--configuration-consolidation). The reasoning for each point is in
+[ADR-001](../adr/ADR-001-configuration-layout.md).
 
 ```
 core/defaults/microfiche-config.toml   # packaged defaults, the only source of default values
@@ -388,14 +388,14 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   `sort` and `reclassify` before anything moves. Its JSON Schema is generated (`make library-schema`) so editors can
   validate it. Hints and rules only match folders that already exist (§1). `naming_rules` stays in the TOML. The file is
   created from the folders, and kept in step, by `core/library/library_sync.py::sync_library_file`
-  ([Stage 4.10](mvp-build-plan.md#stage-410--library-file-sync)): it diffs `Library.structure()` (the sorted,
+  ([Stage 4.10](../plan/archive/2026-10-mvp/plan.md#stage-410--library-file-sync)): it diffs `Library.structure()` (the sorted,
   exclusion-aware, link-skipping walk to `depth`, of which `Library.taxonomy()` is a view) against the file and appends
   an entry, with no hints, for each folder that has none. A `*` entry at a level covers its folders, so none is added
   for them. It runs at the start of a real `run_sort` and from `config --sync`, both under the run lock, never for a
   preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
   are reported, never removed.
 * **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (1 and 2;
-  [depth 3](feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
+  [depth 3](../feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.
 * **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
   name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
@@ -412,12 +412,12 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when
   document text goes to OpenAI, and warns once if the length is unlimited. A second kind of classifier, a decision model
   that returns a bounded choice with a probability, is in the
-  [feature backlog](feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
+  [feature backlog](../feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
   a `command` provider is deferred behind a security decision.
 
 ## See also
 
-- [config-review.md](config-review.md) — why the configuration is being reorganised, and what was weighed.
-- [mvp-roadmap.md](mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
+- [ADR-001](../adr/ADR-001-configuration-layout.md) — why the configuration is being reorganised, and what was weighed.
+- [mvp-roadmap.md](../mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
 - [data-model.md](data-model.md) — the ledger/`AuditEvent`/`Job`/`audit.log` schemas as actually implemented.
-- [mvp-build-plan.md](mvp-build-plan.md) — a staged, from-scratch process for building to this design.
+- [MVP build plan](../plan/archive/2026-10-mvp/plan.md) — a staged, from-scratch process for building to this design.

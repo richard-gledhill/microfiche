@@ -1,4 +1,4 @@
-"""Regenerate the import graph in docs/development/module-diagram.md from the source.
+"""Regenerate the import graph in docs/development/architecture/module-diagram.md from the source.
 
 The first Mermaid diagram in that file shows which module imports which. This script reads every ``import``
 statement in ``packages/core/src/microfiche/core`` and ``packages/cli/src/microfiche/cli``, then rewrites only the graph's edges and
@@ -22,7 +22,7 @@ from pathlib import Path
 # region Constants and types
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DIAGRAM_PATH = REPO_ROOT / "docs" / "development" / "module-diagram.md"
+DIAGRAM_PATH = REPO_ROOT / "docs" / "development" / "architecture" / "module-diagram.md"
 PACKAGE_ROOTS: dict[str, Path] = {
     "core": REPO_ROOT / "packages" / "core" / "src" / "microfiche" / "core",
     "cli": REPO_ROOT / "packages" / "cli" / "src" / "microfiche" / "cli",

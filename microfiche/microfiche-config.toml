@@ -13,7 +13,7 @@ depth = 2
 # category name 0.9-1.0, filename rule 0.95, keyword hint 0.75, AI answer 0.70. The default, 0.75,
 # files on all of those except AI answers. Raise it to 0.8 to hold keyword-hint matches for review
 # too, or lower it to 0.7 to let AI answers file. It was measured, not guessed: see
-# docs/development/calibration.md.
+# docs/development/testing/calibration.md.
 [classification]
 confidence_threshold = 0.75
 # How sure each kind of match is (0 to 1). The threshold above decides which of them file on their own.

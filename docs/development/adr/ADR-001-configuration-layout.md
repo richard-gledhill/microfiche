@@ -1,15 +1,26 @@
-# Configuration review
+# ADR-001: Configuration layout
+
+- **Status:** Accepted (built in Stage 4.1)
+- **Date:** 2026-10-09
+- **Decision:** One packaged defaults file, deep-merged under each library's `microfiche-config.toml` and validated in one
+  pass; match strengths, thresholds and the AI provider become settings; `keep_folders` defaults to on; category hints and
+  filing rules move out of the TOML into `microfiche-library.json`. The resulting design is
+  [architecture/overview.md §10](../architecture/overview.md#10-configuration-layout).
+
+The rest of this record is the configuration review that led to the decision, kept as it was written.
+
+## Review
 
 A review of what `microfiche-config.toml` holds today, what should move out of the code into it, and what
 should move out of it. The outcome is planned as
-[Stage 4.1 of the build plan](mvp-build-plan.md#stage-41--configuration-consolidation); the resulting
-design is in [architecture.md §10](architecture.md#10-configuration-layout). This page keeps
+[Stage 4.1 of the build plan](../plan/archive/2026-10-mvp/plan.md#stage-41--configuration-consolidation); the resulting
+design is in [architecture/overview.md §10](../architecture/overview.md#10-configuration-layout). This page keeps
 the reasoning, so those two can stay short. It is built; the present tense below is the review's, from before the change.
 
 The repo is private and unpublished, so there are no existing libraries to migrate: the changes below
 can be a hard cut.
 
-## 0. The defaults already disagree
+### 0. The defaults already disagree
 
 The code has two sources of defaults: the pydantic `Field` defaults in `core/config.py` and the template
 `microfiche/microfiche-config.toml`. They conflict today:
@@ -20,9 +31,9 @@ The code has two sources of defaults: the pydantic `Field` defaults in `core/con
 | `[category_hints]`, `[filing_rules]` | empty | sample data (`01 Requirements`, ...) |
 
 One packaged defaults file (point 3) removes the drift. (The `[obsidian]` section has since been removed from the
-MVP altogether; see [feature-backlog.md](feature-backlog.md#obsidian-integration).)
+MVP altogether; see [feature-backlog.md](../feature-backlog.md#obsidian-integration).)
 
-## 1. Hard-coded constants to config
+### 1. Hard-coded constants to config
 
 Move the scoring and matching knobs:
 
@@ -55,7 +66,7 @@ Cautions:
   keeps passing unchanged.
 - Validate ranges: scores 0-1, fuzzy thresholds 0-100, `[ai] max_document_chars` at least 0, where 0 means unlimited and warns once per run.
 
-## 2. `keep_folders` on by default, and in config
+### 2. `keep_folders` on by default, and in config
 
 The option exists as a CLI flag. What is missing is the config key and the default. `scanner.py` carries a
 TODO asking whether it should default to true, and `propose-categories` already hard-codes `True`.
@@ -69,10 +80,10 @@ TODO asking whether it should default to true, and `propose-categories` already 
   The `no` option also changes: today it ignores inbox folders, and it should instead file their documents
   one by one and then handle the emptied folder (remove it and record the removal, so rollback recreates
   it; keep it if anything is left inside).
-  `architecture.md` §4 ("opt-in, off by default"), `how-to-use.md`, the README and `cli-reference.md` all
+  `architecture/overview.md` §4 ("opt-in, off by default"), `how-to-use.md`, the README and `cli-reference.md` all
   say otherwise and change with it.
 
-## 3. A packaged defaults file
+### 3. A packaged defaults file
 
 Put the defaults inside the package, at `packages/core/src/microfiche/core/defaults/microfiche-config.toml`, loaded
 with `importlib.resources`:
@@ -85,7 +96,7 @@ with `importlib.resources`:
 - The defaults file holds real defaults only. Sample data stays in the template.
 - A test asserts that the template and the defaults agree.
 
-## 4. AI settings in the config
+### 4. AI settings in the config
 
 Nothing reads AI config today: `commands.py` hard-codes `LLMClassifier(OllamaProvider())`, which is why
 `OpenAIProvider` is unreachable. A TOML entry does nothing without an `AIConfig` model, a
@@ -96,7 +107,7 @@ score from point 1 and `max_document_chars` (0 means unlimited, with a one-per-r
 go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a per-run switch or becomes
 `[ai] enabled` is open.
 
-**Tier 1.5, now in the [backlog](feature-backlog.md#decision-model-classifier).** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](ai-classifier-options.md).
+**Tier 1.5, now in the [backlog](../feature-backlog.md#decision-model-classifier).** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](../architecture/ai-classifier-options.md).
 
 **Tier 2, deferred.** A `command` provider, where the config holds the command to run. It is a genuine seam
 (`AIProvider` is one method, `complete(prompt) -> str`), and it would let users plug in llama.cpp, `llm`,
@@ -109,7 +120,7 @@ go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a
   command on `sort` lets anyone who can edit the vault run code. Needs an explicit opt-in such as
   `allow_command = true`, or reading the command only from a user-level config.
 
-## 5. Other postponed settings
+### 5. Other postponed settings
 
 Worth doing in the MVP:
 - `[sorting] keep_folders` (point 2).
@@ -117,7 +128,7 @@ Worth doing in the MVP:
 - `[ai]` (point 4).
 - ~~Wiring `[obsidian]` (`enabled`, `tag_mode`, `tag_index_path`) as part of Stage 5.~~ Dropped: nothing called the
   settings, so the section was removed with the Obsidian integration instead
-  ([feature-backlog.md](feature-backlog.md#obsidian-integration)).
+  ([feature-backlog.md](../feature-backlog.md#obsidian-integration)).
 - A `word_boundary` toggle for group matching, so the roadmap's "`Car` matches `carrier`" fix can ship as a
   setting.
 
@@ -126,26 +137,26 @@ Remove or validate, rather than wire:
   at 2. See point 6.
 - `library_templates` is unused. See point 6.
 
-Added by the [operations review](operations-review.md), in Stages 4.3 and 4.4: `[sorting] ignore` (inbox names
+Added by the [operations review](ADR-003-operational-safety.md), in Stages 4.3 and 4.4: `[sorting] ignore` (inbox names
 to skip, such as Office lock files), `[parsing] max_file_mb` (an oversize file goes to review) and `[logging]`
 (`level`, `file`, `max_bytes`, `backup_count`).
 
 Later: the ambiguity-check toggle and a `[review]` section. Define the Stage 5 ones when `review` is built. Settings
 for `index.md` generation went out of the MVP with the Obsidian integration.
 
-## 6. Move templates and hints out of the config
+### 6. Move templates and hints out of the config
 
 ### What the code does today
 
 - `library_templates` is read by nothing outside the tests. `create_library_group` in `templates.py` (since removed; see the
-  [feature backlog](feature-backlog.md#library-creation-init-and-group-templates)) had no
+  [feature backlog](../feature-backlog.md#library-creation-init-and-group-templates)) had no
   caller, since there is no `init` command, and its docstring still says `library_templates.yaml`. Because
   it sits in `microfiche-config.toml`, a malformed entry fails validation on every `sort`
   (`test_config.py` pins this with `software_project = "oops"`).
 - `classifier.py` passes `config.category_hints.categories` and `config.filing_rules.rules` into
   `RulesEngine`. Both are keyed by category name only, so one hint list applies to "01 Requirements" in
   every group.
-- [architecture.md §1](architecture.md#1-the-library-is-the-taxonomy--categories-are-discovered-not-configured)
+- [architecture/overview.md §1](../architecture/overview.md#1-the-library-is-the-taxonomy--categories-are-discovered-not-configured)
   says the library is the taxonomy; hints only help match folders that already exist.
 
 ### Pros and cons of a separate JSON file

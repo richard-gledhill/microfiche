@@ -22,7 +22,7 @@ see the [root README](../../README.md) for installation, usage, and configuratio
 | `config.py` | Per-library TOML config loading. |
 | `utils/` | Filesystem, hashing and error-message helpers. |
 
-See [docs/development/architecture.md](../../docs/development/architecture.md)
+See [docs/development/architecture/overview.md](../../docs/development/architecture/overview.md)
 for the design behind this package.
 
 ## Development

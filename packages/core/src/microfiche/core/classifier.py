@@ -159,7 +159,7 @@ class Classifier:
 
         A single-file unit is classified directly. A folder unit is classified by the dominant
         (group, category) pair voted across all the documents inside it (see the "folder-as-unit"
-        decision in docs/development/architecture.md).
+        decision in docs/development/architecture/overview.md).
 
         Each document whose group resolved casts one vote. The pair with the most votes wins, and
         the winning pair's most confident document represents the folder. If two or more pairs
