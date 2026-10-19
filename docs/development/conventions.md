@@ -65,7 +65,7 @@ tool enforces it. Don't change either file without asking, and never to make it 
 
 **Docs**
 - User docs track the CLI: any change to a command, an option, or a command's status in
-  `docs/development/mvp-roadmap.md` must also update
+  `docs/development/requirements/mvp-roadmap.md` must also update
   [docs/how-to-use.md](../how-to-use.md) (the command in both its Bash and PowerShell tabs,
   plus its "Current limitations" list) and the Usage section of [README.md](../../README.md#usage).
 - [docs/cli-reference.md](../cli-reference.md) is generated from the Typer app (command docstrings and
@@ -80,10 +80,10 @@ tool enforces it. Don't change either file without asking, and never to make it 
 - Core repository files use ALL-CAPS names (`README.md`, `AGENTS.md`, `CONTEXT.md`); topical docs use lowercase
   (`conventions.md`, `mvp-roadmap.md`). ADRs are `ADR-NNN-title.md` and the current spec is `SPEC.md`.
 - Record a deferred or future item once, and link to it. A gap or small postponed item goes in
-  [mvp-roadmap.md](mvp-roadmap.md); a feature outside the MVP, or code removed from it, goes in
-  [feature-backlog.md](feature-backlog.md). The [README.md](README.md) here says where every other kind of doc goes.
+  [mvp-roadmap.md](requirements/mvp-roadmap.md); a feature outside the MVP, or code removed from it, goes in
+  [feature-backlog.md](rfcs/feature-backlog.md). The [README.md](README.md) here says where every other kind of doc goes.
 - After a rename or behaviour change, grep the docs for the old name or number.
-  `architecture/overview.md`, `mvp-roadmap.md` and `architecture/module-diagram.md` go stale first. Run `make module-diagram` when
+  `architecture/overview.md`, `requirements/mvp-roadmap.md` and `architecture/module-diagram.md` go stale first. Run `make module-diagram` when
   imports change: it rewrites the import graph's nodes and edges from the source (add `--check` to only report),
   and the second, data-flow diagram is still edited by hand.
 

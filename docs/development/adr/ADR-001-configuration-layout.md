@@ -31,7 +31,7 @@ The code has two sources of defaults: the pydantic `Field` defaults in `core/con
 | `[category_hints]`, `[filing_rules]` | empty | sample data (`01 Requirements`, ...) |
 
 One packaged defaults file (point 3) removes the drift. (The `[obsidian]` section has since been removed from the
-MVP altogether; see [feature-backlog.md](../feature-backlog.md#obsidian-integration).)
+MVP altogether; see [feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration).)
 
 ### 1. Hard-coded constants to config
 
@@ -107,7 +107,7 @@ score from point 1 and `max_document_chars` (0 means unlimited, with a one-per-r
 go in the file; use `api_key_env = "OPENAI_API_KEY"`. Whether `--use-ai` stays a per-run switch or becomes
 `[ai] enabled` is open.
 
-**Tier 1.5, now in the [backlog](../feature-backlog.md#decision-model-classifier).** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](../architecture/ai-classifier-options.md).
+**Tier 1.5, now in the [backlog](../rfcs/feature-backlog.md#decision-model-classifier).** A second kind of AI classifier, a decision model that returns one option from a fixed list with a probability, selected by `[ai] kind` and using its own probability as the confidence. See [ai-classifier-options.md](../architecture/ai-classifier-options.md).
 
 **Tier 2, deferred.** A `command` provider, where the config holds the command to run. It is a genuine seam
 (`AIProvider` is one method, `complete(prompt) -> str`), and it would let users plug in llama.cpp, `llm`,
@@ -128,7 +128,7 @@ Worth doing in the MVP:
 - `[ai]` (point 4).
 - ~~Wiring `[obsidian]` (`enabled`, `tag_mode`, `tag_index_path`) as part of Stage 5.~~ Dropped: nothing called the
   settings, so the section was removed with the Obsidian integration instead
-  ([feature-backlog.md](../feature-backlog.md#obsidian-integration)).
+  ([feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration)).
 - A `word_boundary` toggle for group matching, so the roadmap's "`Car` matches `carrier`" fix can ship as a
   setting.
 
@@ -149,7 +149,7 @@ for `index.md` generation went out of the MVP with the Obsidian integration.
 ### What the code does today
 
 - `library_templates` is read by nothing outside the tests. `create_library_group` in `templates.py` (since removed; see the
-  [feature backlog](../feature-backlog.md#library-creation-init-and-group-templates)) had no
+  [feature backlog](../rfcs/feature-backlog.md#library-creation-init-and-group-templates)) had no
   caller, since there is no `init` command, and its docstring still says `library_templates.yaml`. Because
   it sits in `microfiche-config.toml`, a malformed entry fails validation on every `sort`
   (`test_config.py` pins this with `software_project = "oops"`).

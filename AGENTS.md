@@ -13,7 +13,7 @@ Domain language (library, group, category, unit, job, ledger, ...) is defined in
 [CONTEXT.md](CONTEXT.md) — use those terms.
 
 **Before assuming a described feature is fully wired, check
-[docs/development/mvp-roadmap.md](docs/development/mvp-roadmap.md)** — it tracks what's
+[docs/development/requirements/mvp-roadmap.md](docs/development/requirements/mvp-roadmap.md)** — it tracks what's
 actually implemented vs. still partial or deferred. See
 [docs/development/README.md](docs/development/README.md) for the full doc index, including
 [data-model.md](docs/development/architecture/data-model.md) (ledger/audit/rollback schemas) and
@@ -164,7 +164,7 @@ paths — this works because both are installed editable into the shared workspa
   scope; never creates folders itself. `propose-categories` only prints, over the inbox; it has no `--apply`, no `--use-ai` and no
   scope option yet (see `docs/development/architecture/overview.md` §6).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are
-  parked in [docs/development/feature-backlog.md](docs/development/feature-backlog.md), with where to restore them
+  parked in [docs/development/rfcs/feature-backlog.md](docs/development/rfcs/feature-backlog.md), with where to restore them
   from. Don't reintroduce an `[obsidian]` config section or an `index` command; the integration is to be designed as
   a plugin after the MVP.
 - **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as

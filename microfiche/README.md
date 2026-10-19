@@ -7,7 +7,7 @@ folder, read by `microfiche.core.config.load_config`. Copy this folder there (re
 Obsidian's file explorer by default.
 
 A `microfiche init` command to automate that copy is a natural next step but isn't implemented
-yet — see the [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/feature-backlog.md#library-creation-init-and-group-templates).
+yet — see the [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/feature-backlog.md#library-creation-init-and-group-templates).
 
 | Section | Purpose |
 |---|---|

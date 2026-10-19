@@ -63,7 +63,7 @@ library_inbox = "_sorting"
 depth = 2
 ```
 Depth is 1 or 2; any other value is rejected with a message saying so. Loose files and kept-whole folders are filed at the
-leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](../feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
+leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](../rfcs/feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
 The word *group* is used at every depth.
 
 **Depth 1 — a flat library** (Stage 4.6). A library of group folders only: a document is filed straight into one. The
@@ -311,7 +311,7 @@ there — left alone rather than overwritten).
 **Not part of the MVP.** The `index.md` folder notes and the `TagIndex.md` tag governance (suggest-only) were never
 called from the pipeline, and were removed so the MVP stays at "classify, file, undo and review". They are to come back
 as a plugin rather than as code in `core`; the design, the code to restore and the open questions are in
-[feature-backlog.md](../feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
+[feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
 in the hidden `.microfiche/` folder (§7), so no file is added beside the user's documents.
 
 ## 7. Classification ledger (replaces per-file sidecars)
@@ -352,7 +352,7 @@ planned in the session and made by filing into it.
 
 Every command also takes `--library PATH`, and each command that opens a library takes `-v`/`--verbose` and
 `-q`/`--quiet`. Scoping `propose-categories` to a library folder, and its `--use-ai`
-variant (§6), are designed but not built; see [mvp-roadmap.md](../mvp-roadmap.md) for each command's status. An `index`
+variant (§6), are designed but not built; see [mvp-roadmap.md](../requirements/mvp-roadmap.md) for each command's status. An `index`
 command, for regenerating Obsidian folder notes, was part of this surface and left the MVP with the Obsidian
 integration (§6).
 
@@ -362,8 +362,8 @@ No database, no vector store, no semantic search in this MVP — `ai/` is a fall
 resolution and for `propose-categories --use-ai`, not an always-on classification pass. Phase 2+ items
 (ChromaDB, RAG, knowledge graph) remain future roadmap, not part of this ADR.
 
-Other deferred work is in [mvp-roadmap.md](../mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and
-[feature-backlog.md](../feature-backlog.md).
+Other deferred work is in [mvp-roadmap.md](../requirements/mvp-roadmap.md#future-work-and-deferred-beyond-mvp) and
+[feature-backlog.md](../rfcs/feature-backlog.md).
 
 ## 10. Configuration layout
 
@@ -395,7 +395,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
   are reported, never removed.
 * **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (1 and 2;
-  [depth 3](../feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
+  [depth 3](../rfcs/feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.
 * **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
   name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
@@ -412,12 +412,12 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when
   document text goes to OpenAI, and warns once if the length is unlimited. A second kind of classifier, a decision model
   that returns a bounded choice with a probability, is in the
-  [feature backlog](../feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
+  [feature backlog](../rfcs/feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
   a `command` provider is deferred behind a security decision.
 
 ## See also
 
 - [ADR-001](../adr/ADR-001-configuration-layout.md) — why the configuration is being reorganised, and what was weighed.
-- [mvp-roadmap.md](../mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
+- [mvp-roadmap.md](../requirements/mvp-roadmap.md) — what's actually implemented against this design vs. still stubbed.
 - [data-model.md](data-model.md) — the ledger/`AuditEvent`/`Job`/`audit.log` schemas as actually implemented.
 - [MVP build plan](../plan/archive/2026-10-mvp/plan.md) — a staged, from-scratch process for building to this design.
