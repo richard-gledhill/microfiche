@@ -201,21 +201,22 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 - **Calibrate on real, longer documents.** Add them to `tests/calibration/corpus/` (or point
   `report.py` at a library you trust) and re-check the default. The bundled corpus is synthetic,
   short, and written knowing the rules, so its absolute error rates are not predictive.
-- **Ambiguity check.** Hold a document when more than one group is named in its text, or more than one
+- **Ambiguity check.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). Hold a document when more than one group is named in its text, or more than one
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
-- **Match group names on word boundaries.** `Car` matches `carrier` and `card`; short or common group
+- **Match group names on word boundaries.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). `Car` matches `carrier` and `card`; short or common group
   names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
   regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
   the same boundary test to fuzzy matches (see [ADR-002](../adr/ADR-002-switch-to-rapidfuzz.md)).
-- **Use the AI where the rules are ambiguous or hint-level.** Today it is asked only when the rules are unsure,
+- **Use the AI where the rules are ambiguous or hint-level.** Requirement drafted:
+  [ai-second-opinion-prd.md](ai-second-opinion-prd.md). Today it is asked only when the rules are unsure,
   never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is
   behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call
   took about 5 s against about 2 s with it off on the model measured; its default model (`llama3`) may
   not be installed.
 - **Review the signal strengths' values** (hint 0.75, AI 0.70 and the others). They are `[classification]` and `[ai]`
   settings now; what is left is checking the values against the calibration harness.
-- **Ask before running on defaults.** A missing `.microfiche/microfiche-config.toml`, or one that leaves out
+- **Ask before running on defaults.** Requirement drafted: [library-init-prd.md](library-init-prd.md). A missing `.microfiche/microfiche-config.toml`, or one that leaves out
   sections, silently falls back to the defaults (pinned by `test_load_config_missing_files_fall_back_to_defaults`
   and the CLI test for a library with no config folder). A misnamed config file or the wrong `--library` path
   therefore looks like a normal run on settings the user never chose. Instead, `sort`, `reclassify` and
@@ -230,13 +231,16 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 No database, vector store or semantic search, and `ai/` stays a fallback rather than an always-on pass
 ([architecture/overview.md](../architecture/overview.md) §9). Postponed after the review in [ADR-003](../adr/ADR-003-operational-safety.md):
 
-- **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today.
-- **A lock timeout or `--force` override** for the run lock, and nested-library detection.
+- **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today. Now a future feature update:
+  [feature-backlog.md](../rfcs/feature-backlog.md#ocr-for-scanned-pdfs).
+- **A lock timeout or `--force` override** for the run lock, and nested-library detection. The lock timeout is part of
+  [watch-mode-prd.md](watch-mode-prd.md).
 - **Moving duplicates** to a `_sorting/duplicates/` folder to leave the inbox tidier, checking folders kept whole for duplicates, and a persistent hash cache. Content-duplicate detection itself is built (Stage 4.2).
 - **Renaming on collision** (a suffix setting). Collisions go to review instead.
-- **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche.
-- **Watch mode**, a daemon that sorts as files arrive.
-- **`--json` output** for scripting.
+- **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche. Requirement drafted, as a background
+  check in the existing commands rather than a command: [drift-check-prd.md](drift-check-prd.md).
+- **Watch mode**, a daemon that sorts as files arrive. Requirement drafted: [watch-mode-prd.md](watch-mode-prd.md).
+- **`--json` output** for scripting. Requirement drafted: [scriptable-output-prd.md](scriptable-output-prd.md).
 - **Rotation or compaction** of the append-only ledger and `audit.log`.
 - **Structured (JSON) log output** and log shipping.
 - **Showing a failed move once.** A unit that can't be moved (a file open in Word) is reported twice on screen: as a
