@@ -333,6 +333,7 @@ category. A `tags` field is parked with the Obsidian integration (§6).
 ## 8. CLI surface (supersedes concept 1a's command list)
 
 ```bash
+microfiche init                                      # set up the library's config, or check and edit it
 microfiche sort [--keep-folders | --keep-folders-off] [--use-ai] [--dry-run]        # process the library-wide _sorting/ inbox
 microfiche review [--use-ai]                         # decide, one by one, what sort left in the inbox
 microfiche propose-categories                        # suggest category names from the inbox; print-only
@@ -380,6 +381,15 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   library's file over it (tables merge key by key, lists replace), then validates. The pydantic models carry no default
   values, so a key missing from the packaged file fails loudly. The template in `microfiche/` lists the same settings, and
   tests keep the two in step.
+* **`init` writes and edits the library's file** (`core/library_init.py`, post-MVP,
+  [library-init-prd.md](../requirements/library-init-prd.md)). A new library gets the packaged defaults file as it is;
+  every setting there has a comment, which `init` shows as its explanation. An existing file is edited as a `tomlkit`
+  document, so comments and layout survive and a changed setting rewrites only its value. An entered value is checked
+  by validating the whole candidate config (`validate_config`), and `ConfigError.problems` locates each problem so an
+  invalid file can have just those settings reverted. The write keeps a `.bak`, refuses a file changed since it was
+  read, and goes through a temporary file and a rename under the run lock. `sort`, `reclassify` and
+  `propose-categories` refuse a library with no config file and point to `init`; `load_config` itself still falls back
+  to the defaults.
 * **Settings and data are separate.** `microfiche-config.toml` holds behaviour only. The category hints and filing rules
   are in `microfiche-library.json` (`core/library/library_file.py`): a recursive tree of folder nodes
   `{name, description, hints, rules, children}` whose top level is the groups. A node named `*` stands for any folder at

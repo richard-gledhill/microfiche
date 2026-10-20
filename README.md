@@ -159,10 +159,11 @@ walk-through.
 ## Usage
 
 Point microfiche at a library — a folder with a `_sorting/` inbox and `group/category`
-subfolders (see [How a library is organised](#how-a-library-is-organised)) — and sort whatever's
-been dropped into it:
+subfolders (see [How a library is organised](#how-a-library-is-organised)). Set it up once with `init`, then sort
+whatever's been dropped into it:
 
 ```bash
+uv run microfiche init --library ~/Documents/Library   # write the default config, create the inbox, list the folders
 uv run microfiche sort --library ~/Documents/Library
 ```
 
@@ -185,6 +186,7 @@ uv run microfiche review --library ~/Documents/Library   # decide, one by one, w
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
 uv run microfiche propose-categories --library ~/Documents/Library
+uv run microfiche init --library ~/Documents/Library   # again: check the config, change settings one by one
 uv run microfiche config --library ~/Documents/Library   # show the loaded configuration
 uv run microfiche config --library ~/Documents/Library --sync   # list new folders in microfiche-library.json
 uv run microfiche audit --library ~/Documents/Library
@@ -192,6 +194,8 @@ uv run microfiche rollback --library ~/Documents/Library --job-id <id>
 uv run microfiche rollback --library ~/Documents/Library --last   # undo the newest job not yet undone
 uv run microfiche --version
 ```
+
+`sort`, `reclassify` and `propose-categories` stop on a library with no config and ask you to run `init`.
 
 By default only warnings and errors are shown, on stderr; `-v` adds progress messages and `-q` shows errors only. A
 command that changes the library also records what it did, and why, in `.microfiche/microfiche.log`; see
@@ -205,8 +209,10 @@ could not, and `2` for a wrong command line; see [Exit codes](https://richard-gl
 ## Configuration
 
 Each library reads its own `.microfiche/microfiche-config.toml` file (the folder is dot-prefixed so it stays out of
-Obsidian's or similar file explorer). To set up a new library, copy the defaults from
-[`microfiche/`](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) into it as `.microfiche/`, then adjust as needed:
+Obsidian's or similar file explorer). `microfiche init` writes it with the defaults; run again, it lets you change
+the settings one by one, keeping the file's comments and a backup.
+[`microfiche/`](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) holds an example config and library
+file to copy from:
 
 | Section | Purpose |
 |---|---|
@@ -270,7 +276,7 @@ microfiche/
 ├── packages/
 │   ├── core/src/microfiche/core/    # scanning, classification, filing, library logic
 │   └── cli/src/microfiche/cli/      # the microfiche Typer CLI
-├── microfiche/     # default per-library config, copied into a library's .microfiche/
+├── microfiche/     # example per-library config and library file (init writes the packaged defaults)
 ├── scripts/               # release-wheel checks, the module diagram, the sample library builder
 ├── tests/
 │   ├── core/, cli/        # unit tests, mirrors the packages/ layout

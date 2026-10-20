@@ -425,8 +425,8 @@ subcategory folder. The ledger, `rollback` and `reclassify` would handle three l
 **Status:** removed from the MVP on 2026-10-14, by the Stage 6 simplification review. The code worked but nothing called it:
 there is no command that creates a library or a group, so `create_library_group` and `validate_library_root` were unused and
 had no tests. No user-visible behaviour was lost.
-**Partly picked up:** `init` itself is [library-init-prd.md](../requirements/library-init-prd.md), feature 1 of the
-post-MVP updates; group templates stay here.
+**Partly picked up:** `init` itself was built from [library-init-prd.md](../requirements/library-init-prd.md), feature 1 of
+the post-MVP updates: it writes the packaged default config and edits an existing one. Group templates stay here.
 
 **Why deferred.** microfiche reads a library that already exists; the user makes the folders, and `review` can plan a new
 group or category folder. A command that creates a library, or a group from a named template, is a feature of its own that
@@ -453,7 +453,6 @@ Both are small enough to rewrite from the table, and the first should be rewritt
 ### Questions to settle before building it
 
 - Is there a real need for named templates, or is copying a folder enough?
-- Does `init` also copy the `microfiche/` config folder into `.microfiche/`, which the how-to asks the user to do by hand?
 - Tests it would need: creation under an existing and a missing root, a name that clashes with a file, and a refusal to
   overwrite a folder that already exists.
 
