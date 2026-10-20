@@ -6,7 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased changes
 
+### Feature
+- exclude dot, underscore and inbox-like folders by default [`92bc1ba`](https://github.com/richard-gledhill/microfiche/commit/92bc1ba)
+- add microfiche init, and stop sort, reclassify and propose-categories without a config [`73121ae`](https://github.com/richard-gledhill/microfiche/commit/73121ae)
+- add the core of init: check, install and edit a library's config [`bdc366a`](https://github.com/richard-gledhill/microfiche/commit/bdc366a)
+- report config problems as data and explain every default setting [`74d2d39`](https://github.com/richard-gledhill/microfiche/commit/74d2d39)
+
 ### Documentation
+- mark library-init Done and archive its plan [`c83111c`](https://github.com/richard-gledhill/microfiche/commit/c83111c)
+- describe microfiche init in place of the manual config copy [`f397183`](https://github.com/richard-gledhill/microfiche/commit/f397183)
+- plan and todo for library-init [`ba78c54`](https://github.com/richard-gledhill/microfiche/commit/ba78c54)
+- accept the library-init PRD and write its spec [`ef67eb6`](https://github.com/richard-gledhill/microfiche/commit/ef67eb6)
+- :robot: changelog file generated [`bfff1d6`](https://github.com/richard-gledhill/microfiche/commit/bfff1d6)
 - draft requirements for the post-MVP feature updates [`16bc35b`](https://github.com/richard-gledhill/microfiche/commit/16bc35b)
 - :robot: changelog file generated [`386ff9f`](https://github.com/richard-gledhill/microfiche/commit/386ff9f)
 - move the roadmap to requirements/ and the backlog to rfcs/ [`884c300`](https://github.com/richard-gledhill/microfiche/commit/884c300)
@@ -18,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
 
 ### Other
+- Merge pull request #75 from richard-gledhill/feat/library-init [`39b46f4`](https://github.com/richard-gledhill/microfiche/commit/39b46f4)
 - Merge pull request #74 from richard-gledhill/docs/post-mvp-prds [`d4dc543`](https://github.com/richard-gledhill/microfiche/commit/d4dc543)
 - Merge pull request #73 from richard-gledhill/docs/move-roadmap-backlog [`c0f4503`](https://github.com/richard-gledhill/microfiche/commit/c0f4503)
 - Merge pull request #72 from richard-gledhill/docs/restructure-development-docs [`3dfb70a`](https://github.com/richard-gledhill/microfiche/commit/3dfb70a)
