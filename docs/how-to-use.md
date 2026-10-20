@@ -162,21 +162,17 @@ project › stage):
 
 ```text
 Library/                      <- library root
-├── .microfiche/              <- config (copied from the repo's microfiche/ folder)
-├── _sorting/                 <- drop new documents here
+├── .microfiche/              <- config, written by `microfiche init`
+├── _sorting/                 <- drop new documents here (`init` creates it)
 └── Project Phoenix/          <- group (here, a project)
     ├── 01 Requirements/      <- category (here, a document type)
     ├── 02 Architecture/
     └── 03 Research/
 ```
 
-Create the inbox and, to have something to sort into, one group with three categories:
+Create, to have something to sort into, one group with three categories:
 
 === "Bash"
-
-    ```bash
-    mkdir -p ~/Documents/Library/_sorting
-    ```
 
     ```bash
     mkdir -p "$HOME/Documents/Library/Project Phoenix/01 Requirements" "$HOME/Documents/Library/Project Phoenix/02 Architecture" "$HOME/Documents/Library/Project Phoenix/03 Research"
@@ -185,55 +181,66 @@ Create the inbox and, to have something to sort into, one group with three categ
 === "PowerShell"
 
     ```powershell
-    New-Item -ItemType Directory -Force "$HOME\Documents\Library\_sorting"
-    ```
-
-    ```powershell
     "01 Requirements", "02 Architecture", "03 Research" | ForEach-Object { New-Item -ItemType Directory -Force "$HOME\Documents\Library\Project Phoenix\$_" }
     ```
 
-Copy the default config into the library as `.microfiche/`. The default config is the `microfiche/` folder of the
-repository: run this from the repo root, or download that folder from
-[GitHub](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) if you installed a release.
+Then set the library up with `init`:
 
 === "Bash"
 
     ```bash
-    cp -r microfiche ~/Documents/Library/.microfiche
+    uv run microfiche init --library ~/Documents/Library
     ```
 
 === "PowerShell"
 
     ```powershell
-    Copy-Item -Recurse microfiche "$HOME\Documents\Library\.microfiche"
+    uv run microfiche init --library "$HOME\Documents\Library"
     ```
 
-If the library **already has a `.microfiche` folder** (even an empty one), both commands copy `microfiche` *into* it and
-you end up with `.microfiche/microfiche/...`. Copy the folder's contents instead:
+On a library with no `.microfiche/microfiche-config.toml`, `init` asks nothing. It writes the default config there, with
+a one-line comment on every setting; creates the `_sorting/` inbox if it is missing; and writes
+`.microfiche/microfiche-library.json` listing your group and category folders (see
+[Keeping the file in step with your folders](#keeping-the-file-in-step-with-your-folders)). It never creates, moves or
+deletes your own folders or documents.
 
-=== "Bash"
+`sort`, `reclassify` and `propose-categories` need this config: on a library without one they stop, write nothing and
+tell you to run `init`.
 
-    ```bash
-    cp -r microfiche/. ~/Documents/Library/.microfiche/
-    ```
+The default config leaves out of the library any folder whose name starts with `.` or `_` (such as Obsidian's
+`.obsidian`), and folders named like an inbox (`sorting*`, `_sorting*`), as well as the inbox and `.microfiche/`. To
+leave out other folders, add them to `[exclusions] exclude` (see **Keeping a folder out** in
+[section 4](#4-maintain-the-library)). The `microfiche/` folder of the
+[repository](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) has an example library file with
+hints for five document-type categories.
 
-=== "PowerShell"
+### Checking and changing the settings
 
-    ```powershell
-    Copy-Item -Recurse microfiche\* "$HOME\Documents\Library\.microfiche"
-    ```
+Run `init` again at any time, with the same command. On a library that is already set up it checks the config:
 
-You can skip this step to start with: microfiche then runs on its built-in defaults, and the first real `sort` writes a
-`microfiche-library.json` listing your folders (see [Keeping the file in step with your folders](#keeping-the-file-in-step-with-your-folders)).
-The copy gives you the settings file to edit, a library file with example hints, and a JSON Schema for editor help. The
-example hints are for five document-type categories (`01 Requirements` to `05 Correspondence`), under a `"*"` entry that
-applies to every group; they do nothing for categories with other names, so replace them with your own. The copied config
-also keeps folders that start with `.` or `_` (and ones named like the inbox) out of the library; the built-in defaults exclude
-none, so a library without the copy treats a folder such as `.obsidian` as a group (see **Keeping a folder out** in
-[section 4](#4-maintain-the-library)).
+- **Valid.** It says so and asks whether to go through the settings. If you do, it shows each of the common ones
+  (`confidence_threshold`, `depth`, `library_inbox`, `keep_folders`, the AI `provider` and `model`) with what it
+  means, its value and its default, then asks whether to go through all the others, section by section (you can skip
+  a section). Press Enter to keep a value; type `-` to clear a text or list setting; type a list comma-separated. A
+  value that isn't valid is explained and asked again. Nothing is written until the end, when you see the changes
+  and confirm them once.
+- **Invalid.** It lists every problem, then offers to revert only the invalid and unknown settings to their
+  defaults (your other settings are kept), to revert all of them, or to leave the file alone. It then offers the
+  walk-through.
+
+Before it rewrites the file, `init` keeps the old one as `.microfiche/microfiche-config.toml.bak` (it asks before
+replacing an older backup). Your comments and layout are kept: a changed setting rewrites only its value. Pressing
+Enter at every prompt leaves the file exactly as it was, with no backup. Ctrl-C before the last confirmation writes
+nothing. Like every run that changes the library, the write takes the run lock (see [Two runs at once](#two-runs-at-once)).
+
+`init` asks questions only in a terminal. Without one (in a script), a new library is still set up, and an existing
+one is checked: a valid config passes, and an invalid one is reported and `init` exits with code 1, changing nothing.
+If `microfiche-library.json` can't be read, `init` reports why and offers to rebuild it from the folders, keeping the
+old one as `microfiche-library.json.bak`.
 
 The inbox is called `_sorting` by default. To use another name — for example `Incoming`, or `sorting`
-if you already have a folder by that name — set `library_inbox` under `[library_structure]` in the config:
+if you already have a folder by that name — change `library_inbox` in `init`'s walk-through, or set it under
+`[library_structure]` in the config:
 
 ```toml
 [library_structure]
@@ -243,11 +250,11 @@ library_inbox = "Incoming"
 The inbox and the hidden `.microfiche/` folder are never treated as groups, whatever else you exclude.
 
 Then edit `.microfiche/microfiche-library.json` in the library to add keyword hints and filename
-rules for your categories (see below), and `.microfiche/microfiche-config.toml` for settings. See the
+rules for your categories (see below). See the
 [configuration table](https://github.com/richard-gledhill/microfiche#configuration) for what each
 config section does.
 
-Confirm the config loads:
+To see the settings without changing anything:
 
 === "Bash"
 
@@ -267,6 +274,7 @@ command stops and tells you what to fix instead of carrying on with the defaults
 ```text
 Config file error: C:\Users\you\Documents\Library\.microfiche\microfiche-config.toml:
   classification.confidence_threshhold: unknown setting
+Run `microfiche init --library C:\Users\you\Documents\Library` to fix it.
 ```
 
 `sort`, `review`, `reclassify`, `propose-categories` and `config` check the config the same way before they touch any
@@ -348,15 +356,15 @@ category names alone. A mistake in the file (a misspelt key, say) stops `sort`, 
 
 #### Keeping the file in step with your folders
 
-You don't have to write the file's folder entries yourself. The first real `sort` in a library with no
-`microfiche-library.json` creates one that lists your group and category folders, with no hints, and says so:
+You don't have to write the file's folder entries yourself. `init`, and the first real `sort` in a library with no
+`microfiche-library.json`, create one that lists your group and category folders, with no hints, and say so:
 
 ```text
 Created microfiche-library.json listing 4 folder(s). Add keyword hints to it to help match documents.
 ```
 
 After that, each real `sort` adds an entry for any folder you have created since, and says so once. To do the same
-without sorting, run `config --sync`:
+without sorting, run `init` again, or `config --sync`, which asks nothing:
 
 === "Bash"
 
@@ -406,9 +414,9 @@ carries on, and `config --sync` exits with an error.
 - A leading number such as `01 ` is ignored when matching names, so you can use it to order
   folders.
 - A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
-  `[exclusions] exclude`. The config you copy excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot
-  or an underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which
-  is usually what you want for such folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
+  `[exclusions] exclude`. The default excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot or an
+  underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which is
+  usually what you want for such folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
 - One or two levels are supported: group and category, or groups alone (see
   [a flat library](#a-flat-library-groups-only)). Folders deeper than that aren't part of the taxonomy.
 
@@ -848,7 +856,7 @@ One awkward file never stops a run. It stays where it is, and the summary says w
 
 ### Two runs at once
 
-`sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files, at the end) change the library,
+`init`, `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files, at the end) change the library,
 so only one can run at a time. Each takes a lock (a small `lock` file in `.microfiche/`, removed when the run ends), and a
 second one refuses to start:
 
@@ -1084,7 +1092,7 @@ no setting for it.
 Every run that changes the library records what it did in `<library>/.microfiche/microfiche.log`. It is separate
 from `audit.log`: the audit log is the permanent record of moves, and the log is for explaining a run.
 
-- **Who writes it.** `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files), the commands
+- **Who writes it.** `init`, `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files), the commands
   that take the lock. A preview (`sort --dry-run`, `reclassify` without `--apply`) and the read-only commands (`audit`,
   `config` without `--sync`, `propose-categories`) write nothing, and a preview never creates `.microfiche/`. A run that is refused because
   another is in progress leaves no trace either.
@@ -1140,7 +1148,7 @@ Every command ends with one of three exit codes, so a script can tell what happe
 | Code | Meaning |
 |---|---|
 | `0` | The command did what was asked. This includes a `sort` that left documents under **Needs review**, a `reclassify` dry run that proposes moves, and `--version`. |
-| `1` | The command could not do what was asked: an invalid config or library file, a library run already in progress, a job that does not exist or was already rolled back, a rollback that stopped part-way, `review` without a terminal, options that contradict each other or leave out a choice microfiche checks itself (`rollback` with neither `--job-id` nor `--last`), or a run you stopped with Ctrl-C. Nothing is half-done silently: the message says what to fix. |
+| `1` | The command could not do what was asked: an invalid config or library file, a library run already in progress, a job that does not exist or was already rolled back, a rollback that stopped part-way, `sort`, `reclassify` or `propose-categories` on a library with no config (run `init`), `init` on an invalid config without a terminal or when you chose to leave it, `review` without a terminal, options that contradict each other or leave out a choice microfiche checks itself (`rollback` with neither `--job-id` nor `--last`), or a run you stopped with Ctrl-C. Nothing is half-done silently: the message says what to fix. |
 | `2` | The command line itself was wrong: an unknown command or option, or a required option such as `--library` missing. Nothing ran. |
 
 A run that files some documents and leaves others for review still exits `0`; read the summary, or the **Needs review**
@@ -1171,6 +1179,8 @@ microfiche is pre-release. At the moment:
   cannot go back to an item once you have moved on, and it does not learn from your choices: add a keyword hint to
   `microfiche-library.json` if a kind of document keeps coming up.
 - `review` needs a terminal and cannot be scripted. To file without asking, use `sort`.
+- `init` has no options to answer its questions in advance, and does not edit `[naming_rules]` (edit it in the file),
+  hints or filename rules. A fresh install uses the one default config; there are no templates to choose from.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
   integration after the first release.
 - A folder you move by hand after `sort` filed it whole is no longer recognised as one unit by `reclassify` (the
@@ -1181,7 +1191,7 @@ microfiche is pre-release. At the moment:
   inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).
   `propose-categories` has nothing to propose in a flat library and says so.
-- The library file is synced on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
+- The library file is synced by `init`, on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).
   A folder that is a link or junction is not a group or category.
 - `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.

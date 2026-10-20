@@ -180,7 +180,8 @@ paths — this works because both are installed editable into the shared workspa
 ### Config resolution
 
 Each library has its own `.microfiche/` — its *state folder* (dot-prefixed to stay out of Obsidian's file
-explorer); `microfiche/` at the repo root is the template copied into a new library.
+explorer); `microfiche init` (`core/library_init.py`) writes the packaged defaults into a new library and edits an
+existing config, and `microfiche/` at the repo root holds example config and library files.
 `core/config.py::load_config` deep-merges the library's `microfiche-config.toml` over the packaged defaults
 (`core/defaults/microfiche-config.toml`, the only place a default lives) and validates the result into
 `MicroficheConfig`. The library's hints and filename rules are a separate file, `microfiche-library.json`

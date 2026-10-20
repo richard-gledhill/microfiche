@@ -5,15 +5,19 @@
 # replaces the default list outright. Keep this file in step with the template in microfiche/.
 
 [library_structure]
+# The folder at the library root where new documents are dropped: a plain folder name, not a path.
 library_inbox = "_sorting"
+# Levels of folders: 2 for group then category, 1 for groups only (a flat library).
 depth = 2
 
 [classification]
 # A document files without asking only if its confidence reaches this (see docs/development/testing/calibration.md).
 confidence_threshold = 0.75
-# How sure each kind of match is. The threshold above decides which of them file on their own.
+# How sure (0 to 1) a match is when a category's name is found in the document text.
 name_match_confidence = 0.9
+# How sure (0 to 1) a match is when a filename rule applies.
 filename_match_confidence = 0.95
+# How sure (0 to 1) a match is when one of a category's keyword hints is found in the document text.
 hint_match_confidence = 0.75
 # How close (0 to 100) a near-miss must be to a group's name to count as that group.
 fuzzy_group_threshold = 85
@@ -58,7 +62,10 @@ max_bytes = 1048576
 backup_count = 3
 
 [exclusions]
-exclude = []
+# Folder names (globs) never treated as a group or category and never looked inside: by default anything starting
+# with . or _ (such as .obsidian) and inbox-like names. The inbox and .microfiche/ always are. A list replaces this one.
+exclude = ["sorting*", "_sorting*", ".*", "_*"]
 
 [naming_rules]
+# Regex renames applied to a file's name before it is filed, as { 'pattern' = "replacement" }, in order.
 rules = {}

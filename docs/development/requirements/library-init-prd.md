@@ -1,6 +1,6 @@
 # `init`: set up, check and edit a library's configuration
 
-Status: Draft
+Status: Done
 
 - **Id:** `library-init` ([capability map](post-mvp-capability-map.md), #1)
 - **Depends on:** nothing
@@ -31,14 +31,17 @@ editing TOML by hand, and a mistake is only found when the next command refuses 
 | What it finds | What it does |
 |---|---|
 | **No install**: no `.microfiche/microfiche-config.toml` | Writes the packaged default config and creates `microfiche-library.json` from the folders that exist (the library file sync). No prompts. Prints what it wrote. |
-| **A valid config** | Says it is valid, then walks through the settings section by section, showing each current value (and the default, where different), and asks whether to change it. Enter keeps the current value. Writes once, at the end, after a summary of the changes and one confirmation. Then syncs the library file. |
+| **A valid config** | Says it is valid and asks whether to go through the settings; No ends `init` there (after the library file sync). Otherwise walks through the settings section by section, showing each current value (and the default, where different), and asks whether to change it. Enter keeps the current value. Writes once, at the end, after a summary of the changes and one confirmation. Then syncs the library file. |
 | **An invalid config** | Lists every problem (as `config` does today), then asks whether to revert **only the invalid and missing settings** to their defaults, keeping everything else, or **all settings**. Writes the result, checks it is now valid, then syncs the library file. Offers the settings walk-through afterwards. |
 
 ## Requirements
 
 **Must**
 - Behave as in the table above, with no flags.
-- Never create, move or delete the user's folders or documents.
+- Walk through the commonly changed settings first (`confidence_threshold`, `depth`, `library_inbox`,
+  `keep_folders`, AI `provider` and `model`), then ask once whether to go through all the others, section by section.
+- Never create, move or delete the user's folders or documents. The one folder `init` may create is the inbox
+  (`_sorting/`, or the configured name), when it is missing: it is microfiche's own.
 - Never lose the user's settings silently: before rewriting an existing config, keep a copy of it beside it (for example
   `microfiche-config.toml.bak`, replacing any older copy only after asking), and say where it is.
 - Keep the user's comments and layout in the config file where a setting is unchanged.
@@ -97,9 +100,14 @@ Guidance for the spec, not binding.
 - [mvp-roadmap.md](mvp-roadmap.md#future-work): "Ask before running on defaults", which this absorbs.
 - [mvp-followups-prd.md](mvp-followups-prd.md) D1 (`init` and a template catalog).
 
-## Open questions
+## Decisions
 
-- Should the walk-through cover every setting, or only the commonly changed ones (threshold, depth, inbox,
-  `keep_folders`, AI provider) with the rest behind a "show all" choice?
-- Should `init` also create the `_sorting/` inbox if it is missing?
-- Where does `config --sync` fit once `init` syncs the library file? Keep it as the non-interactive route, or fold it in?
+Settled with the owner on 2026-10-20, replacing the open questions.
+
+- **Walk-through scope:** the common settings first, then one choice to go through every other setting, section by
+  section (each section can be skipped).
+- **Inbox:** `init` creates the inbox folder if it is missing.
+- **`config --sync`:** kept, as the non-interactive way to sync the library file; `init` syncs it too.
+- **Fresh install:** writes the packaged defaults file (`core/defaults/microfiche-config.toml`) as it is.
+- **Valid config:** `init` first asks whether to go through the settings at all, so it can end there.
+- **`tomlkit`:** added to `core` as a runtime dependency, to keep comments and layout when rewriting the config.

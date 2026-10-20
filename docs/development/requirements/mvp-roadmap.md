@@ -16,6 +16,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
 | `reclassify` | Done (for MVP scope) | Dry run previews each document's action (`move` / `keep` / `review` / `conflict`); `--apply` files the `move`s through `core.filer.file_batch` as one rollback-able job (`core/reclassify.py`). `--folder` must be inside the library. No AI fallback in `reclassify` yet. |
 | `audit` | Done | Shows `.microfiche/audit.log`, which `sort` and `rollback` append to (one line per move). |
 | `rollback` | Done | Reverses a `sort` job by id, newest move first; refuses a job already rolled back; safe to retry if it stopped part-way. Failures print a message and exit 1. `--last` undoes the newest job not yet undone (Stage 6). Also undoes `reclassify --apply` jobs, which go through the same `file_batch` path. |
+| `init` | Done (post-MVP) | No flags. No config: writes the packaged defaults, creates the inbox, syncs the library file. A valid config: offers a walk-through of the settings (`core/library_init.py::ConfigEditor`, prompts in `cli/init_prompts.py`), written once after a confirmation, with a `.bak` and the file's comments kept (`tomlkit`). An invalid config: revert only the invalid and unknown settings, or all. Without a terminal it only installs or checks. [library-init-prd.md](library-init-prd.md). |
 | `config` | Done | Prints the library's loaded configuration (`cli/display.py::render_config`). `--sync` instead brings `microfiche-library.json` in step with the folders (Stage 4.10); it takes the run lock and, unlike plain `config`, writes. |
 
 ## Cross-cutting feature status
@@ -45,8 +46,9 @@ changes here, update the "Current limitations" list and usage steps in the user-
   whose message names the file and every problem. `sort`, `reclassify`, `propose-categories` and `config` check
   it up front and exit 1 (`cli/commands.py::_open_library`); `sort` and `reclassify` also check the library file
   (`microfiche-library.json`) the same way. `audit` and `rollback` never read either, so a job can
-  still be undone while the config is broken. A missing file or section still means defaults, silently;
-  asking first is under [Future work](#future-work) ("Ask before running on defaults").
+  still be undone while the config is broken. A missing section or setting still means its default; a missing
+  config file stops `sort`, `reclassify` and `propose-categories`, which point to `init` (post-MVP,
+  [library-init-prd.md](library-init-prd.md)).
 - **Classifier and resolver seam** (`core/classifier.py`) — wired. `Classifier` owns the two-stage flow,
   the confidence threshold (`[classification] confidence_threshold`, default 0.75, calibrated), the per-stage AI
   fallback and the taxonomy check; `RulesEngine` and `LLMClassifier` are its two resolvers.
@@ -216,15 +218,11 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   not be installed.
 - **Review the signal strengths' values** (hint 0.75, AI 0.70 and the others). They are `[classification]` and `[ai]`
   settings now; what is left is checking the values against the calibration harness.
-- **Ask before running on defaults.** Requirement drafted: [library-init-prd.md](library-init-prd.md). A missing `.microfiche/microfiche-config.toml`, or one that leaves out
-  sections, silently falls back to the defaults (pinned by `test_load_config_missing_files_fall_back_to_defaults`
-  and the CLI test for a library with no config folder). A misnamed config file or the wrong `--library` path
-  therefore looks like a normal run on settings the user never chose. Instead, `sort`, `reclassify` and
-  `propose-categories` should say which config was not found or which sections are being defaulted, and ask
-  whether to proceed. Open questions: a non-interactive switch for scripts (for example `--use-defaults` or
-  `--yes`), a non-zero exit when there is no terminal to ask on, whether a partial file warrants a prompt or
-  only a notice, and how this fits a future `init` command that writes the default config. Today's
-  invalid-config behaviour (an error, not a prompt) is unchanged.
+- **Ask before running on defaults.** Done by `init` ([library-init-prd.md](library-init-prd.md)): with no
+  `.microfiche/microfiche-config.toml`, `sort`, `reclassify` and `propose-categories` exit 1 and point to
+  `microfiche init`, which writes the defaults. A file that leaves out sections or settings still takes their
+  defaults without a notice; `load_config` itself still falls back to the defaults, for tests and the calibration
+  harness.
 
 ### Deferred beyond MVP
 

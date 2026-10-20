@@ -688,11 +688,15 @@ def test_sort_uses_inbox_named_in_config(tmp_path: Path) -> None:
     assert (library / "Incoming" / "SolarConstructionNotes.md").exists()
 
 
-def test_sort_library_without_config_folder(tmp_path: Path) -> None:
-    """Regression: with no config the inbox used to be treated as a group."""
+def test_sort_library_set_up_by_init_on_defaults(tmp_path: Path) -> None:
+    """Regression: on the default config the inbox used to be treated as a group.
+
+    A library with no config folder no longer sorts at all (it is told to run init), so it is set up by init first.
+    """
 
     library = _library(tmp_path)
     shutil.rmtree(library / ".microfiche")
+    assert runner.invoke(app, ["init", "--library", str(library)]).exit_code == 0
 
     result = runner.invoke(app, ["sort", "--library", str(library)])
 

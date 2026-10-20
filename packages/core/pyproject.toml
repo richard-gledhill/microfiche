@@ -13,6 +13,7 @@ dependencies = [
     "pymupdf",
     "python-docx",
     "extract-msg",
+    "tomlkit>=0.15.2",
 ]
 
 [project.optional-dependencies]

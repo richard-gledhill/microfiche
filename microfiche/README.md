@@ -1,13 +1,14 @@
 # Default library configuration
 
-These are the default config files microfiche ships with. They are **not** read from here at
+These are example config files for a library. They are **not** read from here at
 runtime — each library microfiche manages has its own `<library_root>/.microfiche/`
-folder, read by `microfiche.core.config.load_config`. Copy this folder there (renamed to
-`.microfiche`) when setting up a new library — dot-prefixed so it's hidden from
-Obsidian's file explorer by default.
+folder, read by `microfiche.core.config.load_config`. `microfiche init --library <library>`
+sets that folder up, writing the packaged defaults (`core/defaults/microfiche-config.toml`, which lists the same
+settings as the config here); run it again to check the config or change its settings one by one.
 
-A `microfiche init` command to automate that copy is a natural next step but isn't implemented
-yet — see the [feature backlog](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/feature-backlog.md#library-creation-init-and-group-templates).
+The config here has the same settings and values as what `init` writes, with longer comments. The library file here
+has example hints for five document-type categories; `init` writes one listing your own folders instead. Copy either
+into a library's `.microfiche/` if you want them.
 
 | Section | Purpose |
 |---|---|

@@ -17,6 +17,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 
 **Commands**:
 
+* `init`: Set up the library's configuration, or...
 * `sort`: Classify and file what is in the inbox.
 * `review`: Decide where the leftover documents go.
 * `propose-categories`: Suggest new category folder names.
@@ -24,6 +25,29 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 * `audit`: Show the audit log.
 * `rollback`: Undo a filing job.
 * `config`: Show the library's configuration.
+
+## `microfiche init`
+
+Set up the library's configuration, or check it and change it.
+
+With no configuration in .microfiche/, writes the default one, asking nothing. With a valid one, offers to go
+through the settings one by one; with an invalid one, lists the problems and offers to revert only the invalid
+settings, or all of them, to the defaults. Changes are written only after you choose or confirm them, and the
+file as it was before the run is kept as microfiche-config.toml.bak. Then creates the inbox if it is missing and adds the library's folders to
+.microfiche/microfiche-library.json, as `config --sync` does. Never touches your folders or documents.
+
+**Usage**:
+
+```console
+$ microfiche init [OPTIONS]
+```
+
+**Options**:
+
+* `--library <directory>`: Path to the library root.  [required]
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
+* `--help`: Show this message and exit.
 
 ## `microfiche sort`
 
