@@ -42,9 +42,9 @@ _REPO_CONFIG_DIR = _REPO_ROOT / "microfiche"
 _PACKAGED_DEFAULTS = (
     _REPO_ROOT / "packages" / "core" / "src" / "microfiche" / "core" / "defaults" / "microfiche-config.toml"
 )
-# The one setting the template deliberately sets differently: it ships example folder patterns to leave out,
-# while the packaged default excludes nothing beyond the inbox and the state folder.
-_TEMPLATE_MAY_DIFFER = {"exclusions.exclude"}
+# Settings the template may deliberately set differently from the packaged defaults. None today: since init writes
+# the packaged defaults, they exclude the same folders as the template (dot- and underscore-folders, inbox-like names).
+_TEMPLATE_MAY_DIFFER: set[str] = set()
 
 _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("library_structure", LibraryStructureConfig),
@@ -161,7 +161,7 @@ def test_load_config_missing_files_fall_back_to_defaults(tmp_path: Path) -> None
     config = load_config(tmp_path / "does-not-exist")
 
     assert config.library_structure.depth == 2
-    assert config.exclusions.exclude == []
+    assert config.exclusions.exclude == ["sorting*", "_sorting*", ".*", "_*"]
 
 
 def test_load_config_partial_table_keeps_other_defaults(tmp_path: Path) -> None:

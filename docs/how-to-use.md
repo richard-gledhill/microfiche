@@ -207,11 +207,12 @@ deletes your own folders or documents.
 `sort`, `reclassify` and `propose-categories` need this config: on a library without one they stop, write nothing and
 tell you to run `init`.
 
-The default config leaves out of the library only the inbox and `.microfiche/`. If the library has other folders that
-are not groups, such as Obsidian's `.obsidian`, add them to `[exclusions] exclude` (see **Keeping a folder out** in
+The default config leaves out of the library any folder whose name starts with `.` or `_` (such as Obsidian's
+`.obsidian`), and folders named like an inbox (`sorting*`, `_sorting*`), as well as the inbox and `.microfiche/`. To
+leave out other folders, add them to `[exclusions] exclude` (see **Keeping a folder out** in
 [section 4](#4-maintain-the-library)). The `microfiche/` folder of the
 [repository](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) has an example library file with
-hints for five document-type categories, and an example config that excludes `.*` and `_*`.
+hints for five document-type categories.
 
 ### Checking and changing the settings
 
@@ -413,10 +414,9 @@ carries on, and `config --sync` exits with an error.
 - A leading number such as `01 ` is ignored when matching names, so you can use it to order
   folders.
 - A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
-  `[exclusions] exclude`. The default excludes nothing else; the example config in the repository's `microfiche/` folder
-  excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot or an underscore, and anything named like
-  an inbox. With that list, a group called `_Archive` or `.notes` is invisible, which is usually what you want for such
-  folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
+  `[exclusions] exclude`. The default excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot or an
+  underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which is
+  usually what you want for such folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
 - One or two levels are supported: group and category, or groups alone (see
   [a flat library](#a-flat-library-groups-only)). Folders deeper than that aren't part of the taxonomy.
 

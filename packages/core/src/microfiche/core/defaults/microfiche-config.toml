@@ -62,9 +62,9 @@ max_bytes = 1048576
 backup_count = 3
 
 [exclusions]
-# Folder names (globs) never treated as a group or category and never looked inside.
-# The inbox and .microfiche/ always are.
-exclude = []
+# Folder names (globs) never treated as a group or category and never looked inside: by default anything starting
+# with . or _ (such as .obsidian) and inbox-like names. The inbox and .microfiche/ always are. A list replaces this one.
+exclude = ["sorting*", "_sorting*", ".*", "_*"]
 
 [naming_rules]
 # Regex renames applied to a file's name before it is filed, as { 'pattern' = "replacement" }, in order.

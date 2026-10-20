@@ -6,9 +6,9 @@ folder, read by `microfiche.core.config.load_config`. `microfiche init --library
 sets that folder up, writing the packaged defaults (`core/defaults/microfiche-config.toml`, which lists the same
 settings as the config here); run it again to check the config or change its settings one by one.
 
-The files here differ from what `init` writes: this config also excludes `sorting*`, `_sorting*`, `.*` and `_*`, and
-this library file has example hints for five document-type categories. Copy either into a library's `.microfiche/`
-if you want them.
+The config here has the same settings and values as what `init` writes, with longer comments. The library file here
+has example hints for five document-type categories; `init` writes one listing your own folders instead. Copy either
+into a library's `.microfiche/` if you want them.
 
 | Section | Purpose |
 |---|---|
