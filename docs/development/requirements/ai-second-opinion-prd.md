@@ -38,7 +38,7 @@ where the rules are weakest, for users who already turned it on.
 - Report how many answers the AI checked, confirmed and overruled in the `sort` summary.
 
 **Won't (this time)**
-- A decision-model classifier ([backlog](../rfcs/feature-backlog.md#decision-model-classifier)).
+- A decision-model classifier ([backlog](../rfcs/RFC-005-decision-model-classifier.md)).
 - Asking the AI about name and filename-rule matches.
 
 ## Acceptance criteria

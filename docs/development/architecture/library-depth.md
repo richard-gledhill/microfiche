@@ -4,8 +4,8 @@ A review of how many levels a library may have, how microfiche tells a library f
 content, and where a document may land when only some levels are confident. It feeds Stages
 [4.6](../plan/archive/2026-10-mvp/plan.md#stage-46--flat-libraries-depth-1) to
 [4.8](../plan/archive/2026-10-mvp/plan.md#stage-48--non-library-folders) of the build plan. Depth 1 (Stage 4.6) and non-library folders (Stage 4.8) are built; depth 3 is in the
-[feature backlog](../rfcs/feature-backlog.md#subcategories-depth-3), under review.
-The filing target mode it once covered is in the [feature backlog](../rfcs/feature-backlog.md#filing-target-mode-file_at),
+[feature backlog](../rfcs/RFC-006-subcategories-depth-3.md), under review.
+The filing target mode it once covered is in the [feature backlog](../rfcs/RFC-004-filing-target-mode.md),
 under review.
 
 ## Where depth 2 was built in
@@ -38,7 +38,7 @@ categories.
 
 ## Depth 3 and the limits on it
 
-Depth 3 is in the [feature backlog](../rfcs/feature-backlog.md#subcategories-depth-3), under review (it was Stage 4.7). If
+Depth 3 is in the [feature backlog](../rfcs/RFC-006-subcategories-depth-3.md), under review (it was Stage 4.7). If
 implementing it hits a practical limitation, the finding is recorded here and depth stays 1 or 2. Limits to watch:
 
 - **Confidence falls with every level.** The path's confidence is the minimum across levels, so a third level can
@@ -48,7 +48,7 @@ implementing it hits a practical limitation, the finding is recorded here and de
 - **`review` gains a choice per level**, which Stage 5 has to be designed for.
 - **The ledger schema changes again**, and so does every place that says "group and category".
 - **Library creation is capped at three levels.** Any later template catalog or `init` (see the
-  [feature backlog](../rfcs/feature-backlog.md#library-creation-init-and-group-templates)) makes at most three levels. The classifier is written level-generic so depth 4 is not a rewrite, but
+  [feature backlog](../rfcs/RFC-007-group-templates.md)) makes at most three levels. The classifier is written level-generic so depth 4 is not a rewrite, but
   only depth 3 is specified and tested, and depth 4 and above is not planned.
 
 The go/no-go numbers would be set in the backlog entry, against a three-level library added to the calibration corpus.
@@ -95,12 +95,12 @@ still in the folder it belongs to, and it says how many filed items now sit belo
 paths, with no stored "previous depth"). Considered and rejected: moving everything automatically when the config
 changes (a configuration edit should not move files, and the change cannot be detected without more state).
 Considered and deferred: an explicit, opt-in flatten, recorded in
-[feature-backlog.md](../rfcs/feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced) to be reviewed. Increasing the depth
+[feature-backlog.md](../rfcs/RFC-003-opt-in-flatten.md) to be reviewed. Increasing the depth
 needs nothing special: the existing items sit one level too high and `reclassify` proposes moves into the new level.
 
 ## Filing target mode
 
-Moved to the [feature backlog](../rfcs/feature-backlog.md#filing-target-mode-file_at), where it is under review. It was to
+Moved to the [feature backlog](../rfcs/RFC-004-filing-target-mode.md), where it is under review. It was to
 be an optional `[sorting] file_at` setting (`leaf_only`, today's behaviour, or `best_level`, which files at the deepest
 confident level); the proposal, the names considered and the rules are kept there.
 

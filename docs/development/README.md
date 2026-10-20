@@ -10,7 +10,7 @@ the MkDocs part of `docs/`, one level up.
 | [`conventions.md`](conventions.md) | The judgement-based style guide: design, code, module layout, tests, docs and git. Read before writing code. |
 | [`requirements/`](requirements/README.md) | PRDs, product briefs and user stories; [`mvp-roadmap.md`](requirements/mvp-roadmap.md), what is implemented vs. partial or deferred (check it before assuming a feature is wired); and the original PRD and concept docs in `archive/`. |
 | [`plan/`](plan/README.md) | The current piece of work (`SPEC.md`, `plan.md`, `todo.md`), plus an `archive/` of finished work, including the MVP build plan. |
-| [`rfcs/`](rfcs/README.md) | Requests for change, stored here until a GitHub Project is set up; [`feature-backlog.md`](rfcs/feature-backlog.md), the features outside the MVP that still need deciding, with code removed from the MVP and where to restore it from. |
+| [`rfcs/`](rfcs/README.md) | Requests for change, stored here until a GitHub Project is set up; one `RFC-NNN` file per feature outside the MVP that still needs deciding (with code removed from the MVP and where to restore it from), indexed in [`feature-backlog.md`](rfcs/feature-backlog.md). |
 | [`adr/`](adr/README.md) | Architecture decision records, `ADR-NNN-title.md`, sequential, never deleted. |
 | [`architecture/`](architecture/README.md) | The design as built: overview, data model, module diagrams, library depth, AI classifier research. |
 | [`testing/`](testing/README.md) | Test strategy and measurements, including the confidence-threshold calibration. |

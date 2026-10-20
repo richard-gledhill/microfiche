@@ -61,7 +61,7 @@ editing TOML by hand, and a mistake is only found when the next command refuses 
 - `config` (read-only) suggests `init` when it finds a problem.
 
 **Won't (this time)**
-- Named group templates or a template catalog ([backlog](../rfcs/feature-backlog.md#library-creation-init-and-group-templates)).
+- Named group templates or a template catalog ([backlog](../rfcs/RFC-007-group-templates.md)).
   A fresh install uses the one shipped template.
 - Editing hints and filename rules interactively; they stay in the library file.
 - Flags such as `--yes` or `--depth`. Depth is a setting, changed in the walk-through like any other.

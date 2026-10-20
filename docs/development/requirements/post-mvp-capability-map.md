@@ -40,19 +40,19 @@ Why this order:
 Planned after the features above, and kept in the [feature backlog](../rfcs/feature-backlog.md) with their design until
 they are picked up:
 
-- [OCR for scanned PDFs](../rfcs/feature-backlog.md#ocr-for-scanned-pdfs): independent, so it can move earlier if
+- [OCR for scanned PDFs](../rfcs/RFC-008-ocr-scanned-pdfs.md): independent, so it can move earlier if
   scanned documents turn out to be common in real libraries.
-- [Plugin architecture](../rfcs/feature-backlog.md#plugin-architecture), with the
-  [Obsidian integration](../rfcs/feature-backlog.md#obsidian-integration) as its first plugin.
+- [Plugin architecture](../rfcs/RFC-001-plugin-architecture.md), with the
+  [Obsidian integration](../rfcs/RFC-002-obsidian-integration.md) as its first plugin.
 
 ## Not planned
 
 These stay in the backlog, under review, because none has a measured need and the features above address the same
 problems more cheaply:
 
-- [Subcategories (depth 3)](../rfcs/feature-backlog.md#subcategories-depth-3)
-- [Filing target mode (`file_at`)](../rfcs/feature-backlog.md#filing-target-mode-file_at)
-- [Decision-model classifier](../rfcs/feature-backlog.md#decision-model-classifier)
+- [Subcategories (depth 3)](../rfcs/RFC-006-subcategories-depth-3.md)
+- [Filing target mode (`file_at`)](../rfcs/RFC-004-filing-target-mode.md)
+- [Decision-model classifier](../rfcs/RFC-005-decision-model-classifier.md)
 - Renaming on collision ([mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp)): sending a collision to review is the
   safer default.
 
