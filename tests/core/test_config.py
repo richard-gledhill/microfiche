@@ -1,6 +1,7 @@
 """Tests for loading microfiche's configuration file."""
 
 import copy
+import itertools
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -12,6 +13,7 @@ from microfiche.core.config import (
     AIConfig,
     ClassificationConfig,
     ConfigError,
+    ConfigProblem,
     ExclusionsConfig,
     LibraryStructureConfig,
     LoggingConfig,
@@ -22,6 +24,7 @@ from microfiche.core.config import (
     TomlConfigParseError,
     UnsupportedDepthError,
     load_config,
+    packaged_defaults_text,
 )
 from microfiche.core.filer import _ROLLBACK_DIRNAME, AUDIT_LOG_FILENAME
 from microfiche.core.ledger import LEDGER_FILENAME
@@ -657,6 +660,68 @@ def test_load_config_bad_list_value_located_by_index(tmp_path: Path) -> None:
         load_config(tmp_path)
 
     assert "exclusions.exclude[1]" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('[classification]\nconfidence_threshold = "high"\n', ("classification", "confidence_threshold", "invalid")),
+        ("[classification]\nconfidence_threshhold = 0.9\n", ("classification", "confidence_threshhold", "unknown")),
+        ("[classifcation]\nx = 1\n", ("classifcation", None, "unknown")),
+        ("classification = 5\n", ("classification", None, "invalid")),
+        ('[exclusions]\nexclude = ["a", 1]\n', ("exclusions", "exclude", "invalid")),
+        ('[ai]\nprovider = "openai"\nhost = "x"\n', ("ai", None, "invalid")),
+    ],
+)
+def test_load_config_problems_located_as_data(tmp_path: Path, text: str, expected: tuple[Any, ...]) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(text, encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    [problem] = exc_info.value.problems
+    assert (problem.section, problem.setting, problem.kind) == expected
+    assert problem.message in str(exc_info.value)
+
+
+def test_load_config_every_problem_listed(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text(
+        "[classification]\nconfidence_threshold = 2\n\n[classifcation]\nx = 1\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ConfigError) as exc_info:
+        load_config(tmp_path)
+
+    assert {(p.section, p.setting) for p in exc_info.value.problems} == {
+        ("classification", "confidence_threshold"),
+        ("classifcation", None),
+    }
+
+
+def test_toml_parse_error_has_no_problems(tmp_path: Path) -> None:
+    (tmp_path / "microfiche-config.toml").write_text("[classification\n", encoding="utf-8")
+
+    with pytest.raises(TomlConfigParseError) as exc_info:
+        load_config(tmp_path)
+
+    assert exc_info.value.problems == ()
+
+
+def test_config_problem_names_its_place() -> None:
+    assert ConfigProblem("ai", "host", "invalid", "bad").place == "ai.host"
+    assert ConfigProblem("ai", None, "invalid", "bad").place == "ai"
+
+
+def test_packaged_defaults_text_every_setting_explained() -> None:
+    # init shows the comment above each setting as its one-line explanation, so each needs one.
+    lines = packaged_defaults_text().splitlines()
+    unexplained = [
+        line.split("=")[0].strip()
+        for previous, line in itertools.pairwise(lines)
+        if "=" in line and not line.startswith("#") and not previous.startswith("#")
+    ]
+
+    assert unexplained == []
 
 
 # region Depth

@@ -2,14 +2,15 @@
 
 These live at ``<library_root>/.microfiche/`` for the library microfiche is managing -
 not inside this repository. Dot-prefixed so it's hidden from Obsidian's or similar file explorer by
-default. The ``microfiche/`` folder shipped in this repo is the set of defaults a new
-library should start from, copied in as ``.microfiche/`` (see microfiche/README.md).
+default. ``microfiche init`` writes the packaged defaults there for a new library, and checks and
+edits an existing one (``microfiche.core.library_init``).
 """
 
 from __future__ import annotations
 
 import re
 import tomllib
+from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
 from typing import Any, Literal
@@ -42,6 +43,30 @@ _STATE_FILE_NAMES = frozenset({
 })
 # What an environment variable name looks like. Real API keys contain characters this rejects.
 _ENV_VAR_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+@dataclass(frozen=True)
+class ConfigProblem:
+    """One thing wrong with a config file, located so ``init`` can put just that right.
+
+    Attributes:
+        section: The top-level name the problem is in, such as ``"classification"``.
+        setting: The setting inside it, or ``None`` when the problem is the section as a whole (it is not a table,
+            it is not a known section, or a rule across its settings fails).
+        kind: ``"unknown"`` for a name that is not a section or setting, ``"invalid"`` for anything else.
+        message: The problem as the error message words it, such as ``"classification.depth: unknown setting"``.
+    """
+
+    section: str
+    setting: str | None
+    kind: Literal["invalid", "unknown"]
+    message: str
+
+    @property
+    def place(self) -> str:
+        """``section.setting``, or the section alone."""
+
+        return self.section if self.setting is None else f"{self.section}.{self.setting}"
 
 
 class _ConfigSection(BaseModel):
@@ -314,7 +339,16 @@ class UnsupportedDepthError(ValueError):
 
 
 class ConfigError(ValueError):
-    """The library's configuration can't be used; the message says why and where."""
+    """The library's configuration can't be used; the message says why and where.
+
+    Attributes:
+        problems: Each problem as data, when the file was read and failed validation; empty otherwise (it is not
+            TOML, or the error is not about the config's settings).
+    """
+
+    def __init__(self, message: str, problems: tuple[ConfigProblem, ...] = ()) -> None:
+        super().__init__(message)
+        self.problems = problems
 
 
 class InvalidApiKeyEnvError(ValueError):
@@ -400,13 +434,33 @@ def load_config(config_path: Path) -> MicroficheConfig:
     """
 
     target_file = config_path if config_path.is_file() else config_path / CONFIG_FILENAME
+    return validate_config(_load_toml(target_file), target_file)
 
-    config = _deep_merge(_load_packaged_defaults(), _load_toml(target_file))
+
+def validate_config(settings: dict[str, Any], target_file: Path) -> MicroficheConfig:
+    """Merge ``settings`` over the packaged defaults and validate the result, as ``load_config`` does for a file.
+
+    Args:
+        settings: What a config file sets, as plain data.
+        target_file: The file the settings are (or will be) in, for the error message.
+
+    Returns:
+        The validated configuration.
+
+    Raises:
+        ConfigError: If the settings are not a valid configuration, with every problem in ``problems``.
+    """
 
     try:
-        return MicroficheConfig.model_validate(config)
+        return MicroficheConfig.model_validate(_deep_merge(_load_packaged_defaults(), settings))
     except ValidationError as err:
-        raise ConfigError(describe_validation_errors(target_file, err)) from err
+        raise ConfigError(describe_validation_errors(target_file, err), _problems(err)) from err
+
+
+def packaged_defaults_text() -> str:
+    """The packaged defaults file (``core/defaults/microfiche-config.toml``) as it is, comments included."""
+
+    return resources.files("microfiche.core").joinpath("defaults", CONFIG_FILENAME).read_text(encoding="utf-8")
 
 
 def describe_validation_errors(
@@ -429,16 +483,7 @@ def describe_validation_errors(
     """
 
     lines = [f"{title}: {target_file}:"]
-    for error in err.errors():
-        location = _loc_to_dot_sep(error["loc"])
-        match error["type"], len(error["loc"]):
-            case "extra_forbidden", 1:
-                reason = f"unknown {unknown[0]}"
-            case "extra_forbidden", _:
-                reason = f"unknown {unknown[1]}"
-            case _:
-                reason = error["msg"].removeprefix("Value error, ")
-        lines.append(f"  {location}: {reason}" if location else f"  {reason}")
+    lines.extend(f"  {_describe(error['loc'], error['type'], error['msg'], unknown)}" for error in err.errors())
     return "\n".join(lines)
 
 
@@ -450,8 +495,35 @@ def describe_validation_errors(
 
 def _load_packaged_defaults() -> dict[str, Any]:
     """Read the defaults file shipped inside the ``microfiche.core`` package (``microfiche/core/defaults/``)."""
-    text = resources.files("microfiche.core").joinpath("defaults", CONFIG_FILENAME).read_text(encoding="utf-8")
-    return tomllib.loads(text)
+    return tomllib.loads(packaged_defaults_text())
+
+
+def _describe(loc: tuple[str | int, ...], kind: str, msg: str, unknown: tuple[str, str]) -> str:
+    """One validation error (its ``loc``, ``type`` and ``msg``) as ``location: reason``, worded for a person."""
+
+    location = _loc_to_dot_sep(loc)
+    match kind, len(loc):
+        case "extra_forbidden", 1:
+            reason = f"unknown {unknown[0]}"
+        case "extra_forbidden", _:
+            reason = f"unknown {unknown[1]}"
+        case _:
+            reason = msg.removeprefix("Value error, ")
+    return f"{location}: {reason}" if location else reason
+
+
+def _problems(err: ValidationError) -> tuple[ConfigProblem, ...]:
+    """Each validation error of a whole config as a ``ConfigProblem``."""
+
+    return tuple(
+        ConfigProblem(
+            section=str(error["loc"][0]),
+            setting=str(error["loc"][1]) if len(error["loc"]) > 1 else None,
+            kind="unknown" if error["type"] == "extra_forbidden" else "invalid",
+            message=_describe(error["loc"], error["type"], error["msg"], ("section", "setting")),
+        )
+        for error in err.errors()
+    )
 
 
 def _deep_merge(defaults: dict[str, Any], overrides: dict[str, Any]) -> dict[str, Any]:
