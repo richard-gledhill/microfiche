@@ -7,7 +7,7 @@
 - [ ] `ConfigEditor`: settings, check/set, changes
 - [ ] `ConfigEditor`: revert invalid/unknown, revert all
 - [ ] `ConfigEditor.save`: backup, unchanged-file check, atomic write
-- [ ] `cli/init.py` prompts and `init` command: fresh, valid, invalid, no terminal
+- [ ] `cli/init_prompts.py` prompts and `init` command: fresh, valid, invalid, no terminal
 - [ ] Library file invalid: rebuild or leave
 - [ ] No-config guard on `sort`, `reclassify`, `propose-categories`; `init` hint on config errors
 - [ ] Docs: how-to-use, README, cli-reference, mvp-roadmap, overview, template README, module diagram

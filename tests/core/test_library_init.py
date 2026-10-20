@@ -478,6 +478,19 @@ def test_config_editor_save_existing_backup_refused_unless_replaced(tmp_path: Pa
     assert (state_dir / f"{CONFIG_FILENAME}.bak").read_bytes() == _CUSTOM.encode()
 
 
+def test_config_editor_save_without_backup_leaves_existing_one(tmp_path: Path) -> None:
+    # A second write in the same init run keeps the backup of the original file.
+    state_dir = _state_dir(tmp_path)
+    (state_dir / f"{CONFIG_FILENAME}.bak").write_bytes(b"original")
+    editor = ConfigEditor(state_dir)
+    editor.set("sorting", "keep_folders", True)
+
+    assert editor.save(backup=False) is None
+
+    assert load_config(state_dir).sorting.keep_folders is True
+    assert (state_dir / f"{CONFIG_FILENAME}.bak").read_bytes() == b"original"
+
+
 def test_config_editor_save_file_changed_meanwhile_refused(tmp_path: Path) -> None:
     state_dir = _state_dir(tmp_path)
     editor = ConfigEditor(state_dir)

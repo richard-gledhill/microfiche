@@ -16,12 +16,13 @@ from microfiche.cli.display import (
     render_reclassify_table,
     render_sort_report,
 )
+from microfiche.cli.init_prompts import ask_revert, render_changes, walk_through
 from microfiche.cli.logging import FILE_ONLY, configure_logging, reset_logging
 from microfiche.cli.progress import progress_bar
 from microfiche.cli.review import render_outcome, render_summary, stdin_is_terminal, work_queue
 from microfiche.core.ai.factory import build_provider
 from microfiche.core.ai.llm_classifier import LLMClassifier
-from microfiche.core.config import AIConfig, ConfigError
+from microfiche.core.config import CONFIG_FILENAME, AIConfig, ConfigError, ConfigProblem
 from microfiche.core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -34,7 +35,19 @@ from microfiche.core.filer import (
 from microfiche.core.ledger import LedgerCorruptError
 from microfiche.core.library.category_suggester import suggest_categories
 from microfiche.core.library.library import Library, ScopeOutsideLibraryError
+from microfiche.core.library.library_file import LIBRARY_FILENAME
 from microfiche.core.library.library_sync import sync_library_file
+from microfiche.core.library_init import (
+    BackupExistsError,
+    ConfigChangedError,
+    ConfigEditor,
+    ConfigExistsError,
+    InstallState,
+    create_inbox,
+    inspect_install,
+    install_defaults,
+    rebuild_library_file,
+)
 from microfiche.core.organizer import run_sort
 from microfiche.core.reclassify import apply_reclassification, items_below_depth, run_reclassify
 from microfiche.core.review import ReviewOutcome, ReviewSession
@@ -101,7 +114,7 @@ def sort(
 
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
-    opened = _open_library(library, uses_hints=True)
+    opened = _open_library(library, uses_hints=True, needs_config=True)
     with (
         _locked(
             opened, "sort", needed=not dry_run
@@ -170,7 +183,7 @@ def propose_categories(
     Looks at common terms across the documents in the inbox. Never creates folders - this only prints suggestions. Scoping to an existing library folder
     instead of the inbox isn't implemented yet.
     """
-    opened = _open_library(library)
+    opened = _open_library(library, needs_config=True)
     if opened.config.library_structure.depth == 1:
         console.print("[yellow]This library is flat (depth = 1): it has groups and no categories to propose.[/yellow]")
         return
@@ -185,6 +198,43 @@ def propose_categories(
         console.print(
             f"[bold]{suggestion.name}[/bold] (score={suggestion.score}) — e.g. {', '.join(suggestion.example_documents)}"
         )
+
+
+def init(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:
+    """Set up the library's configuration, or check it and change it.
+
+    With no configuration in .microfiche/, writes the default one, asking nothing. With a valid one, offers to go
+    through the settings one by one; with an invalid one, lists the problems and offers to revert only the invalid
+    settings, or all of them, to the defaults. Changes are written only after you choose or confirm them, and the
+    file as it was before the run is kept as microfiche-config.toml.bak. Then creates the inbox if it is missing and adds the library's folders to
+    .microfiche/microfiche-library.json, as `config --sync` does. Never touches your folders or documents.
+    """
+
+    state_dir = Library(library).state_dir
+    check = inspect_install(state_dir)
+    terminal = stdin_is_terminal()
+    if check.state is InstallState.MISSING:
+        with _init_writing(library, verbose=verbose, quiet=quiet):
+            try:
+                path = install_defaults(state_dir)
+            except ConfigExistsError as err:
+                _fail(f"{err}: another run wrote it. Run init again to check it.")
+            console.print(f"Wrote the default configuration to {escape(str(path))}.", soft_wrap=True)
+        _finish_init(library, terminal=terminal, verbose=verbose, quiet=quiet)
+        return
+    reverted = check.state is InstallState.INVALID
+    if reverted:
+        console.print(f"[yellow]{escape(str(check.error))}[/yellow]", soft_wrap=True)
+        if not terminal:
+            _fail("Nothing was changed. Run `microfiche init` in a terminal to fix it.")
+        _revert(library, state_dir, check.problems, verbose=verbose, quiet=quiet)
+    else:
+        console.print("The configuration is valid.")
+    if terminal and typer.confirm("Go through the settings?", default=False):
+        editor = ConfigEditor(state_dir)
+        walk_through(console, editor)
+        _save_edits(library, editor, backup=not reverted, verbose=verbose, quiet=quiet)
+    _finish_init(library, terminal=terminal, verbose=verbose, quiet=quiet)
 
 
 def config(
@@ -237,7 +287,7 @@ def reclassify(
     re-filed as one job (undo it with `rollback`); the rest are left exactly where they are.
     """
 
-    lib = _open_library(library, uses_hints=True)
+    lib = _open_library(library, uses_hints=True, needs_config=True)
     with (
         _locked(
             lib, "reclassify", needed=apply
@@ -321,21 +371,130 @@ def rollback(
 # region Helpers
 
 
-def _open_library(path: Path, *, uses_hints: bool = False) -> Library:
+def _open_library(path: Path, *, uses_hints: bool = False, needs_config: bool = False) -> Library:
     """Open the library at ``path``, loading its config now so an invalid one stops the command up front.
 
     A command that classifies also loads the library file (the hints and filename rules), so a bad one
-    stops it before anything is moved. Commands that never match on hints leave it unread.
+    stops it before anything is moved. Commands that never match on hints leave it unread. A command that
+    ``needs_config`` stops when the library has no config file at all, rather than running on the defaults: it
+    points to `init`, and writes nothing (no lock, no state folder).
     """
 
     library = Library(path)
+    if needs_config and not (library.state_dir / CONFIG_FILENAME).is_file():
+        _fail(
+            f"No configuration found in {library.state_dir}. "
+            f"Run `microfiche init --library {path}` to set the library up."
+        )
     try:
         _ = library.config
         if uses_hints:
             _ = library.library_file
     except ConfigError as err:
-        _fail(str(err))
+        _fail(f"{err}\nRun `microfiche init --library {path}` to fix it.")
     return library
+
+
+@contextmanager
+def _init_writing(path: Path, *, verbose: bool, quiet: bool) -> Iterator[Library]:
+    """Hold the run lock and log to the library's log file while `init` writes, yielding the library opened afresh."""
+
+    library = Library(path)
+    try:
+        _ = library.config
+        valid = True
+    except ConfigError:  # being put right by this write; the log file's settings can't be trusted yet
+        valid = False
+    with (
+        _locked(library, "init") as cleared_lock,
+        _logging("init", library, verbose=verbose, quiet=quiet, writes=valid, cleared_lock=cleared_lock),
+    ):
+        yield library
+
+
+def _revert(path: Path, state_dir: Path, problems: tuple[ConfigProblem, ...], *, verbose: bool, quiet: bool) -> None:
+    """Ask how to put an invalid config right, and write the result. Exits if the person leaves it, or it is still wrong."""
+
+    editor = ConfigEditor(state_dir)
+    choice = ask_revert(console, can_keep_valid=editor.parsed and bool(problems))
+    if choice == "leave":
+        _fail("Nothing was changed.")
+    if choice == "invalid":
+        editor.revert_invalid(problems)
+    else:
+        editor.revert_all()
+    remaining = editor.problems()
+    if remaining:
+        _fail("Reverting did not fix everything, so nothing was written:\n" + "\n".join(p.message for p in remaining))
+    if not _write(path, editor, verbose=verbose, quiet=quiet):
+        raise typer.Exit(code=1)
+
+
+def _save_edits(path: Path, editor: ConfigEditor, *, backup: bool, verbose: bool, quiet: bool) -> None:
+    """Show what the walk-through changed and write it once confirmed, keeping a backup if ``backup``."""
+
+    changes = editor.changes()
+    if not changes:
+        console.print("Nothing changed.")
+        return
+    render_changes(console, changes)
+    if not typer.confirm("Write these changes?", default=False):
+        console.print("Nothing was written.")
+        return
+    _write(path, editor, backup=backup, verbose=verbose, quiet=quiet)
+
+
+def _write(path: Path, editor: ConfigEditor, *, backup: bool = True, verbose: bool, quiet: bool) -> bool:
+    """Write the edited config under the run lock. ``False`` if the person chose to keep an older backup.
+
+    A second write in one run passes ``backup=False``: the backup the first one made holds the file as it was before
+    the run, and is kept.
+    """
+
+    replace_backup = backup and editor.backup_path.exists()
+    if replace_backup and not typer.confirm(f"Replace the older backup at {editor.backup_path}?", default=False):
+        console.print("Nothing was written.")
+        return False
+    with _init_writing(path, verbose=verbose, quiet=quiet):
+        try:
+            kept = editor.save(replace_backup=replace_backup, backup=backup)
+        except (ConfigChangedError, BackupExistsError) as err:
+            _fail(str(err))
+    kept_note = (
+        f"the old file is kept as {kept}" if kept else f"the file as it was before is still in {editor.backup_path}"
+    )
+    console.print(f"Wrote {escape(str(editor.path))}; {escape(kept_note)}.", soft_wrap=True)
+    return True
+
+
+def _finish_init(path: Path, *, terminal: bool, verbose: bool, quiet: bool) -> None:
+    """Create the inbox if it is missing and sync the library file, offering to rebuild one that can't be read."""
+
+    unreadable: ConfigError | None = None
+    with _init_writing(path, verbose=verbose, quiet=quiet) as library:
+        inbox = create_inbox(library)
+        if inbox is not None:
+            console.print(f"Created the inbox {escape(str(inbox))}.", soft_wrap=True)
+        try:
+            result = sync_library_file(library)
+        except ConfigError as err:
+            unreadable = err
+    if unreadable is not None:
+        console.print(f"[yellow]{escape(str(unreadable))}[/yellow]", soft_wrap=True)
+        if not terminal:
+            _fail("The library file was left as it is. Fix it, or run `microfiche init` in a terminal.")
+        if not typer.confirm(
+            f"Rebuild it from the folders? The old file is kept as {LIBRARY_FILENAME}.bak.", default=False
+        ):
+            _fail("The library file was left as it is.")
+        with _init_writing(path, verbose=verbose, quiet=quiet) as library:
+            backup, result = rebuild_library_file(library)
+        console.print(f"Moved the old library file to {escape(str(backup))}.", soft_wrap=True)
+    render_library_sync(console, result)
+    if result.write_error is not None:
+        raise typer.Exit(code=1)
+    if not (result.added or result.missing):
+        console.print("The library file already lists every folder.")
 
 
 @contextmanager

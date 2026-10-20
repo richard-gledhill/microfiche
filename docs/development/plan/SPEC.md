@@ -92,7 +92,7 @@ it." (the PRD's "`config` suggests `init`").
 |---|---|
 | `core/config.py` | `ConfigProblem`, `ConfigError.problems`, the packaged defaults' text and path (public, for `init`). |
 | `core/library_init.py` (new) | `inspect_install(library) -> InstallCheck` (state, problems); `install_defaults(library)`; `ConfigEditor` (load the `tomlkit` document, the list of `Setting`s with value, default and help, `set`/`check` a value, `revert_invalid`, `revert_all`, `changes`, `save` with backup); `create_inbox`. No prompts. |
-| `cli/init.py` (new) | The prompts and their wording, as `cli/review.py` is for `review`. |
+| `cli/init_prompts.py` (new) | The prompts and their wording, as `cli/review.py` is for `review`. |
 | `cli/commands.py` | `init` itself (registered in `app.py`), and the no-config check. |
 
 `tomlkit` is added to `core`'s dependencies (owner approved, 2026-10-20).

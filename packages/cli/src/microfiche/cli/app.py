@@ -36,6 +36,7 @@ def main_options(
 
 # endregion
 
+app.command(name="init")(commands.init)
 app.command(name="sort")(commands.sort)
 app.command(name="review")(commands.review)
 app.command(name="propose-categories")(commands.propose_categories)

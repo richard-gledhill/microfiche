@@ -3,7 +3,7 @@
 A library with no config gets the packaged defaults written as they are. An existing config is checked with the same
 validation ``load_config`` uses, and edited through ``ConfigEditor``, which keeps the file as a ``tomlkit`` document so
 the user's comments and layout survive and a changed setting rewrites only its value. Nothing here asks a question;
-the prompts are in ``microfiche.cli.init``. Nothing here creates, moves or deletes a user's folder or document: the one
+the prompts are in ``microfiche.cli.init_prompts``. Nothing here creates, moves or deletes a user's folder or document: the one
 folder it may create is the inbox, which is microfiche's own.
 """
 
@@ -445,18 +445,22 @@ class ConfigEditor:
         )
         return found
 
-    def save(self, *, replace_backup: bool = False) -> Path | None:
+    def save(self, *, replace_backup: bool = False, backup: bool = True) -> Path | None:
         """Write the changes, after keeping a copy of the file as it was read.
 
         Args:
             replace_backup: Whether an existing backup may be replaced.
+            backup: Whether to keep a copy at all. ``init`` passes ``False`` for a second write in one run, so the
+                backup it already made, of the file as it was before the run, is kept.
 
         Returns:
-            The backup's path, or ``None`` when nothing changed (nothing is written, and no backup is made).
+            The backup's path, or ``None`` when nothing changed (nothing is written, and no backup is made) or no
+            backup was asked for.
 
         Raises:
             ConfigChangedError: If the file on disk is no longer what was read. Nothing is written.
-            BackupExistsError: If a backup is already there and ``replace_backup`` is false. Nothing is written.
+            BackupExistsError: If a backup is wanted, one is already there and ``replace_backup`` is false.
+                Nothing is written.
         """
 
         if not self.changed:
@@ -464,11 +468,12 @@ class ConfigEditor:
         on_disk = self.path.read_bytes() if self.path.is_file() else b""
         if on_disk != self._original:
             raise ConfigChangedError(self.path)
-        if self.backup_path.exists() and not replace_backup:
-            raise BackupExistsError(self.backup_path)
-        _write_atomic(self.backup_path, self._original)
+        if backup:
+            if self.backup_path.exists() and not replace_backup:
+                raise BackupExistsError(self.backup_path)
+            _write_atomic(self.backup_path, self._original)
         _write_atomic(self.path, self.text.encode("utf-8"))
-        return self.backup_path
+        return self.backup_path if backup else None
 
     def _effective(self) -> dict[str, Any]:
         """The packaged defaults with the document's settings merged over them, section by section."""

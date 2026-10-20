@@ -11,7 +11,7 @@ passing and a commit; `make check` and `make test` run at the end.
    (settings with value, default and help; `check`/`set` with validation; `revert_invalid`; `revert_all`;
    `changes`; `save` with backup, change detection and an atomic write). Tests in
    `tests/core/test_library_init.py`.
-3. **CLI: `init`.** `cli/init.py` holds the prompts (walk-through, revert choice, backup question, library file
+3. **CLI: `init`.** `cli/init_prompts.py` holds the prompts (walk-through, revert choice, backup question, library file
    rebuild); `commands.init` holds the flow and the lock; registered in `app.py`. Tests in
    `tests/cli/test_cli_init.py`, one per acceptance criterion and the extra cases in the spec.
 4. **No-config guard.** `sort`, `reclassify` and `propose-categories` stop and name `init`; config errors suggest
