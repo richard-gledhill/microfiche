@@ -29,6 +29,7 @@ questions to settle before building it again.
 - [Decision-model classifier](#decision-model-classifier)
 - [Subcategories (depth 3)](#subcategories-depth-3)
 - [Library creation (`init`) and group templates](#library-creation-init-and-group-templates)
+- [OCR for scanned PDFs](#ocr-for-scanned-pdfs)
 
 ---
 
@@ -37,6 +38,8 @@ questions to settle before building it again.
 **Status:** removed from the MVP on 2026-10-12. It was implemented and unit-tested but never wired into `sort`, so no
 user-visible behaviour was lost. It was Stage 5 of the [MVP build plan](../plan/archive/2026-10-mvp/plan.md) together with `review`;
 `review` stayed in the MVP and this half moved here.
+**Future feature update** (2026-10-19): to be built as the first plugin, on the
+[plugin architecture](#plugin-architecture) below.
 
 **Why deferred.** It widened the MVP past "classify, file, undo, and work the review queue". It is also one of what
 should be several integrations with other software, so it is better designed on top of the
@@ -157,6 +160,9 @@ Kept from the build plan so the intent is not lost:
 ## Plugin architecture
 
 **Status:** not started. Requirements only; there is no design and, deliberately, no code.
+**Future feature update** (2026-10-19): drafted as a post-MVP requirement, then moved back here to be built after the
+[post-MVP features](../requirements/post-mvp-capability-map.md). What the draft added is under
+[Requirements drafted for it](#requirements-drafted-for-it).
 
 **Why.** Obsidian is the first integration, and likely not the last (other note-taking or document tools). Integrating
 each of them by adding modules and a config section to `core` would grow `core` with every tool and make each one
@@ -186,6 +192,20 @@ test of the interface, and check it against a second use before treating it as s
   data elsewhere runs unless the user turned it on, and a run says so.
 - **Discovery.** How a plugin is found (a setting naming it, a Python entry point, or being installed at all) is
   open. Prefer the simplest thing that works for one plugin in the same repo.
+
+### Requirements drafted for it
+
+From the post-MVP draft (2026-10-19), to carry into a requirement when this is picked up:
+
+- One extension point: a hook after a job finishes, covering `review` commits as well as `sort`, `reclassify --apply`
+  and `rollback`.
+- The hook receives a small summary type (the job id, the kind of run, the folders touched), not the `Job` model.
+- Discovery by Python entry point (`microfiche.plugins`) is the likely simplest option; record the choice as an ADR.
+- A run says which plugins ran. A plugin's settings live under its own namespace and are validated.
+- The Obsidian modules are restored from `551eec9` into a `packages/obsidian` workspace package.
+- Acceptance: with the Obsidian plugin on, a sort regenerates `index.md` in each folder it filed into; with it off,
+  nothing is written; a plugin that raises leaves the job filed and rollback-able with one warning; `reclassify` and
+  the duplicate check skip the generated notes.
 
 ### Tests it will need
 
@@ -405,6 +425,8 @@ subcategory folder. The ledger, `rollback` and `reclassify` would handle three l
 **Status:** removed from the MVP on 2026-10-14, by the Stage 6 simplification review. The code worked but nothing called it:
 there is no command that creates a library or a group, so `create_library_group` and `validate_library_root` were unused and
 had no tests. No user-visible behaviour was lost.
+**Partly picked up:** `init` itself is [library-init-prd.md](../requirements/library-init-prd.md), feature 1 of the
+post-MVP updates; group templates stay here.
 
 **Why deferred.** microfiche reads a library that already exists; the user makes the folders, and `review` can plan a new
 group or category folder. A command that creates a library, or a group from a named template, is a feature of its own that
@@ -434,3 +456,36 @@ Both are small enough to rewrite from the table, and the first should be rewritt
 - Does `init` also copy the `microfiche/` config folder into `.microfiche/`, which the how-to asks the user to do by hand?
 - Tests it would need: creation under an existing and a missing root, a name that clashes with a file, and a refusal to
   overwrite a folder that already exists.
+
+---
+
+## OCR for scanned PDFs
+
+**Status:** future feature update (2026-10-19). Drafted as a post-MVP requirement, then moved here to be built after the
+[post-MVP features](../requirements/post-mvp-capability-map.md).
+
+**Why.** Scanned letters, receipts and statements are a large share of the loose documents in a household library. A
+scanned PDF has no text layer, so it reads as empty text, matches nothing, and always goes to review.
+
+**Why later.** It is independent of everything else, so it can be picked up at any point, and should move earlier if
+scanned documents turn out to be common in real libraries.
+
+### The design to keep
+
+- When a PDF yields no text (or too little per page), OCR its pages and classify the recognised text.
+- Off by default (`[parsing] ocr = false`), as an optional extra (`ocr`, like `ai`), so a plain install is unchanged.
+  A run says how many documents were OCR'd.
+- Local only: no page image or text leaves the machine.
+- A page and time cap; a document over it goes to review with the reason. An OCR failure makes the document unreadable
+  for review, as any parser failure does, and never aborts a run.
+- Files are never modified (no text layer written back).
+- The fallback lives in `parsers/pdf_parser.py`, which uses `pymupdf` to render pages.
+
+### Questions to settle before building it
+
+- Which engine? PyMuPDF's OCR needs Tesseract installed separately; RapidOCR on ONNX Runtime installs with pip alone.
+  Compare accuracy, install size and Windows support, and record the choice as an ADR.
+- Cache OCR'd text by content hash, so `reclassify` does not OCR the same scan again?
+- Images (`.png`, `.jpg`, `.tiff`) as a supported format once OCR exists?
+- Tests it would need: a fake engine at the parser seam (no OCR engine in the suite), one test skipped when the extra is
+  missing, the cap, and a clear error when `ocr = true` without the extra.
