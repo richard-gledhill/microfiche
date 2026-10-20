@@ -1,6 +1,6 @@
 # `init`: set up, check and edit a library's configuration
 
-Status: Accepted
+Status: Done
 
 - **Id:** `library-init` ([capability map](post-mvp-capability-map.md), #1)
 - **Depends on:** nothing
