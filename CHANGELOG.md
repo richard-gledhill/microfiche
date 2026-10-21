@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - report config problems as data and explain every default setting [`74d2d39`](https://github.com/richard-gledhill/microfiche/commit/74d2d39)
 
 ### Documentation
+- split the feature backlog into RFC files [`5b282d1`](https://github.com/richard-gledhill/microfiche/commit/5b282d1)
+- :robot: changelog file generated [`7922b7f`](https://github.com/richard-gledhill/microfiche/commit/7922b7f)
 - mark library-init Done and archive its plan [`c83111c`](https://github.com/richard-gledhill/microfiche/commit/c83111c)
 - describe microfiche init in place of the manual config copy [`f397183`](https://github.com/richard-gledhill/microfiche/commit/f397183)
 - plan and todo for library-init [`ba78c54`](https://github.com/richard-gledhill/microfiche/commit/ba78c54)
@@ -29,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
 
 ### Other
+- Merge pull request #76 from richard-gledhill/docs/split-feature-backlog-into-rfcs [`98ce465`](https://github.com/richard-gledhill/microfiche/commit/98ce465)
 - Merge pull request #75 from richard-gledhill/feat/library-init [`39b46f4`](https://github.com/richard-gledhill/microfiche/commit/39b46f4)
 - Merge pull request #74 from richard-gledhill/docs/post-mvp-prds [`d4dc543`](https://github.com/richard-gledhill/microfiche/commit/d4dc543)
 - Merge pull request #73 from richard-gledhill/docs/move-roadmap-backlog [`c0f4503`](https://github.com/richard-gledhill/microfiche/commit/c0f4503)
