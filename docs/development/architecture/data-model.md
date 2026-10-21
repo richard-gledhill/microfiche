@@ -46,7 +46,7 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   rather than being skipped — a bad line means a record of something microfiche did is missing.
 
 Not recorded yet: `tags` (nothing extracts tags, and tag governance left the MVP with the Obsidian integration —
-[feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration)), and the per-document breakdown behind a folder unit's
+[feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md)), and the per-document breakdown behind a folder unit's
 dominant-category vote ([architecture/overview.md](overview.md) §4).
 
 This replaced the per-file `*.metadata.json` sidecars the earlier design wrote beside every

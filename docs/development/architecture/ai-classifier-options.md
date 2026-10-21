@@ -5,7 +5,7 @@ free text, then checks the answer against the taxonomy. A second kind of model, 
 classifier that takes text and a fixed list of options and returns one option with a probability), could do
 the same job more cheaply and with a real score. This page records why, which models are candidates, and what
 has to be checked before any is adopted. It feeds
-[decision-model classifier](../rfcs/feature-backlog.md#decision-model-classifier) in the feature backlog (formerly Stage 4.5),
+[decision-model classifier](../rfcs/RFC-005-decision-model-classifier.md) in the feature backlog (formerly Stage 4.5),
 which is under review. Nothing here is built.
 
 ## Why a second kind of model

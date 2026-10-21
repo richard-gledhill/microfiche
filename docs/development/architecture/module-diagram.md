@@ -288,9 +288,9 @@ flowchart TD
 ```
 
 Every module in the graph is imported by another. `library/templates.py` and `utils/validation.py` were removed as unused
-in the Stage 6 simplification review (see [feature-backlog.md](../rfcs/feature-backlog.md#library-creation-init-and-group-templates)). The
+in the Stage 6 simplification review (see [feature-backlog.md](../rfcs/RFC-007-group-templates.md)). The
 Obsidian modules that used to sit here were removed from the MVP and are kept in
-[feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration).
+[feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md).
 
 ## 2. Sort pipeline data flow
 

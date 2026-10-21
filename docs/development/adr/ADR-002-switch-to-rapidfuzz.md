@@ -11,7 +11,7 @@ The rest of this record is the options comparison that led to the decision, kept
 ## Review
 
 microfiche uses fuzzy string matching to match group names. It also used it for tags, until the Obsidian integration
-was removed from the MVP ([feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration)); the tag parts below are
+was removed from the MVP ([feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md)); the tag parts below are
 kept as history. This page records what `thefuzz` actually is, how it
 compares with RapidFuzz and the other options, what was measured, and when in the build plan to switch. It feeds
 [Stage 4.1](../plan/archive/2026-10-mvp/plan.md#stage-41--configuration-consolidation) of the build plan. The switch was made as the last Build step of Stage 4.1; the "Outcome" section at the end
@@ -111,7 +111,7 @@ The switch was made with the rounding kept, so a raw score of 84.6 still counts 
 - **One deliberate behaviour change:** tag matching now keeps accents, as above. `tag_mapper` was never called from
   `sort`, so no user saw either behaviour, and it has since been removed with the Obsidian integration. Whether to
   fold accents on purpose (so `munchen` matches `münchen`) is still open and is listed in
-  [feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration).
+  [feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md).
 
 ### Recommendation and timing
 

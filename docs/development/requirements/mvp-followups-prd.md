@@ -22,7 +22,7 @@ design. When an item is picked up or dropped, update it here and in the linked d
 
 | # | Item | From | Tracked in |
 |---|---|---|---|
-| D1 | An `init` command and a template catalog | Stage 4.1 | [feature-backlog.md](../rfcs/feature-backlog.md#library-creation-init-and-group-templates); `init` in [library-init-prd.md](library-init-prd.md) |
+| D1 | An `init` command and a template catalog | Stage 4.1 | [feature-backlog.md](../rfcs/RFC-007-group-templates.md); `init` in [library-init-prd.md](library-init-prd.md) |
 | D2 | A `command` AI provider (needs a decision on running commands from a config inside a shared library) | Stage 4.1 | [architecture/overview.md §10](../architecture/overview.md#10-configuration-layout) |
 | D3 | Per-group hint overrides. A named group entry in the library file now adds its own hints to the `*` entry's, so confirm what, if anything, is still missing before building | Stage 4.1 | — |
 | D4 | Renaming on collision (a suffix setting) | Stage 4.2 | [mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp) |
@@ -39,7 +39,7 @@ design. When an item is picked up or dropped, update it here and in the linked d
 | D15 | Rename detection beyond reporting a possible rename | Stage 4.10 | — |
 | D16 | Creating folders from the library file | Stage 4.10 | — |
 | D17 | A `sort --dry-run` preview that shows what the library file sync would add | Stage 4.10 | [mvp-roadmap.md](mvp-roadmap.md#configuration-consolidation-stage-41) (Stage 4.10, "Still open") |
-| D18 | Ranked suggestions in `review` from a decision model | Stage 5 | [feature-backlog.md](../rfcs/feature-backlog.md#decision-model-classifier) |
-| D19 | An extra `review` prompt per level at depth 3 | Stage 5 | [feature-backlog.md](../rfcs/feature-backlog.md#subcategories-depth-3) |
+| D18 | Ranked suggestions in `review` from a decision model | Stage 5 | [feature-backlog.md](../rfcs/RFC-005-decision-model-classifier.md) |
+| D19 | An extra `review` prompt per level at depth 3 | Stage 5 | [feature-backlog.md](../rfcs/RFC-006-subcategories-depth-3.md) |
 | D20 | Going back to an item in `review` once it is passed | Stage 5 | [mvp-roadmap.md](mvp-roadmap.md#review-stage-5) |
 | D21 | Learning hints from `review` choices | Stage 5 | [mvp-roadmap.md](mvp-roadmap.md#review-stage-5); [hint-learning-prd.md](hint-learning-prd.md) |

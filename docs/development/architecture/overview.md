@@ -63,7 +63,7 @@ library_inbox = "_sorting"
 depth = 2
 ```
 Depth is 1 or 2; any other value is rejected with a message saying so. Loose files and kept-whole folders are filed at the
-leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](../rfcs/feature-backlog.md#subcategories-depth-3), under review; see [library-depth.md](library-depth.md).
+leaf. Depth 3 (group, category, subcategory) is in the [feature backlog](../rfcs/RFC-006-subcategories-depth-3.md), under review; see [library-depth.md](library-depth.md).
 The word *group* is used at every depth.
 
 **Depth 1 — a flat library** (Stage 4.6). A library of group folders only: a document is filed straight into one. The
@@ -311,7 +311,7 @@ there — left alone rather than overwritten).
 **Not part of the MVP.** The `index.md` folder notes and the `TagIndex.md` tag governance (suggest-only) were never
 called from the pipeline, and were removed so the MVP stays at "classify, file, undo and review". They are to come back
 as a plugin rather than as code in `core`; the design, the code to restore and the open questions are in
-[feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration). For now microfiche stays out of the way: its state lives
+[feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md). For now microfiche stays out of the way: its state lives
 in the hidden `.microfiche/` folder (§7), so no file is added beside the user's documents.
 
 ## 7. Classification ledger (replaces per-file sidecars)
@@ -405,7 +405,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   preview, and writes through a temporary file and a rename, only when something was added. Entries with no folder
   are reported, never removed.
 * **Depth is the only structural setting.** `[library_structure] depth` is validated against `SUPPORTED_DEPTHS` (1 and 2;
-  [depth 3](../rfcs/feature-backlog.md#subcategories-depth-3) is in the backlog). `levels`, `file_target_level` and `library_templates` are
+  [depth 3](../rfcs/RFC-006-subcategories-depth-3.md) is in the backlog). `levels`, `file_target_level` and `library_templates` are
   gone; a template catalog would reuse the library file's node shape.
 * **Scores and thresholds are config.** `[classification]` holds the confidence threshold, the match strengths (category
   name, filename rule, keyword hint) and the group fuzzy-match threshold (a RapidFuzz partial-ratio score, rounded to a
@@ -422,7 +422,7 @@ core/defaults/microfiche-config.toml   # packaged defaults, the only source of d
   document is sent; `0` means all of it). `core.ai.factory.build_provider` builds the provider from it. `sort` says when
   document text goes to OpenAI, and warns once if the length is unlimited. A second kind of classifier, a decision model
   that returns a bounded choice with a probability, is in the
-  [feature backlog](../rfcs/feature-backlog.md#decision-model-classifier) (see [ai-classifier-options.md](ai-classifier-options.md));
+  [feature backlog](../rfcs/RFC-005-decision-model-classifier.md) (see [ai-classifier-options.md](ai-classifier-options.md));
   a `command` provider is deferred behind a security decision.
 
 ## See also

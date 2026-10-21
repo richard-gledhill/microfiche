@@ -164,7 +164,7 @@ paths — this works because both are installed editable into the shared workspa
   scope; never creates folders itself. `propose-categories` only prints, over the inbox; it has no `--apply`, no `--use-ai` and no
   scope option yet (see `docs/development/architecture/overview.md` §6).
 - **No Obsidian code.** `index.md` folder notes and `TagIndex.md` tag governance were removed from the MVP and are
-  parked in [docs/development/rfcs/feature-backlog.md](docs/development/rfcs/feature-backlog.md), with where to restore them
+  parked in [docs/development/rfcs/RFC-002-obsidian-integration.md](docs/development/rfcs/RFC-002-obsidian-integration.md), with where to restore them
   from. Don't reintroduce an `[obsidian]` config section or an `index` command; the integration is to be designed as
   a plugin after the MVP.
 - **`filer.py::rollback_job`** replays a job's recorded `AuditEvent`s in reverse. Jobs are saved as

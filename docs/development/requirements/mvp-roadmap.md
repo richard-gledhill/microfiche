@@ -28,7 +28,7 @@ changes here, update the "Current limitations" list and usage steps in the user-
   98% precision on one local model (see [calibration.md](../testing/calibration.md)), but only consulted where
   the rules are unsure, so it adds little as built.
 - **Obsidian integration** — removed from the MVP, along with the `index` command and the `[obsidian]` config section;
-  it was never called from the sort pipeline. See [feature-backlog.md](../rfcs/feature-backlog.md#obsidian-integration).
+  it was never called from the sort pipeline. See [feature-backlog.md](../rfcs/RFC-002-obsidian-integration.md).
 - **Naming rules** (`library/naming.py`) — wired; `filer.py` applies them before filing.
 - **Classification ledger** (`core/ledger.py`) — wired; replaces the per-file `*.metadata.json`
   sidecars. Records path, content hash, group, category, reasons, confidence and `classified_by`
@@ -125,7 +125,7 @@ is on. Still open: `-q` hides the AI-unavailable warning, and the stale-lock war
 
 A decision-model classifier (a second AI resolver such as Jev, Clef or Nimble, whose own probability would replace the
 flat `0.70`; adopted only if it beats the chat model on the calibration corpus) was Stage 4.5 and is in the
-[feature backlog](../rfcs/feature-backlog.md#decision-model-classifier), under review; the research is in
+[feature backlog](../rfcs/RFC-005-decision-model-classifier.md), under review; the research is in
 [ai-classifier-options.md](../architecture/ai-classifier-options.md).
 
 [Stage 4.6](../plan/archive/2026-10-mvp/plan.md#stage-46--flat-libraries-depth-1) is built: `[library_structure] depth = 1` is a flat library
@@ -145,11 +145,11 @@ below a category is read file by file, as before; to keep one out, exclude it by
 items now sit below it (`items_below_depth`). `Library.structure()` also skips filed bundles, so one never becomes a
 category when the depth is raised. `name_pattern` was dropped in favour of the existing exclusions. Still open: a
 bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
-[feature-backlog.md](../rfcs/feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced), to be reviewed.
+[feature-backlog.md](../rfcs/RFC-003-opt-in-flatten.md), to be reviewed.
 
 Two ideas about the library's shape (see [library-depth.md](../architecture/library-depth.md)) are in the feature backlog, under review:
-[depth 3 with subcategories](../rfcs/feature-backlog.md#subcategories-depth-3), which was Stage 4.7, and the optional
-[filing target mode](../rfcs/feature-backlog.md#filing-target-mode-file_at) (a `[sorting] file_at` setting: `leaf_only` or
+[depth 3 with subcategories](../rfcs/RFC-006-subcategories-depth-3.md), which was Stage 4.7, and the optional
+[filing target mode](../rfcs/RFC-004-filing-target-mode.md) (a `[sorting] file_at` setting: `leaf_only` or
 `best_level`), which was Stage 4.9.
 
 [Stage 4.10](../plan/archive/2026-10-mvp/plan.md#stage-410--library-file-sync) is built. `Library.structure()` is the sorted,
@@ -160,7 +160,7 @@ sorting. Entries with no folder are reported every run and kept; one gone and on
 a possible rename. Nothing the user wrote is changed, a `*` entry covers the folders at its level, and the file is
 written through a temporary file and a rename, only when something was added. A preview and plain `config` write
 nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview
-doesn't show what would be added, and the walk reads one or two levels ([depth 3](../rfcs/feature-backlog.md#subcategories-depth-3) is in the backlog).
+doesn't show what would be added, and the walk reads one or two levels ([depth 3](../rfcs/RFC-006-subcategories-depth-3.md) is in the backlog).
 
 ## Review (Stage 5)
 
@@ -170,7 +170,7 @@ counted but kept out of the queue. A choice is checked as it is made with the ch
 `DuplicateIndex`), and `commit` re-checks each one and files them through `file_batch` as one job, recorded with
 `classified_by = "user"`. A new group or category is only planned until a unit is filed into it. The run lock is taken
 only for the commit. Still open: ranked suggestions would need the
-[decision-model classifier](../rfcs/feature-backlog.md#decision-model-classifier), and [depth 3](../rfcs/feature-backlog.md#subcategories-depth-3) one more prompt per level (both in the backlog); it does
+[decision-model classifier](../rfcs/RFC-005-decision-model-classifier.md), and [depth 3](../rfcs/RFC-006-subcategories-depth-3.md) one more prompt per level (both in the backlog); it does
 not learn from choices; there is no way back to an item once it is passed.
 
 ## Release (Stage 6)
@@ -230,7 +230,7 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
 ([architecture/overview.md](../architecture/overview.md) §9). Postponed after the review in [ADR-003](../adr/ADR-003-operational-safety.md):
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today. Now a future feature update:
-  [feature-backlog.md](../rfcs/feature-backlog.md#ocr-for-scanned-pdfs).
+  [feature-backlog.md](../rfcs/RFC-008-ocr-scanned-pdfs.md).
 - **A lock timeout or `--force` override** for the run lock, and nested-library detection. The lock timeout is part of
   [watch-mode-prd.md](watch-mode-prd.md).
 - **Moving duplicates** to a `_sorting/duplicates/` folder to leave the inbox tidier, checking folders kept whole for duplicates, and a persistent hash cache. Content-duplicate detection itself is built (Stage 4.2).
@@ -247,7 +247,7 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
   warning is useful on a long run. The same applies to `reclassify --apply`.
 - **Dependency and security scanning** (`pip-audit`, CodeQL) and a `SECURITY.md`; Dependabot is already configured.
 - **Telemetry:** none, and none is planned.
-- **Depth 4 and above.** Library creation functions would be capped at depth 3, which is itself [in the backlog](../rfcs/feature-backlog.md#subcategories-depth-3).
+- **Depth 4 and above.** Library creation functions would be capped at depth 3, which is itself [in the backlog](../rfcs/RFC-006-subcategories-depth-3.md).
 - **Training a classifier on the library's own ledger**, and chaining AI models (see [ai-classifier-options.md](../architecture/ai-classifier-options.md)).
 
 ## See also

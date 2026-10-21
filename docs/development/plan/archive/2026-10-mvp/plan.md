@@ -31,8 +31,8 @@ and a structure meant to be dropped directly into a GitHub Project. Read
   numbered with a decimal (Stages 4.1 to 4.10) is an update to the stage before it and gets no tag of its own;
   its milestone is named for the stage, not for a version. Tags keep the `v` prefix, as `v0.1.0` does. There is no
   Stage 4.5, 4.7 or 4.9: they were moved to the [feature backlog](../../../rfcs/feature-backlog.md) while under review (the
-  [decision-model classifier](../../../rfcs/feature-backlog.md#decision-model-classifier), [depth 3](../../../rfcs/feature-backlog.md#subcategories-depth-3)
-  and the [filing target mode](../../../rfcs/feature-backlog.md#filing-target-mode-file_at)), and the numbers are not reused.
+  [decision-model classifier](../../../rfcs/RFC-005-decision-model-classifier.md), [depth 3](../../../rfcs/RFC-006-subcategories-depth-3.md)
+  and the [filing target mode](../../../rfcs/RFC-004-filing-target-mode.md)), and the numbers are not reused.
 - **Definition of done per stage:** every issue in the milestone is closed *and* the stage's
   "Testable version" statement is true when you check it out and run it.
 
@@ -201,7 +201,7 @@ target design is [architecture/overview.md §10](../../../architecture/overview.
 - Design the packaged defaults file and the load order: defaults, then the library's file, deep-merged (tables merge, lists replace), then validated.
 - Design the `[classification]` additions (signal strengths, fuzzy thresholds) with range validation, and how they reach `RulesEngine` and `LLMClassifier` by constructor.
 - Design `[sorting] keep_folders` (default on) and the CLI precedence: `--keep-folders` or `--keep-folders-off` (passing both is an error), then library config, then packaged default. What the setting does when off is Stage 4.2.
-- Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, now in the [backlog](../../../rfcs/feature-backlog.md#decision-model-classifier)) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
+- Design `[ai]` (provider, model, host, timeout, score, `max_document_chars`, `api_key_env`) and the `build_provider` factory, leaving room for a second kind of AI classifier (a decision model, now in the [backlog](../../../rfcs/RFC-005-decision-model-classifier.md)) alongside the chat model. `provider = "openai"` sends document text off the machine, so it must be chosen explicitly and the run must say so.
 - Design `[ai] max_document_chars` (how much of a document is sent to the AI): at least 0, where `0` means no limit. An unlimited run prints one warning before any document is classified, never one per document, about token usage, processing time and the model's context window (a longer document may fail or be cut off). The CLI prints it and `core` stays quiet; Stage 4.4 also logs it at WARNING. With `provider = "openai"` the warning also says the cost is real money.
 - Design the `microfiche-library.json` node schema as a recursive tree of folders, `{name, hints, rules, children}`, whose top level is the groups, so it is not tied to two levels and can be created from the folders. A `name` of `*` means any folder at that level, which keeps today's behaviour (hints global by category name) without repeating them in every group. The hints and rules for a group and category are the concrete nodes' first, then the `*` nodes'. The tree may not be deeper than `[library_structure] depth`. The file is reviewed and confirmed before it is built on.
 - Design the fuzzy-library switch: pass `score_cutoff=fuzzy_group_threshold` to the group match, decide whether scores stay rounded integers or become floats (84.6 used to round up to 85 and pass), and give `tag_mapper` an explicit `processor` because RapidFuzz's `extractOne` does not lowercase or strip punctuation by default.
@@ -213,7 +213,7 @@ target design is [architecture/overview.md §10](../../../architecture/overview.
 - Add `AIConfig` and `build_provider`, so `OllamaProvider` and `OpenAIProvider` are both reachable from `sort --use-ai`; this closes the Stage 4 `--ai-provider` gap. Read the OpenAI key from the environment variable named by `api_key_env`, never from the file.
 - Add `[ai] max_document_chars` (default 4000) and make `0` mean unlimited: send the whole document, and print the one-per-run warning designed above.
 - Add the `microfiche-library.json` model, loader and generated JSON Schema, and move `category_hints` and `filing_rules` into it as `*` nodes. A missing file means no hints; the sync that creates it is Stage 4.10.
-- Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widened it to 1–2; [depth 3](../../../rfcs/feature-backlog.md#subcategories-depth-3) is in the backlog) with a clear message.
+- Delete `library_templates`, `levels` and `file_target_level` from the config; validate `depth` against the supported range (2 until Stage 4.6 widened it to 1–2; [depth 3](../../../rfcs/RFC-006-subcategories-depth-3.md) is in the backlog) with a clear message.
 - Fix the stale `.yaml` mentions in `library/templates.py` and `rules/metadata_rules.py`, and update the shipped template folder (`microfiche/`) to match.
 - Replace `thefuzz` with `rapidfuzz` in `rules/group_rules.py` and `obsidian/tag_mapper.py`, as its own commit after the library file work: declare `rapidfuzz` in `core`'s `pyproject.toml`, remove `thefuzz` and its mypy override, and pass `score_cutoff` and `processor` as designed.
 
@@ -237,7 +237,7 @@ target design is [architecture/overview.md §10](../../../architecture/overview.
 commands from a config inside a shared library); per-group hint overrides.
 
 **Since removed:** the `obsidian/tag_mapper.py` part of the `rapidfuzz` switch, and its test, were built and later
-removed with the Obsidian integration. See [feature-backlog.md](../../../rfcs/feature-backlog.md#obsidian-integration).
+removed with the Obsidian integration. See [feature-backlog.md](../../../rfcs/RFC-002-obsidian-integration.md).
 
 ---
 
@@ -523,7 +523,7 @@ folder a user keeps inside a category. The reasoning is in [library-depth.md](..
 **Test**
 - Write a fixture with a category holding a filed bundle and a user's `attachments/` folder.
 - Write tests: the taxonomy ignores both; a pattern accepts and rejects the right names; an invalid pattern is reported with its file and level; `reclassify` keeps the bundle whole and leaves `attachments/` alone with a report line; `rollback` of the folder unit still restores it.
-- If [depth 3](../../../rfcs/feature-backlog.md#subcategories-depth-3) is ever built, add a depth-3 test that the bundle is not read as a subcategory.
+- If [depth 3](../../../rfcs/RFC-006-subcategories-depth-3.md) is ever built, add a depth-3 test that the bundle is not read as a subcategory.
 
 **Deploy**
 - Update `docs/how-to-use.md` (what microfiche leaves alone, and how to add a name pattern), the README, `architecture.md` §1 and §4, and `CONTEXT.md` (*non-library folder*).
@@ -542,7 +542,7 @@ line: `reclassify` reads their files as it always did, and the user keeps a fold
 - `Library.structure()` skips the folders the ledger records as filed whole. This matters as soon as the depth is raised: a bundle filed at `Group/pack` at depth 1 would otherwise become a category at depth 2 (and a subcategory at depth 3). `sort` only appends to the ledger, so an unreadable ledger is a warning there and the folders are simply not recognised.
 - `reclassify` reads the ledger, so a corrupt one now stops it with a message (`LedgerCorruptError`).
 - `core.reclassify.items_below_depth` counts the ledger's current items filed deeper than the depth allows and still on disk (a bundle counts once), and `reclassify` prints a note when there are any, after any moves. Nothing is moved.
-- The opt-in flatten that would bring those items up is recorded in [feature-backlog.md](../../../rfcs/feature-backlog.md#opt-in-flatten-when-the-depth-is-reduced).
+- The opt-in flatten that would bring those items up is recorded in [feature-backlog.md](../../../rfcs/RFC-003-opt-in-flatten.md).
 
 **Deferred:** detecting folders moved by hand that the ledger doesn't know about. A bundle moved by hand drops out of the unit set and is split by `reclassify`; the ledger's content hash could identify it at its new place, but the hash changes if its documents were edited. Pinned by a test.
 
@@ -614,7 +614,7 @@ completes the MVP's CLI surface, which no longer includes `index`.
 This stage used to be "Obsidian Integration & Review Workflow". The Obsidian half (`index.md` folder notes,
 `TagIndex.md` tag governance, the `[obsidian]` settings and the `index` command) was moved out of the MVP, because
 it extended the target and is better built on a plugin architecture than inside `core`. Its code and design are kept in
-[feature-backlog.md](../../../rfcs/feature-backlog.md#obsidian-integration). `review` stays: without it a unit below the confidence
+[feature-backlog.md](../../../rfcs/RFC-002-obsidian-integration.md). `review` stays: without it a unit below the confidence
 threshold has no way out of the inbox except filing it by hand.
 
 **Revised before building (2026-10-13).** Stage 5 does not wait for the decision-model classifier or depth 3 (since moved to the backlog), because
@@ -633,8 +633,8 @@ Decisions taken:
 - Decide where the queue comes from. `sort` keeps no queue: a unit below the threshold simply stays in the inbox, so the current `review` docstring ("from the most recent sort run") promises more than is stored. Either re-scan and re-classify the inbox, or save the last report under `.microfiche/`. The inbox is already the queue, so re-classifying is the simpler of the two; saving a report adds state that has to be kept in step with the inbox.
 
 **Design**
-- If a decision model is ever configured ([backlog](../../../rfcs/feature-backlog.md#decision-model-classifier)), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
-- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is ever built, depth 3 ([backlog](../../../rfcs/feature-backlog.md#subcategories-depth-3)).
+- If a decision model is ever configured ([backlog](../../../rfcs/RFC-005-decision-model-classifier.md)), design the `review` prompt to offer its top-ranked group and category candidates as suggestions to accept; with only a chat model there is nothing to rank.
+- Design one choice per level, so the prompt works at depth 1 (Stage 4.6), depth 2 and, if it is ever built, depth 3 ([backlog](../../../rfcs/RFC-006-subcategories-depth-3.md)).
 - Design "create new" as making a folder in the library. `propose-categories` never creates folders, so `review` would be the first command that does: decide whether it may, and require an explicit confirmation. Stage 4.10's library file sync then lists the new folder on the next run.
 - Design filing from `review` to take the same safeguards as `sort`: the run lock, the shared destination check and the duplicate check, and one `file_batch` job per session.
 
@@ -827,15 +827,15 @@ rather than in isolation:
 4.4. **Logging next** — it records decisions made by everything above, and Stages 5 and 6
    are easier to build and debug with it in place. It is small enough to move earlier if debugging needs it.
    (4.5, a decision-model classifier gated on a measurement, was moved to the backlog while under review; see
-   [feature-backlog.md](../../../rfcs/feature-backlog.md#decision-model-classifier).)
+   [feature-backlog.md](../../../rfcs/RFC-005-decision-model-classifier.md).)
 4.6. **Flat libraries before Stage 5** — `review` is built on the library's shape, so a one-level
    library has to exist first or it is reworked.
    (4.7, subcategories at depth 3, was moved to the backlog while under review; see
-   [feature-backlog.md](../../../rfcs/feature-backlog.md#subcategories-depth-3).)
+   [feature-backlog.md](../../../rfcs/RFC-006-subcategories-depth-3.md).)
 4.8. **Non-library folders** — useful on its own at depth 2, where `reclassify` would otherwise split a
    filed bundle. It is also the rule depth 3 would need to tell a subcategory from one.
    (4.9, an optional filing target mode, was moved to the backlog while under review; see
-   [feature-backlog.md](../../../rfcs/feature-backlog.md#filing-target-mode-file_at).)
+   [feature-backlog.md](../../../rfcs/RFC-004-filing-target-mode.md).)
 4.10. **Library file sync, after 4.3** — the library file arrives in 4.1 as a hand-written file; this makes it follow
    the folders, so a new library is not all review and a new folder needs no manual entry. It writes during
    `sort`, so it needs 4.3's `--dry-run` and run lock. Build it before 4.6, which reuses its structure
