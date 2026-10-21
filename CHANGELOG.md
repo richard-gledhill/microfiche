@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - skip the full run for docs-only changes and cancel superseded runs [`778413d`](https://github.com/richard-gledhill/microfiche/commit/778413d)
 
 ### Documentation
+- :robot: changelog file generated [`129fe9a`](https://github.com/richard-gledhill/microfiche/commit/129fe9a)
 - :robot: changelog file generated [`7cc0a3c`](https://github.com/richard-gledhill/microfiche/commit/7cc0a3c)
 - split the feature backlog into RFC files [`5b282d1`](https://github.com/richard-gledhill/microfiche/commit/5b282d1)
 - :robot: changelog file generated [`7922b7f`](https://github.com/richard-gledhill/microfiche/commit/7922b7f)
@@ -32,9 +33,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - :robot: changelog file generated [`ed0da18`](https://github.com/richard-gledhill/microfiche/commit/ed0da18)
 
 ### Chore
+- ignore local Claude Code settings, worktrees and installed skills [`8fd73f9`](https://github.com/richard-gledhill/microfiche/commit/8fd73f9)
 - added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
 
 ### Other
+- Merge pull request #78 from richard-gledhill/chore/gitignore-claude-local [`fced820`](https://github.com/richard-gledhill/microfiche/commit/fced820)
 - Merge pull request #77 from richard-gledhill/ci/skip-docs-only-runs [`b399464`](https://github.com/richard-gledhill/microfiche/commit/b399464)
 - Merge pull request #76 from richard-gledhill/docs/split-feature-backlog-into-rfcs [`98ce465`](https://github.com/richard-gledhill/microfiche/commit/98ce465)
 - Merge pull request #75 from richard-gledhill/feat/library-init [`39b46f4`](https://github.com/richard-gledhill/microfiche/commit/39b46f4)
