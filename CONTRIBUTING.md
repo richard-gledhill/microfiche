@@ -109,6 +109,9 @@ A test file mirrors its module's sections. The full rules are under "Module layo
 
 8. Submit a pull request through the GitHub website. CI runs the same checks (`ruff`, `mypy`,
    `pytest`) across Python 3.11–3.14, on Linux and Windows, automatically, plus the branch-naming check from step 3.
+   A pull request that changes only the Markdown docs (`docs/`, the `.md` files at the root, `microfiche/README.md`)
+   gets a lighter run instead: pre-commit, the tests on one Python version on Linux, and the docs build. Draft pull
+   requests run nothing until they are marked ready for review.
 
 ## Pull Request Guidelines
 

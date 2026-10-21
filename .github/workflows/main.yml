@@ -1,14 +1,25 @@
 name: Main
 
+# A change to the Markdown docs alone runs docs.yml instead. Its `paths` list must stay identical to `paths-ignore`
+# here, so every change runs at least one of the two. The list names Markdown outside tests/ only: the tests read the
+# .md files in their fixture libraries, and the package READMEs go into the wheels.
 on:
   push:
     branches:
       - main
+    paths-ignore: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
+
+# A new push to a pull request cancels the run it supersedes; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   quality:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -27,6 +38,7 @@ jobs:
 
   tests-and-type-check:
     # Windows as well as Linux: the junction, locked-file and run-lock code only runs there, and the project is used there.
+    if: github.event.pull_request.draft != true
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -54,6 +66,7 @@ jobs:
   coverage:
     # One run with coverage on, enforcing `fail_under` from pyproject.toml. Linux only: it measures the code, and the
     # matrix above is what shows that the code behaves the same everywhere.
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -68,6 +81,7 @@ jobs:
   wheels:
     # Builds the release wheels and installs them in a clean environment, so a broken release is found on the pull
     # request that breaks it, not on the day it is cut.
+    if: github.event.pull_request.draft != true
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -92,6 +106,7 @@ jobs:
         run: bash scripts/smoke_wheels.sh dist
 
   check-docs:
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - name: Check out
