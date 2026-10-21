@@ -12,7 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - add the core of init: check, install and edit a library's config [`bdc366a`](https://github.com/richard-gledhill/microfiche/commit/bdc366a)
 - report config problems as data and explain every default setting [`74d2d39`](https://github.com/richard-gledhill/microfiche/commit/74d2d39)
 
+### Continuous Integration
+- skip the full run for docs-only changes and cancel superseded runs [`778413d`](https://github.com/richard-gledhill/microfiche/commit/778413d)
+
 ### Documentation
+- :robot: changelog file generated [`7cc0a3c`](https://github.com/richard-gledhill/microfiche/commit/7cc0a3c)
 - split the feature backlog into RFC files [`5b282d1`](https://github.com/richard-gledhill/microfiche/commit/5b282d1)
 - :robot: changelog file generated [`7922b7f`](https://github.com/richard-gledhill/microfiche/commit/7922b7f)
 - mark library-init Done and archive its plan [`c83111c`](https://github.com/richard-gledhill/microfiche/commit/c83111c)
@@ -31,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - added *.whl to .gitignore so stray wheel does not show up as versioned [`0e2ed0a`](https://github.com/richard-gledhill/microfiche/commit/0e2ed0a)
 
 ### Other
+- Merge pull request #77 from richard-gledhill/ci/skip-docs-only-runs [`b399464`](https://github.com/richard-gledhill/microfiche/commit/b399464)
 - Merge pull request #76 from richard-gledhill/docs/split-feature-backlog-into-rfcs [`98ce465`](https://github.com/richard-gledhill/microfiche/commit/98ce465)
 - Merge pull request #75 from richard-gledhill/feat/library-init [`39b46f4`](https://github.com/richard-gledhill/microfiche/commit/39b46f4)
 - Merge pull request #74 from richard-gledhill/docs/post-mvp-prds [`d4dc543`](https://github.com/richard-gledhill/microfiche/commit/d4dc543)
