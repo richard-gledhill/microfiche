@@ -1,0 +1,44 @@
+name: Docs
+
+# Runs instead of main.yml when a change touches only these Markdown docs. `paths` must stay identical to main.yml's
+# `paths-ignore`, so every change runs at least one of the two.
+on:
+  push:
+    branches:
+      - main
+    paths: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
+
+# A new push to a pull request cancels the run it supersedes; runs on main always finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  docs:
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run pre-commit
+        run: uv run pre-commit run -a
+
+      # Some tests read these docs: the README config tables, docs/cli-reference.md and the module diagram.
+      # One Python version is enough for a docs change.
+      - name: Run tests
+        run: uv run python -m pytest tests
+
+      - name: Check if documentation can be built
+        run: uv run mkdocs build -s
