@@ -40,6 +40,9 @@ jobs:
   deploy-docs:
     # Not before the wheels are checked and attached: a release that fails that check should not publish its docs either.
     needs: attach-wheels
+    # GitHub Pages isn't available while the repository is private on the free plan. Set the repository variable
+    # PAGES_ENABLED to "true" once Pages is turned on (Settings > Pages > Source: GitHub Actions).
+    if: vars.PAGES_ENABLED == 'true'
     permissions:
       contents: read
       pages: write
