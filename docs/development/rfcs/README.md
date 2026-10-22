@@ -11,7 +11,7 @@ questions to settle.
   each other, and set the RFC's status. Never delete an RFC; a rejected one keeps its reasoning.
 
 When a GitHub Project is set up, the tracker becomes the single source of truth: new RFCs are GitHub issues labelled
-`rfc` (the label doesn't exist yet), local files are no longer added, and each open local RFC is moved to an issue and
+`rfc`, local files are no longer added, and each open local RFC is moved to an issue and
 linked from here.
 
 | File | What it is |
