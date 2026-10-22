@@ -19,6 +19,54 @@ actually implemented vs. still partial or deferred. See
 [data-model.md](docs/development/architecture/data-model.md) (ledger/audit/rollback schemas) and
 [MVP build plan](docs/development/plan/archive/2026-10-mvp/plan.md) (staged build-from-scratch plan).
 
+## Development docs location
+
+All development documentation lives under `docs/development/`, which is excluded from the MkDocs site;
+[docs/development/README.md](docs/development/README.md) says where each kind of doc goes. These paths override any
+default paths in skills or commands:
+
+- Constraints: `docs/development/constraints.md` — project-wide; read before writing code; do not weaken it to make a
+  change pass
+- Conventions: `docs/development/conventions.md` — the style guide. The hook blocks agent edits to both
+  `conventions.md` and `constraints.md`; describe the change you want in your summary and let the user make or
+  approve it
+- Requirements (PRDs, product briefs, user stories) live in `docs/development/requirements/`. Don't edit an existing
+  requirements doc without asking. Create a new one only when the user asks. The exception is
+  `requirements/mvp-roadmap.md`, a living status doc kept current as commands change (see `conventions.md`, Docs)
+- Spec: `docs/development/plan/SPEC.md` (not root SPEC.md)
+- Plan: `docs/development/plan/plan.md`
+- Task list: `docs/development/plan/todo.md`
+- SPEC.md is the technical spec for the current work. Link to its source in `requirements/`, and reference
+  `conventions.md`, `constraints.md` and `testing/` instead of restating them. Record only what's specific to this work.
+- ADRs: `docs/development/adr/`, format `ADR-NNN-title.md`; continue the existing sequence
+- When work ships, move `SPEC.md`, `plan.md` and `todo.md` together into
+  `docs/development/plan/archive/<YYYY-MM-feature>/`, and update the requirement's Status.
+  If `plan/` already has an unfinished plan for different work, stop and ask.
+- RFCs: no tracker is set up yet, so RFCs are local `docs/development/rfcs/RFC-NNN-title.md` files; continue the
+  existing sequence. [`docs/development/rfcs/README.md`](docs/development/rfcs/README.md) says which mode the project
+  uses. Once a GitHub Project is the tracker, it is the single source of truth: don't create or copy RFCs into
+  `docs/development/rfcs/` then; refer to the issue instead. When an RFC is decided, record it as an ADR and link the
+  two both ways.
+- Never write development docs into the MkDocs content under `docs/` outside `development/`
+- You may edit and add MkDocs pages (user-facing docs under `docs/`, outside `development/`) and `mkdocs.yml`
+  when a change needs it. Add new pages to `nav:` and run `make docs-test` to check the site still builds.
+- A hook (`.claude/hooks/guard_docs.py`) enforces the development paths and protects `conventions.md`,
+  `constraints.md` and existing files in `requirements/`. If a write is blocked, follow the redirect in the hook's
+  message, or ask the user if the file is protected. Don't use shell commands to get around it.
+
+## Tracking work
+
+This repository is tied only to the `microfiche` project. Don't link to, reference, or create issues or pull requests
+in any other repository, including the `scratch-cookiecutter-uv` template or any cookiecutter-uv fork.
+
+- Track work as GitHub issues in this repository. Label each one `issue`, `bugfix` or `rfc` (a request for change,
+  discussed before it is built).
+- Create, edit or close issues only when the user asks.
+- No GitHub Project is linked yet (check with `gh repo view --json projectsV2`). Until one is, RFCs stay as local
+  files (above) and there is no board to update.
+- A decided RFC is recorded as an ADR in `docs/development/adr/`; link the RFC (or its issue) and the ADR to each other.
+- Reference the issue in commits and PRs (`Closes #N`).
+
 ## Commands
 
 ```bash

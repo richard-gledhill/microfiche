@@ -58,7 +58,7 @@ new docstrings consistent with that convention.
 Longer modules (about 150+ lines) follow a fixed order — constants and types, errors, public API, then
 private helpers — with each section wrapped in `# region` / `# endregion` so PyCharm and VS Code can fold it.
 A test file mirrors its module's sections. The full rules are under "Module layout" in
-[AGENTS.md](https://github.com/richard-gledhill/microfiche/blob/main/AGENTS.md#conventions).
+[docs/development/conventions.md](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/conventions.md).
 
 1. Fork the `microfiche` repo on GitHub.
 
