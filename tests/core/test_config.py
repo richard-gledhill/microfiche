@@ -650,7 +650,10 @@ def test_load_config_plain_value_section_not_called_unknown(tmp_path: Path) -> N
 
     message = str(exc_info.value)
     assert "classification:" in message
-    assert "unknown" not in message
+    # Not a bare "unknown": the message includes the file's path, and tmp_path is under "pytest-of-unknown" when the
+    # user name isn't set (as under tox on Windows).
+    assert "unknown section" not in message
+    assert "unknown setting" not in message
 
 
 def test_load_config_bad_list_value_located_by_index(tmp_path: Path) -> None:

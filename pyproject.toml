@@ -26,12 +26,14 @@ Documentation = "https://richard-gledhill.github.io/microfiche/"
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
-    "pytest-cov>=6.0.0",
+    "pytest-cov>=7.1.0",
     "pre-commit>=4.5.1",
     "tox-uv>=1.33.4",
     "deptry>=0.25.1",
     "mypy>=1.19.1",
     "ruff>=0.15.7",
+]
+docs = [
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.7.6",
     "mkdocstrings[python]>=1.0.3",
@@ -41,15 +43,11 @@ dependencies = [
     "cli",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/microfiche"]
-
 [tool.uv]
-default-groups = ["dev", "dependencies"]
+# The workspace root is not a package: only core and cli are built and released.
+package = false
+# Local `uv sync` and `uv run` install every group; a CI job can leave one out with the setup action's `no-group`.
+default-groups = ["dev", "docs", "dependencies"]
 
 [tool.uv.workspace]
 members = [
