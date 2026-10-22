@@ -1,5 +1,9 @@
 name: Branch naming
 
+# Branch names use <type>/<short-description>, where <type> is a Conventional Commits
+# type (https://www.conventionalcommits.org/en/v1.0.0/), the same set used for commit
+# subjects, plus `feature` as an alias of `feat`. See docs/development/conventions.md (Git).
+
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
