@@ -69,6 +69,18 @@ def test_llm_classifier_category_prompt_only_group_categories() -> None:
     assert "Globex" not in prompt
 
 
+def test_llm_classifier_category_group_without_categories_skips_provider() -> None:
+    provider = ScriptedProvider("Contracts")
+    taxonomy = Taxonomy(groups={"Acme Ltd": []})
+
+    match = LLMClassifier(provider, _settings()).resolve_category(_document("text"), "Acme Ltd", taxonomy)
+
+    assert provider.prompts == []
+    assert match.name is None
+    assert match.confidence == 0.0
+    assert match.reason == "Group has no categories"
+
+
 def test_llm_classifier_valid_group_answer_uses_ai_confidence() -> None:
     match = LLMClassifier(ScriptedProvider("  Globex\n"), _settings()).resolve_group(_document("text"), TAXONOMY)
 

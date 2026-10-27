@@ -83,10 +83,12 @@ class LLMClassifier:
 
         Returns:
             The category the model picked, or ``name=None`` if it said none fit or named
-            something that isn't an existing category of ``group``.
+            something that isn't an existing category of ``group``. A group with no categories is not asked about.
         """
 
         categories = taxonomy.categories_for(group)
+        if not categories:
+            return CategoryMatch(name=None, confidence=0.0, reason="Group has no categories")
         prompt = CATEGORY_RESOLUTION_PROMPT.format(
             group_name=group,
             category_names=", ".join(categories),
