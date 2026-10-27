@@ -381,6 +381,18 @@ class MissingApiKeyError(ConfigError):
         )
 
 
+class EmptyModelError(ConfigError):
+    """Raised when the AI is wanted but ``[ai] model`` is empty: microfiche picks no model for you."""
+
+    def __init__(self, provider: str) -> None:
+        self.provider = provider
+        if provider == "openai":
+            how = "set it to an OpenAI model name, for example gpt-4o-mini"
+        else:
+            how = "set it to a model installed in Ollama (`ollama list` shows them, `ollama pull <name>` installs one)"
+        super().__init__(f"[ai] model is empty: {how}.")
+
+
 class InvalidLogFileNameError(ValueError):
     """Raised when ``[logging] file`` isn't a usable log file name."""
 

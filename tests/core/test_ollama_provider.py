@@ -44,7 +44,7 @@ def fake_ollama(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
 
 
 def test_ollama_provider_complete_returns_reply_text(fake_ollama: _Recorder) -> None:
-    assert OllamaProvider().complete("Which group?") == "Acme Ltd"
+    assert OllamaProvider(model="llama3").complete("Which group?") == "Acme Ltd"
 
 
 def test_ollama_provider_complete_sends_prompt_to_named_model(fake_ollama: _Recorder) -> None:
@@ -54,13 +54,13 @@ def test_ollama_provider_complete_sends_prompt_to_named_model(fake_ollama: _Reco
 
 
 def test_ollama_provider_complete_no_host_or_timeout_uses_client_defaults(fake_ollama: _Recorder) -> None:
-    OllamaProvider().complete("Which group?")
+    OllamaProvider(model="llama3").complete("Which group?")
 
     assert fake_ollama.client_kwargs == {}
 
 
 def test_ollama_provider_complete_passes_host_and_timeout_to_client(fake_ollama: _Recorder) -> None:
-    OllamaProvider(host="http://gpu-box:11434", timeout=30).complete("Which group?")
+    OllamaProvider(model="llama3", host="http://gpu-box:11434", timeout=30).complete("Which group?")
 
     assert fake_ollama.client_kwargs == {"host": "http://gpu-box:11434", "timeout": 30}
 

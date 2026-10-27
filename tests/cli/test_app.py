@@ -524,7 +524,7 @@ def test_sort_use_ai_openai_without_key_fails_cleanly_and_sorts_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     library = _library(tmp_path)
-    _set_ai(library, 'provider = "openai"\n')
+    _set_ai(library, 'provider = "openai"\nmodel = "gpt-4o"\n')
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     before = _tree(library)
 

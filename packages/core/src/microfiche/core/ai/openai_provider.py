@@ -13,7 +13,7 @@ from typing import Any
 class OpenAIProvider:
     """Talks to the OpenAI API."""
 
-    model: str = "gpt-4o-mini"
+    model: str
     api_key: str | None = field(default=None, repr=False)
     timeout: float | None = None
 

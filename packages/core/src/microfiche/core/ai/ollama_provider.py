@@ -14,7 +14,7 @@ from typing import Any
 class OllamaProvider:
     """Talks to a local Ollama server."""
 
-    model: str = "llama3"
+    model: str
     host: str | None = None
     timeout: float | None = None
 

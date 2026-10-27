@@ -48,13 +48,13 @@ def fake_openai(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
 
 
 def test_openai_provider_complete_returns_reply_text(fake_openai: _Recorder) -> None:
-    assert OpenAIProvider().complete("Which group?") == "Acme Ltd"
+    assert OpenAIProvider(model="gpt-4o").complete("Which group?") == "Acme Ltd"
 
 
 def test_openai_provider_complete_no_reply_returns_empty_string(fake_openai: _Recorder) -> None:
     fake_openai.reply = None
 
-    assert OpenAIProvider().complete("Which group?") == ""
+    assert OpenAIProvider(model="gpt-4o").complete("Which group?") == ""
 
 
 def test_openai_provider_complete_sends_prompt_to_named_model(fake_openai: _Recorder) -> None:
@@ -64,13 +64,13 @@ def test_openai_provider_complete_sends_prompt_to_named_model(fake_openai: _Reco
 
 
 def test_openai_provider_complete_no_key_or_timeout_uses_client_defaults(fake_openai: _Recorder) -> None:
-    OpenAIProvider().complete("Which group?")
+    OpenAIProvider(model="gpt-4o").complete("Which group?")
 
     assert fake_openai.client_kwargs == {}
 
 
 def test_openai_provider_complete_passes_key_and_timeout_to_client(fake_openai: _Recorder) -> None:
-    OpenAIProvider(api_key="sk-test", timeout=30).complete("Which group?")
+    OpenAIProvider(model="gpt-4o", api_key="sk-test", timeout=30).complete("Which group?")
 
     assert fake_openai.client_kwargs == {"api_key": "sk-test", "timeout": 30}
 
@@ -82,7 +82,7 @@ def test_openai_provider_complete_passes_key_and_timeout_to_client(fake_openai: 
 
 
 def test_openai_provider_repr_hides_api_key() -> None:
-    assert "sk-secret" not in repr(OpenAIProvider(api_key="sk-secret"))
+    assert "sk-secret" not in repr(OpenAIProvider(model="gpt-4o", api_key="sk-secret"))
 
 
 # endregion
