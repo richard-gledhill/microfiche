@@ -411,8 +411,12 @@ carries on, and `config --sync` exits with an error.
   appear in your documents (project, client or course names usually do). A document that doesn't
   mention any group is listed under **Needs review** and left in the inbox.
 - Categories can use hints, so they don't need to appear literally.
-- A leading number such as `01 ` is ignored when matching names, so you can use it to order
-  folders.
+- Names are compared in one spelling (`[classification] normalise_names`, on by default), so `meeting-notes`,
+  `meeting_notes`, `MeetingNotes` and `Meeting Notes` all match the words "meeting notes", `R&D` matches "R and D",
+  an apostrophe or accent doesn't matter, and keyword hints are compared the same way. `+` and `#` are kept, so `C++` and
+  `C#` stay different names. A leading one-to-three-digit number such as `01 `, `01-` or `01_` is ignored, so you can use
+  it to order folders; a date such as `2024-03 Invoices` is not. Your folders are never renamed. If two sibling
+  folders read the same (`meeting-notes` and `meeting_notes`), or a name has no letters or digits, `config --sync` says so.
 - A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
   `[exclusions] exclude`. The default excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot or an
   underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which is
@@ -526,6 +530,7 @@ name_match_confidence = 0.9       # a category's name found in the text
 filename_match_confidence = 0.95  # a filename rule
 hint_match_confidence = 0.75      # a keyword hint
 fuzzy_group_threshold = 85        # how close (0-100) a near-miss must be to a group's name
+normalise_names = true            # compare names, hints and text in one spelling ("meeting-notes" = "Meeting Notes")
 
 [ai]
 ai_confidence = 0.70              # any answer from the AI fallback

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from microfiche.core.models.classification import GroupMatch
+from microfiche.core.rules.normalise import normalise_for_matching
 from rapidfuzz import fuzz
 
 
-def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> GroupMatch:
+def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int, normalise: bool = True) -> GroupMatch:
     """Match ``text`` against known group names by substring, then fuzzy match.
 
     A group name found in the lowercased text is an exact match. Otherwise the best fuzzy match
@@ -20,6 +21,8 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> G
         text: The text to be analyzed for matching.
         group_names: The group names to match against the text.
         fuzzy_threshold: The lowest fuzzy score (0 to 100) that counts as a match.
+        normalise: Compare names and text through ``normalise_for_matching``, so ``R&D`` finds ``R and D``. Off
+            compares them as lowercased, as written.
 
     Returns:
         The best matching group with its confidence and the reason for it, or a match with
@@ -29,7 +32,7 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> G
         - Need to review the group_name match. Consider as config option to sort by extracted title and keywords.
     """
 
-    lowered = text.lower()
+    lowered = normalise_for_matching(text) if normalise else text.lower()
     best_name: str | None = None
     best_score = 0
     # Scores are rounded to a whole number before they are compared with the threshold, so 84.6 counts as 85.
@@ -37,10 +40,13 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int) -> G
     cutoff = max(0, fuzzy_threshold - 1)
 
     for group_name in group_names:
-        if group_name.lower() in lowered:
+        wanted = normalise_for_matching(group_name, folder_name=True) if normalise else group_name.lower()
+        if not wanted:
+            continue
+        if wanted in lowered:
             return GroupMatch(name=group_name, confidence=1.0, reason=f"Exact match on group name '{group_name}'")
 
-        score = round(fuzz.partial_ratio(group_name.lower(), lowered, score_cutoff=cutoff))
+        score = round(fuzz.partial_ratio(wanted, lowered, score_cutoff=cutoff))
         if score > best_score:
             best_name, best_score = group_name, score
 

@@ -122,6 +122,8 @@ def render_library_sync(console: Console, sync: LibrarySync) -> None:
         console.print(
             f"  [yellow]{escape(path)}[/yellow] is in {LIBRARY_FILENAME} but has no folder{note}", soft_wrap=True
         )
+    for warning in sync.name_warnings:
+        console.print(f"  [yellow]{escape(warning)}[/yellow]", soft_wrap=True)
 
 
 def render_reclassify_table(

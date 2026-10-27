@@ -207,6 +207,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 - **Ambiguity check.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). Hold a document when more than one group is named in its text, or more than one
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
+- **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration corpus not yet extended with separator-named folders.
 - **Match group names on word boundaries.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). `Car` matches `carrier` and `card`; short or common group
   names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
   regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply

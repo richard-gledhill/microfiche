@@ -22,6 +22,9 @@ filename_match_confidence = 0.95  # a filename rule
 hint_match_confidence = 0.75      # a keyword hint
 # How close (0 to 100) a near-miss must be to a group's name to count as that group.
 fuzzy_group_threshold = 85
+# Compare folder names, hints and document text in one spelling ("meeting-notes" matches "Meeting Notes", "R&D"
+# matches "R and D"). Folders are never renamed.
+normalise_names = true
 
 # The AI fallback, used with `sort --use-ai` only for stages the rules can't answer confidently.
 [ai]

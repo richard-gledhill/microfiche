@@ -403,3 +403,32 @@ def test_sync_library_file_rename_fails_original_kept_no_leftover(tmp_path: Path
 
 
 # endregion
+
+
+def test_sync_library_file_colliding_siblings_warned(tmp_path: Path) -> None:
+    root = _build(tmp_path)
+    (root / "Project Phoenix" / "meeting-notes").mkdir()
+    (root / "Project Phoenix" / "meeting_notes").mkdir()
+
+    result = sync_library_file(Library(root))
+
+    assert len(result.name_warnings) == 1
+    assert "'meeting-notes', 'meeting_notes'" in result.name_warnings[0]
+
+
+def test_sync_library_file_unmatchable_name_warned(tmp_path: Path) -> None:
+    root = _build(tmp_path)
+    (root / "Project Phoenix" / "---").mkdir()
+
+    result = sync_library_file(Library(root))
+
+    assert result.name_warnings == ["Project Phoenix/--- can never match a document: its name has no letters or digits"]
+
+
+def test_sync_library_file_normalise_names_off_no_name_warnings(tmp_path: Path) -> None:
+    root = _build(tmp_path)
+    (root / "Project Phoenix" / "---").mkdir()
+    (root / ".microfiche").mkdir()
+    (root / ".microfiche" / "microfiche-config.toml").write_text("[classification]\nnormalise_names = false\n")
+
+    assert sync_library_file(Library(root)).name_warnings == []

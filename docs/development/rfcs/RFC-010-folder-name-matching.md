@@ -1,6 +1,8 @@
 # RFC-010: Folder-name matching: separators, case styles and special characters
 
-Status: Draft
+Status: Accepted
+
+Decided on 2026-10-27 and recorded in [ADR-005](../adr/ADR-005-folder-name-matching.md); the open questions below were settled there.
 
 **Background:** raised on 2026-10-25 from a review of how folder names are matched against document text. Nothing built.
 Found by reading the code and tests; the examples below were not run.
