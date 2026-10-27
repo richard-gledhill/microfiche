@@ -64,7 +64,12 @@ class RulesEngine:
         if by_name.name is not None:
             return by_name
         hints = {group: self._library_file.group_hints_for(group) for group in taxonomy.group_names}
-        return match_group_hints(document.content, hints, confidence=self._settings.hint_match_confidence)
+        return match_group_hints(
+            document.content,
+            hints,
+            confidence=self._settings.hint_match_confidence,
+            normalise=self._settings.normalise_names,
+        )
 
     def resolve_category(self, document: Document, group: str, taxonomy: Taxonomy) -> CategoryMatch:
         """Propose a category of ``group``: by filename rule first, then by name or keyword hint.
@@ -94,7 +99,13 @@ class RulesEngine:
             hints,
             name_confidence=self._settings.name_match_confidence,
             hint_confidence=self._settings.hint_match_confidence,
+            normalise=self._settings.normalise_names,
         )
 
     def _match_name(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
-        return match_group(document.content, taxonomy.group_names, fuzzy_threshold=self._settings.fuzzy_group_threshold)
+        return match_group(
+            document.content,
+            taxonomy.group_names,
+            fuzzy_threshold=self._settings.fuzzy_group_threshold,
+            normalise=self._settings.normalise_names,
+        )

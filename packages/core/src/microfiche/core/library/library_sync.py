@@ -22,6 +22,7 @@ from microfiche.core.library.library_file import (
     can_be_entry_name,
     load_library_file,
 )
+from microfiche.core.rules.normalise import normalise_for_matching
 
 _logger = logging.getLogger(__name__)
 
@@ -43,6 +44,9 @@ class LibrarySync:
             entry starts with no hints.
         write_error: Why the file could not be written, or ``None``. ``added`` then lists what a write would
             have added, and the next run tries again.
+        name_warnings: Folders whose names matching cannot tell apart, as sentences: a name that is nothing but
+            punctuation, so it can never match, and siblings that compare equal (``meeting-notes`` and
+            ``meeting_notes``). Empty when ``[classification] normalise_names`` is off. Nothing is changed.
     """
 
     created: bool = False
@@ -50,6 +54,7 @@ class LibrarySync:
     missing: list[str] = field(default_factory=list)
     possible_renames: list[tuple[str, str]] = field(default_factory=list)
     write_error: str | None = None
+    name_warnings: list[str] = field(default_factory=list)
 
 
 # endregion
@@ -89,8 +94,12 @@ def sync_library_file(library: Library) -> LibrarySync:
     sync = LibrarySync()
     groups = _merge(library, existing.groups, library.structure(), Path(), sync)
     _find_possible_renames(sync)
+    if library.config.classification.normalise_names:
+        _find_name_problems(library.structure(), Path(), sync)
     for gone in sync.missing:
         _logger.warning("library file: %s has an entry but no folder", gone)
+    for warning in sync.name_warnings:
+        _logger.warning("library file: %s", warning)
     if not sync.added:
         return sync
 
@@ -154,6 +163,25 @@ def _find_possible_renames(sync: LibrarySync) -> None:
         siblings_new = [path for path in sync.added if Path(path).parent == parent]
         if len(siblings_gone) == 1 and len(siblings_new) == 1:
             sync.possible_renames.append((gone, siblings_new[0]))
+
+
+def _find_name_problems(folders: list[FolderNode], parent: Path, sync: LibrarySync) -> None:
+    """Record in ``sync`` each folder name that normalises to nothing and each set of siblings that normalise equal."""
+
+    by_form: dict[str, list[str]] = {}
+    for folder in folders:
+        path = (parent / folder.name).as_posix()
+        form = normalise_for_matching(folder.name, folder_name=True)
+        if not form:
+            sync.name_warnings.append(f"{path} can never match a document: its name has no letters or digits")
+        else:
+            by_form.setdefault(form, []).append(folder.name)
+        _find_name_problems(folder.children, parent / folder.name, sync)
+    for names in by_form.values():
+        if len(names) > 1:
+            listed = ", ".join(repr(name) for name in names)
+            where = parent.as_posix() if parent != Path() else "the library root"
+            sync.name_warnings.append(f"In {where}, {listed} match the same words, so only the first is ever chosen")
 
 
 def _write(path: Path, library_file: LibraryFile) -> None:

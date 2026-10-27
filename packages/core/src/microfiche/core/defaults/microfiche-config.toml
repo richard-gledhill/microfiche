@@ -21,6 +21,9 @@ filename_match_confidence = 0.95
 hint_match_confidence = 0.75
 # How close (0 to 100) a near-miss must be to a group's name to count as that group.
 fuzzy_group_threshold = 85
+# Compare folder names, keyword hints and document text in one spelling, so "meeting-notes", "MeetingNotes" and
+# "01_meeting_notes" all match "Meeting Notes" and "R&D" matches "R and D". Folders are never renamed.
+normalise_names = true
 
 [ai]
 # Who answers: "ollama" (on your machine) or "openai" (sends the text of each document it is asked about
