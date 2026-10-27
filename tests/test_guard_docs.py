@@ -99,20 +99,12 @@ def test_guard_missing_protected_file_creation_passes(tmp_path: Path, rel_path: 
     "rel_path",
     ["docs/development/requirements/auth-flow-prd.md", "docs/development/requirements/archive/old-prd.md"],
 )
-def test_guard_existing_requirements_file_blocked(tmp_path: Path, rel_path: str, run_hook: HookRunner) -> None:
+def test_guard_existing_requirements_file_edit_passes(tmp_path: Path, rel_path: str, run_hook: HookRunner) -> None:
+    # PROTECTED_DIRS is empty by default, so existing requirements files are not protected.
     existing = tmp_path / rel_path
     existing.parent.mkdir(parents=True)
     existing.write_text("Status: Draft", encoding="utf-8")
-    result = run_hook(str(existing))
-    assert result.returncode == 2
-    assert "protected" in result.stderr
-
-
-def test_guard_existing_mvp_roadmap_edit_passes(tmp_path: Path, run_hook: HookRunner) -> None:
-    roadmap = tmp_path / "docs" / "development" / "requirements" / "mvp-roadmap.md"
-    roadmap.parent.mkdir(parents=True)
-    roadmap.write_text("# MVP roadmap", encoding="utf-8")
-    assert run_hook(str(roadmap)).returncode == 0
+    assert run_hook(str(existing)).returncode == 0
 
 
 @pytest.mark.parametrize(

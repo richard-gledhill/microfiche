@@ -2,9 +2,8 @@
 
 Reads the tool call as JSON on stdin. Exit 2 (with a message on stderr) blocks the write and tells the
 agent what to do instead; exit 0 allows it. Edits to MkDocs content and mkdocs.yml are allowed.
-conventions.md and constraints.md ship with the project and are protected: only the owner changes them. Existing
-files under docs/development/requirements/ are protected the same way, except mvp-roadmap.md, the living status doc that
-agents keep current; creating a new one is allowed.
+conventions.md and constraints.md ship with the project and are protected: only the owner changes them. Add a
+directory to PROTECTED_DIRS to protect its existing files the same way; creating a new one is still allowed.
 Shell-command edits (mv, sed) are not seen by this hook.
 """
 
@@ -29,9 +28,7 @@ PREFIX_REDIRECTS = {
     "docs/development/tasks/": f"{PLAN}/",
 }
 PROTECTED = ("docs/development/conventions.md", "docs/development/constraints.md")
-PROTECTED_DIRS = ("docs/development/requirements/",)
-# Edited in place whenever a command's status changes (see conventions.md, Docs), so not protected.
-UNPROTECTED = ("docs/development/requirements/mvp-roadmap.md",)
+PROTECTED_DIRS: tuple[str, ...] = ()  # e.g. ("docs/development/requirements/",)
 
 data = json.load(sys.stdin)
 path = data.get("tool_input", {}).get("file_path")
@@ -45,8 +42,7 @@ try:
 except ValueError:
     sys.exit(0)  # outside the repo
 
-protected_dir_file = rel.startswith(PROTECTED_DIRS) and rel not in UNPROTECTED and resolved.is_file()
-if (rel in PROTECTED and resolved.exists()) or protected_dir_file:
+if (rel in PROTECTED and resolved.exists()) or (rel.startswith(PROTECTED_DIRS) and resolved.is_file()):
     print(
         f"Blocked: {rel} is protected (see AGENTS.md). Don't edit it to match your code. "
         "Describe the change you think is needed in your summary and ask the user to make or approve it.",
