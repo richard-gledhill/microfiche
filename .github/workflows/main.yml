@@ -1,16 +1,14 @@
 name: Main
 
-# A change to the Markdown docs alone runs docs.yml instead. Its `paths` list must stay identical to `paths-ignore`
-# here, so every change runs at least one of the two. The list names Markdown outside tests/ only: the tests read the
-# .md files in their fixture libraries, and the package READMEs go into the wheels.
+# Runs on every change. `changes` decides whether a pull request touches anything besides the Markdown docs:
+# `quality`, `quick-tests` and `check-docs` always run, the rest only for such a change, and `ci-ok` is the one job
+# the ruleset requires, so it passes only when every job it waits on passed or was skipped on purpose.
 on:
   push:
     branches:
       - main
-    paths-ignore: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["*.md", ".junie/*.md", "microfiche/*.md", "docs/**"]
 
 # A new push to a pull request cancels the run it supersedes; runs on main always finish.
 concurrency:
@@ -18,8 +16,45 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  quality:
+  changes:
+    # `code` is false only for a pull request whose every changed file, against the merge base, is one of the docs
+    # below. The list names Markdown outside tests/ only: the tests read the .md files in their fixture libraries, and
+    # the package READMEs go into the wheels. A push to main, an empty diff or a failed diff counts as code.
     if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Compare with the merge base
+        id: diff
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          code=true
+          if [ "$EVENT" = pull_request ] && files=$(git diff --name-only "$BASE...$HEAD") && [ -n "$files" ]; then
+            code=false
+            while IFS= read -r file; do
+              docs="^(docs/|[^/]+\.md$|\.junie/[^/]+\.md$|microfiche/[^/]+\.md$)"
+              if ! [[ "$file" =~ $docs ]]; then
+                echo "Not a docs file: $file"
+                code=true
+                break
+              fi
+            done <<< "$files"
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Runs the full CI: $code"
+
+  quality:
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -36,9 +71,25 @@ jobs:
       - name: Run checks
         run: make check
 
+  quick-tests:
+    # One fast run on every change, docs included: some tests read docs (the README config tables,
+    # docs/cli-reference.md, the module diagram and the docs/development layout).
+    needs: changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up the environment
+        uses: ./.github/actions/setup-python-env
+
+      - name: Run tests
+        run: uv run python -m pytest tests
+
   tests-and-type-check:
     # Windows as well as Linux: the junction, locked-file and run-lock code only runs there, and the project is used there.
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -66,7 +117,8 @@ jobs:
   coverage:
     # One run with coverage on, enforcing `fail_under` from pyproject.toml. Linux only: it measures the code, and the
     # matrix above is what shows that the code behaves the same everywhere.
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -81,7 +133,8 @@ jobs:
   wheels:
     # Builds the release wheels and installs them in a clean environment, so a broken release is found on the pull
     # request that breaks it, not on the day it is cut.
-    if: github.event.pull_request.draft != true
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -106,7 +159,7 @@ jobs:
         run: bash scripts/smoke_wheels.sh dist
 
   check-docs:
-    if: github.event.pull_request.draft != true
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - name: Check out
@@ -117,3 +170,21 @@ jobs:
 
       - name: Check if documentation can be built
         run: uv run mkdocs build -s
+
+  ci-ok:
+    # The only check the ruleset requires, so renaming or adding a matrix job never blocks merging. It fails if any job
+    # it waits on failed or was cancelled; a job skipped because `changes` found docs only counts as passing.
+    if: always() && github.event.pull_request.draft != true
+    needs: [changes, quality, quick-tests, tests-and-type-check, coverage, wheels, check-docs]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every job passed or was skipped on purpose
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+          CHANGES: ${{ needs.changes.result }}
+        run: |
+          echo "Results: $RESULTS"
+          if [ "$CHANGES" != success ]; then echo "The changes job did not succeed"; exit 1; fi
+          for result in $RESULTS; do
+            case "$result" in success|skipped) ;; *) echo "A job ended with: $result"; exit 1 ;; esac
+          done
