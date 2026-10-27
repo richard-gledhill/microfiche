@@ -395,7 +395,7 @@ class EmptyModelError(ConfigError):
             how = "set it to an OpenAI model name, for example gpt-4o-mini"
         else:
             how = "set it to a model installed in Ollama (`ollama list` shows them, `ollama pull <name>` installs one)"
-        super().__init__(f"[ai] model is empty: {how}.")
+        super().__init__(f'[ai] model is empty (provider = "{provider}"): {how}.')
 
 
 class InvalidLogFileNameError(ValueError):

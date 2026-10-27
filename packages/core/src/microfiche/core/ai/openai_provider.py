@@ -1,6 +1,6 @@
 """Cloud model inference via the OpenAI API - optional, per the PRD's "cloud LLM support" section.
 
-Requires an API key in the environment and the optional `openai` dependency (``uv sync --extra ai``).
+Requires an API key in the environment and the optional `openai` dependency (``uv sync --package core --extra ai``).
 """
 
 from __future__ import annotations
@@ -58,5 +58,5 @@ class OpenAIProvider:
             "unauthorized": "Check the key in the environment variable named by [ai] api_key_env.",
             "unreachable": "Check your network connection.",
             "timeout": "Raise [ai] timeout, or use a smaller model.",
-            "missing_package": "Install the ai extra (`uv sync --extra ai`).",
+            "missing_package": "Install the openai package (from a source checkout: `uv sync --package core --extra ai`).",
         }
