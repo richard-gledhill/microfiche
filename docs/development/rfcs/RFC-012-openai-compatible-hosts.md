@@ -44,6 +44,19 @@ listed in the questions only so the setting's name does not box them out.
 
 ## Questions to settle before building it
 
+- **One address setting for both providers, or `base_url` beside `host`?** The proposal as written adds `base_url`
+  (OpenAI-compatible only) next to `host` (Ollama only). That leaves two settings for the same idea, each rejected
+  with the other's provider. The alternative merges them into one `[ai]` shape:
+  - `provider`: the API style, `"ollama"` or `"openai"`;
+  - `url`: where the server is, for either provider, empty meaning that provider's own default (renaming `host`);
+  - `model`: unchanged;
+  - `api_key_env`: the key variable, usable by either provider (Ollama behind a gateway can need a key).
+
+  The rename needs no migration: microfiche has not had a public release, so no deprecation step or old-name
+  fallback is needed. It does change the validators (`HostWithoutOllamaError` goes), the `init` prompts, the `[ai]`
+  comments, the library schema if it names `host`, and the docs. Leaning to the merge, since keeping `host` and
+  adding `base_url` means a rename later anyway; the first version stays smaller if `base_url` goes in alone.
+
 - `base_url` on the `openai` provider, or a new provider name (for example `"openai-compatible"`) so the privacy
   notice and docs can be honest about "not OpenAI"? The proposal keeps one provider and makes the notice name the host.
 - Is an unset key variable an error when `base_url` is set? Local servers often need none, and some SDK versions
