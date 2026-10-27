@@ -121,7 +121,8 @@ progress bar (`cli/progress.py`) on a terminal, for 20 or more units or when the
 `progress(done, total)` callback so `core` does not import Rich. Ruff's `LOG` and `G` rules are on. The run lock logs
 nothing itself, because it is taken before logging is set up and released after it is torn down; instead `run_lock`
 yields the holder of a stale lock it cleared, `_locked` passes that on, and `_logging` logs it as a WARNING once logging
-is on. Still open: `-q` hides the AI-unavailable warning, and the stale-lock warning, on screen.
+is on. The `sort` summary now says when the AI was unavailable, so `-q` no longer hides why. Still open: `-q` hides the
+stale-lock warning on screen.
 
 A decision-model classifier (a second AI resolver such as Jev, Clef or Nimble, whose own probability would replace the
 flat `0.70`; adopted only if it beats the chat model on the calibration corpus) was Stage 4.5 and is in the

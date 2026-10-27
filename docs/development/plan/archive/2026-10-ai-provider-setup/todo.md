@@ -1,0 +1,22 @@
+# Todo: `ai-provider-setup`
+
+- [x] Branch `fix/ai-provider-setup` from up-to-date `main`
+- [x] `resolve_category` skips the AI for a group with no categories (test first)
+- [x] `EmptyModelError`; `build_provider` refuses an empty model before the key check
+- [x] Remove the `llama3` and `gpt-4o-mini` defaults; fix existing provider and factory tests
+- [x] `AIProviderError` and `describe_ai_failure` in `ai/base.py`
+- [x] Ollama provider: 404, connection, timeout, missing package map to tips
+- [x] OpenAI provider: not found, auth, connection, timeout, missing package map to tips
+- [x] `LLMClassifier` keeps the tip in `failure`
+- [x] `core/ai/check.py`: `AICheck`, `check_ai` (ok, raises, empty reply, missing key, empty model)
+- [x] `_build_ai_classifier` runs the check, exit 1 on failure; `sort` builds it before the lock; dry-run and `review`
+- [x] `sort` summary prints `ai_unavailable`, also under `-q`
+- [x] `init`: "Test the AI connection?" after an `[ai]` change; failed test does not fail `init`
+- [x] `[ai]` comments rewritten in defaults, example config, `AIConfig` docs, how-to-use sample; pinned tests updated
+- [x] `make library-schema`, `make docs-cli`
+- [x] Docs: how-to-use (both tabs, limitations), README Usage, mvp-roadmap, overview, `make module-diagram`, capability map
+- [ ] Ask the user, then edit `ai-second-opinion-prd.md` (drop its availability check; depend on `ai-provider-setup`) (not done: waiting for the user's go-ahead)
+- [x] `make check`, `make test`
+- [ ] Manual `--use-ai` runs: Ollama model present, model missing, server stopped; OpenAI 3.35 if a key is available (not done: no Ollama or key in the build environment)
+- [x] Open PR #95; `ci-ok` green (merge is the user's call)
+- [x] Archive plan to `archive/2026-10-ai-provider-setup/`; requirement and map status to Done

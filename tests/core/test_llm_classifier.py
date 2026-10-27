@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from microfiche.core.ai.base import AIProviderError
 from microfiche.core.ai.llm_classifier import LLMClassifier
 from microfiche.core.config import AIConfig, load_config
 from microfiche.core.models.category import Taxonomy
@@ -67,6 +68,18 @@ def test_llm_classifier_category_prompt_only_group_categories() -> None:
     (prompt,) = provider.prompts
     assert "Contracts, Invoices" in prompt
     assert "Globex" not in prompt
+
+
+def test_llm_classifier_category_group_without_categories_skips_provider() -> None:
+    provider = ScriptedProvider("Contracts")
+    taxonomy = Taxonomy(groups={"Acme Ltd": []})
+
+    match = LLMClassifier(provider, _settings()).resolve_category(_document("text"), "Acme Ltd", taxonomy)
+
+    assert provider.prompts == []
+    assert match.name is None
+    assert match.confidence == 0.0
+    assert match.reason == "Group has no categories"
 
 
 def test_llm_classifier_valid_group_answer_uses_ai_confidence() -> None:
@@ -198,6 +211,15 @@ def test_llm_classifier_missing_optional_package_counts_as_unavailable() -> None
     classifier.resolve_group(_document("text"), TAXONOMY)
 
     assert classifier.failure == "ModuleNotFoundError: No module named 'ollama'"
+
+
+def test_llm_classifier_provider_error_keeps_tip_in_failure() -> None:
+    provider = FailingProvider(AIProviderError("ResponseError: model not found", "Run `ollama pull x`."))
+    classifier = LLMClassifier(provider, _settings())
+
+    classifier.resolve_group(_document("text"), TAXONOMY)
+
+    assert classifier.failure == "ResponseError: model not found. Run `ollama pull x`."
 
 
 # endregion

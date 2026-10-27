@@ -7,13 +7,13 @@ import pytest
 from microfiche.core.ai.factory import build_provider
 from microfiche.core.ai.ollama_provider import OllamaProvider
 from microfiche.core.ai.openai_provider import OpenAIProvider
-from microfiche.core.config import AIConfig, ConfigError, load_config
+from microfiche.core.config import AIConfig, ConfigError, EmptyModelError, load_config
 
 # region Test helpers
 
 
 def _settings(**overrides: Any) -> AIConfig:
-    """The packaged ``[ai]`` settings with ``overrides`` applied."""
+    """The packaged ``[ai]`` settings (which leave ``model`` empty) with ``overrides`` applied."""
     return load_config(Path("does-not-exist")).ai.model_copy(update=overrides)
 
 
@@ -26,10 +26,10 @@ def _settings(**overrides: Any) -> AIConfig:
 # region build_provider
 
 
-def test_build_provider_default_settings_give_ollama_with_its_own_defaults() -> None:
-    provider = build_provider(_settings())
+def test_build_provider_ollama_model_only_leaves_other_settings_default() -> None:
+    provider = build_provider(_settings(model="llama3.1"))
 
-    assert provider == OllamaProvider(timeout=120)
+    assert provider == OllamaProvider(model="llama3.1", timeout=120)
 
 
 def test_build_provider_ollama_settings_passed_through() -> None:
@@ -46,13 +46,29 @@ def test_build_provider_openai_reads_key_from_named_variable(monkeypatch: pytest
     assert provider == OpenAIProvider(model="gpt-4o", api_key="sk-test", timeout=30)
 
 
-def test_build_provider_openai_empty_model_uses_provider_default(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("provider", ["ollama", "openai"])
+def test_build_provider_empty_model_refused_with_tip(monkeypatch: pytest.MonkeyPatch, provider: str) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
 
-    provider = build_provider(_settings(provider="openai"))
+    with pytest.raises(EmptyModelError, match=r"\[ai\] model") as exc_info:
+        build_provider(_settings(provider=provider))
 
-    assert isinstance(provider, OpenAIProvider)
-    assert provider.model == OpenAIProvider().model
+    assert isinstance(exc_info.value, ConfigError)
+
+
+def test_build_provider_ollama_empty_model_tip_names_ollama_commands() -> None:
+    with pytest.raises(EmptyModelError) as exc_info:
+        build_provider(_settings())
+
+    assert "ollama list" in str(exc_info.value)
+    assert "ollama pull" in str(exc_info.value)
+
+
+def test_build_provider_empty_model_reported_before_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(EmptyModelError):
+        build_provider(_settings(provider="openai"))
 
 
 @pytest.mark.parametrize("value", [None, ""])
@@ -65,7 +81,7 @@ def test_build_provider_openai_missing_key_names_the_variable(
         monkeypatch.setenv("OPENAI_API_KEY", value)
 
     with pytest.raises(ConfigError, match="OPENAI_API_KEY") as exc_info:
-        build_provider(_settings(provider="openai"))
+        build_provider(_settings(provider="openai", model="gpt-4o"))
 
     assert "environment variable" in str(exc_info.value)
 
@@ -73,7 +89,7 @@ def test_build_provider_openai_missing_key_names_the_variable(
 def test_build_provider_ollama_ignores_openai_key_variable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    assert isinstance(build_provider(_settings()), OllamaProvider)
+    assert isinstance(build_provider(_settings(model="llama3")), OllamaProvider)
 
 
 # endregion

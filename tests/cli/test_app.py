@@ -17,6 +17,7 @@ import typer
 from conftest import LinkMaker
 from microfiche.cli import commands as cli_commands
 from microfiche.cli.app import app
+from microfiche.core.ai.base import AIProviderError
 from microfiche.core.config import AIConfig
 from microfiche.core.library.library import Library
 from microfiche.core.runlock import run_lock
@@ -524,7 +525,7 @@ def test_sort_use_ai_openai_without_key_fails_cleanly_and_sorts_nothing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     library = _library(tmp_path)
-    _set_ai(library, 'provider = "openai"\n')
+    _set_ai(library, 'provider = "openai"\nmodel = "gpt-4o"\n')
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     before = _tree(library)
 
@@ -532,6 +533,131 @@ def test_sort_use_ai_openai_without_key_fails_cleanly_and_sorts_nothing(
 
     assert result.exit_code == 1
     assert "OPENAI_API_KEY" in result.stdout
+    assert _tree(library) == before
+
+
+class _CheckFailsProvider:
+    """An AI provider whose server is down: the pre-run check fails."""
+
+    _error = ConnectionError("connection refused")
+
+    def complete(self, prompt: str) -> str:
+        raise self._error
+
+
+class _TippedProvider:
+    """An AI provider that fails the way a real one does: with a next step."""
+
+    _error = AIProviderError("ResponseError: model not found", "Run `ollama pull llama3`.")
+
+    def complete(self, prompt: str) -> str:
+        raise self._error
+
+
+def _state_files(library: Path) -> set[str]:
+    """What is in the state folder: a failed check must not even create a job, ledger or audit line."""
+
+    state = library / ".microfiche"
+    return {path.relative_to(library).as_posix() for path in state.rglob("*") if path.is_file()}
+
+
+@pytest.mark.parametrize("extra", [[], ["-q"], ["--dry-run"]])
+def test_sort_use_ai_failed_check_stops_before_anything_moves(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, extra: list[str]
+) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _CheckFailsProvider())
+    before, state_before = _tree(library), _state_files(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", *extra])
+
+    assert result.exit_code == 1
+    assert "ConnectionError: connection refused" in result.stdout  # printed directly, so -q cannot hide it
+    assert _tree(library) == before
+    assert _state_files(library) == state_before
+
+
+def test_sort_use_ai_failed_check_shows_the_providers_tip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _TippedProvider())
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 1
+    assert "ollama pull llama3" in " ".join(result.stdout.split())
+
+
+def test_sort_use_ai_empty_model_fails_with_tip_and_sorts_nothing(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    before = _tree(library)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 1
+    assert "[ai] model is empty" in " ".join(result.stdout.split())
+    assert _tree(library) == before
+
+
+def test_sort_use_ai_failed_check_reported_even_when_the_lock_is_held(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The check runs before the lock is taken, so a slow or failing check never holds it.
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _CheckFailsProvider())
+
+    with _held(library):
+        result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 1
+    assert "connection refused" in result.stdout
+
+
+def test_sort_use_ai_passed_check_says_who_answered(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+    _set_ai(library, 'model = "llama3"\n')
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "ollama llama3 answered in" in result.stdout
+
+
+def test_sort_use_ai_passed_check_is_silent_under_quiet(tmp_path: Path, built_with: list[AIConfig]) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai", "-q"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "answered in" not in result.stdout
+
+
+def test_sort_use_ai_check_does_not_send_document_text(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    prompts: list[str] = []
+
+    class _Recording:
+        def complete(self, prompt: str) -> str:
+            prompts.append(prompt)
+            return "NONE"
+
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _Recording())
+
+    runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
+
+    assert prompts[0] == "Reply with the single word: OK"
+
+
+@pytest.mark.usefixtures("at_a_terminal")
+def test_review_use_ai_failed_check_stops_before_the_queue(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _CheckFailsProvider())
+    before = _tree(library)
+
+    code, output = _review(library, "", "--use-ai")
+
+    assert code == 1
+    assert "connection refused" in output
+    assert "The AI fallback was unavailable" not in output  # stopped before the queue was built, not part-way
     assert _tree(library) == before
 
 
@@ -908,11 +1034,17 @@ def test_sort_oversize_file_listed_with_reason(tmp_path: Path) -> None:
 
 
 class _DownProvider:
-    """An AI provider that cannot be reached."""
+    """An AI provider that answers the pre-run check, then cannot be reached."""
 
     _error = ConnectionError("connection refused")
 
+    def __init__(self) -> None:
+        self._calls = 0
+
     def complete(self, prompt: str) -> str:
+        self._calls += 1
+        if self._calls == 1:
+            return "OK"
         raise self._error
 
 
@@ -925,8 +1057,9 @@ def test_sort_use_ai_provider_down_warns_once_and_still_files(tmp_path: Path, mo
     result = runner.invoke(app, ["sort", "--library", str(library), "--use-ai"])
 
     assert result.exit_code == 0, result.stdout
-    # The warning is a log record now, shown once on stderr; the report no longer prints a line of its own.
+    # The warning is a log record, shown once on stderr; the summary adds one line of its own on stdout.
     assert "AI fallback unavailable" not in result.stdout
+    assert "The AI fallback was unavailable (ConnectionError: connection refused)." in " ".join(result.stdout.split())
     warning = " ".join(result.stderr.split())
     assert warning.count("AI fallback unavailable") == 1
     assert "ConnectionError: connection refused" in warning
@@ -1617,6 +1750,7 @@ def test_sort_use_ai_provider_down_warning_is_in_log_file_and_hidden_by_quiet(
 
     assert result.exit_code == 0, result.stdout
     assert "AI fallback unavailable" not in result.stderr  # -q shows errors only
+    assert "The AI fallback was unavailable" in result.stdout  # but the summary says why, whatever -q says
     assert "AI fallback unavailable" in (library / _LOG_FILE).read_text(encoding="utf-8")
 
 

@@ -392,3 +392,95 @@ def test_command_invalid_config_suggests_init(tmp_path: Path) -> None:
 
 
 # endregion
+
+
+# region init: testing the AI connection
+
+# The six common settings: threshold, depth, inbox, keep_folders, provider, then the model.
+_SET_MODEL = "y\n" + "\n" * 5 + "llama3\n" + "n\n" + "y\n"  # walk through, set the model, skip the rest, write
+
+
+class _Answers:
+    """A stand-in provider that answers whatever it is asked."""
+
+    def complete(self, prompt: str) -> str:
+        return "OK"
+
+
+class _Down:
+    """A stand-in provider whose server is down."""
+
+    _error = ConnectionError("connection refused")
+
+    def complete(self, prompt: str) -> str:
+        raise self._error
+
+
+def test_init_ai_setting_changed_offers_connection_test_default_no(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    calls: list[object] = []
+    monkeypatch.setattr("microfiche.cli.commands.check_ai", lambda *args: calls.append(args))
+
+    result = _init(library, _SET_MODEL + "\n", monkeypatch=monkeypatch)  # Enter: the default, no
+
+    assert result.exit_code == 0, result.output
+    assert "Test the AI connection?" in result.output
+    assert calls == []
+
+
+def test_init_ai_setting_changed_test_yes_reports_the_answer(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.core.ai.check.build_provider", lambda config: _Answers())
+
+    result = _init(library, _SET_MODEL + "y\n", monkeypatch=monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    assert "ollama llama3 answered in" in _text(result.output)
+
+
+def test_init_ai_test_fails_init_still_succeeds_with_the_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library(tmp_path)
+    monkeypatch.setattr("microfiche.core.ai.check.build_provider", lambda config: _Down())
+
+    result = _init(library, _SET_MODEL + "y\n", monkeypatch=monkeypatch)
+
+    assert result.exit_code == 0, result.output  # the config is already saved
+    assert "connection refused" in _text(result.output)
+    assert load_config(library / ".microfiche").ai.model == "llama3"
+
+
+def test_init_ai_test_empty_model_says_so_instead_of_failing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+
+    # Change only the timeout, so the model stays empty: six common settings kept, the other sections:
+    # [classification] no, [ai] yes (host kept, timeout 30, three kept), the five after it no; write yes; test yes.
+    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 3 + "n\n" * 5 + "y\ny\n"
+    result = _init(library, answers, monkeypatch=monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    assert "[ai] model is empty" in _text(result.output)
+
+
+def test_init_no_ai_change_does_not_offer_the_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+
+    result = _init(library, "y\n0.9\n" + "\n" * 5 + "n\ny\n", monkeypatch=monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    assert "Test the AI connection?" not in result.output
+
+
+def test_init_no_terminal_never_offers_the_test(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library(tmp_path)
+
+    result = _init(library, terminal=False, monkeypatch=monkeypatch)
+
+    assert result.exit_code == 0, result.output
+    assert "Test the AI connection?" not in result.output
+
+
+# endregion

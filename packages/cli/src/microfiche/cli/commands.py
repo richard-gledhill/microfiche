@@ -20,6 +20,8 @@ from microfiche.cli.init_prompts import ask_revert, render_changes, walk_through
 from microfiche.cli.logging import FILE_ONLY, configure_logging, reset_logging
 from microfiche.cli.progress import progress_bar
 from microfiche.cli.review import render_outcome, render_summary, stdin_is_terminal, work_queue
+from microfiche.core.ai.base import AIProvider
+from microfiche.core.ai.check import check_ai
 from microfiche.core.ai.factory import build_provider
 from microfiche.core.ai.llm_classifier import LLMClassifier
 from microfiche.core.config import CONFIG_FILENAME, AIConfig, ConfigError, ConfigProblem
@@ -95,7 +97,9 @@ def sort(
         False,
         "--use-ai",
         help="Fall back to the AI named in the library's config (Ollama unless it says otherwise) for "
-        "classifications the rules engine can't resolve.",
+        "classifications the rules engine can't resolve. Needs [ai] model set. Before any document is read, one "
+        "test question (no document text) checks the AI answers; if it does not, nothing is moved and the "
+        "command stops with the reason.",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -115,6 +119,7 @@ def sort(
     if keep_folders and keep_folders_off:
         _fail("--keep-folders and --keep-folders-off contradict each other: pass only one.")
     opened = _open_library(library, uses_hints=True, needs_config=True)
+    provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None  # before the lock: see there
     with (
         _locked(
             opened, "sort", needed=not dry_run
@@ -124,7 +129,7 @@ def sort(
         ),
         progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
-        ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
+        ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
         report = run_sort(
             opened,
             keep_folders=_keep_folders_override(keep_folders, keep_folders_off),
@@ -140,7 +145,8 @@ def review(
     use_ai: bool = typer.Option(
         False,
         "--use-ai",
-        help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does.",
+        help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, "
+        "including the test question first (see `sort --help`).",
     ),
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
@@ -156,9 +162,10 @@ def review(
     opened = _open_library(library, uses_hints=True)
     if not stdin_is_terminal():
         _fail("review asks questions, so it needs a terminal. Use `sort`, or file the documents by hand.")
+    provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None
     with _logging("review", opened, verbose=verbose, quiet=quiet, writes=False):
         with progress_bar(quiet=quiet, ai=use_ai) as on_progress:
-            ai_classifier = _build_ai_classifier(opened.config.ai) if use_ai else None
+            ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
             session = ReviewSession.start(opened, ai_classifier=ai_classifier, progress=on_progress)
         _describe_queue(session)
         if not session.items:
@@ -441,7 +448,29 @@ def _save_edits(path: Path, editor: ConfigEditor, *, backup: bool, verbose: bool
     if not typer.confirm("Write these changes?", default=False):
         console.print("Nothing was written.")
         return
-    _write(path, editor, backup=backup, verbose=verbose, quiet=quiet)
+    if _write(path, editor, backup=backup, verbose=verbose, quiet=quiet) and any(
+        change.key.startswith("ai.") for change in changes
+    ):
+        _offer_ai_test(path)
+
+
+def _offer_ai_test(path: Path) -> None:
+    """Offer to try the AI settings just saved. The check is the same one `--use-ai` makes; a failure only reports.
+
+    Never automatic: a fresh install may have no Ollama or no ``ai`` extra, and with OpenAI it is a call to a
+    hosted service the person has not asked for.
+    """
+
+    if not typer.confirm("\nTest the AI connection?", default=False):
+        return
+    try:
+        result = check_ai(Library(path).config.ai)
+    except ConfigError as err:
+        console.print(f"[yellow]{escape(str(err))}[/yellow]", soft_wrap=True)
+        return
+    colour = "green" if result.ok else "yellow"
+    label = "AI check passed" if result.ok else "The AI check failed"
+    console.print(f"[{colour}]{label}: {escape(result.detail)}[/{colour}]", soft_wrap=True)
 
 
 def _write(path: Path, editor: ConfigEditor, *, backup: bool = True, verbose: bool, quiet: bool) -> bool:
@@ -569,17 +598,33 @@ def _locked(library: Library, command: str, *, needed: bool = True) -> Iterator[
         yield cleared
 
 
-def _build_ai_classifier(settings: AIConfig) -> LLMClassifier:
-    """Build the AI fallback from the library's ``[ai]`` settings, telling the user what it will do.
+def _checked_ai_provider(settings: AIConfig, *, quiet: bool) -> AIProvider:
+    """Build the AI provider and prove it answers, before any document is classified; stop the command if not.
 
-    Prints, once and before any document is classified, what the user would not otherwise know: that a
-    hosted provider is sent the text of documents, and that an unlimited length costs tokens and time.
+    Runs before the run lock is taken, so a slow or dead server never holds it, and before anything is moved.
+    The call sends no document text. A failure is printed directly, so ``-q`` cannot hide it, with the fix where
+    the provider knew one.
     """
 
     try:
         provider = build_provider(settings)
     except ConfigError as err:
         _fail(str(err))
+    result = check_ai(settings, provider)
+    if not result.ok:
+        _fail(f"The AI check failed: {result.detail}")
+    if not quiet:
+        console.print(f"[dim]AI check passed: {escape(result.detail)}[/dim]", soft_wrap=True)
+    return provider
+
+
+def _build_ai_classifier(settings: AIConfig, provider: AIProvider) -> LLMClassifier:
+    """Build the AI fallback from the library's ``[ai]`` settings, telling the user what it will do.
+
+    Prints, once and before any document is classified, what the user would not otherwise know: that a
+    hosted provider is sent the text of documents, and that an unlimited length costs tokens and time.
+    """
+
     if settings.provider == "openai":
         notice = "AI provider is OpenAI: the text of each document it is asked about is sent to OpenAI."
         console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
