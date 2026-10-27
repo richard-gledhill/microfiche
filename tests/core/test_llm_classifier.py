@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from microfiche.core.ai.base import AIProviderError
 from microfiche.core.ai.llm_classifier import LLMClassifier
 from microfiche.core.config import AIConfig, load_config
 from microfiche.core.models.category import Taxonomy
@@ -210,6 +211,15 @@ def test_llm_classifier_missing_optional_package_counts_as_unavailable() -> None
     classifier.resolve_group(_document("text"), TAXONOMY)
 
     assert classifier.failure == "ModuleNotFoundError: No module named 'ollama'"
+
+
+def test_llm_classifier_provider_error_keeps_tip_in_failure() -> None:
+    provider = FailingProvider(AIProviderError("ResponseError: model not found", "Run `ollama pull x`."))
+    classifier = LLMClassifier(provider, _settings())
+
+    classifier.resolve_group(_document("text"), TAXONOMY)
+
+    assert classifier.failure == "ResponseError: model not found. Run `ollama pull x`."
 
 
 # endregion

@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from microfiche.core.ai.base import FailureKind, tip_error
+
 
 @dataclass
 class OllamaProvider:
@@ -28,13 +30,29 @@ class OllamaProvider:
             The model's reply text.
         """
 
-        import ollama  # optional dependency, only needed when this provider is actually used
+        try:
+            import ollama  # optional dependency, only needed when this provider is actually used
 
-        options: dict[str, Any] = {}
-        if self.host:
-            options["host"] = self.host
-        if self.timeout is not None:
-            options["timeout"] = self.timeout
-        client: Any = ollama.Client(**options)
-        response: Any = client.chat(model=self.model, messages=[{"role": "user", "content": prompt}])
-        return str(response["message"]["content"])
+            options: dict[str, Any] = {}
+            if self.host:
+                options["host"] = self.host
+            if self.timeout is not None:
+                options["timeout"] = self.timeout
+            client: Any = ollama.Client(**options)
+            response: Any = client.chat(model=self.model, messages=[{"role": "user", "content": prompt}])
+            return str(response["message"]["content"])
+        except Exception as err:
+            wrapped = tip_error(err, self._tips())
+            if wrapped is None:
+                raise
+            raise wrapped from err
+
+    def _tips(self) -> dict[FailureKind, str]:
+        """What to do about each failure the Ollama client can raise."""
+
+        return {
+            "not_found": f"Run `ollama pull {self.model}`, or set [ai] model to one `ollama list` shows.",
+            "unreachable": "Start Ollama (`ollama serve`), or check [ai] host.",
+            "timeout": "Raise [ai] timeout, or use a smaller model.",
+            "missing_package": "Install the ai extra (`uv sync --extra ai`).",
+        }

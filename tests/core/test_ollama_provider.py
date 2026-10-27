@@ -5,9 +5,18 @@ import types
 from typing import Any
 
 import pytest
+from microfiche.core.ai.base import AIProviderError
 from microfiche.core.ai.ollama_provider import OllamaProvider
 
 # region Test helpers
+
+
+class _StatusError(Exception):
+    """Stands in for ``ollama.ResponseError``, which carries a status code."""
+
+    def __init__(self, message: str, status_code: int) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class _Recorder:
@@ -16,6 +25,7 @@ class _Recorder:
     def __init__(self) -> None:
         self.client_kwargs: dict[str, Any] | None = None
         self.chat_call: dict[str, Any] | None = None
+        self.error: Exception | None = None
 
 
 @pytest.fixture
@@ -28,6 +38,8 @@ def fake_ollama(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
 
         def chat(self, model: str, messages: list[dict[str, str]]) -> dict[str, Any]:
             recorder.chat_call = {"model": model, "messages": messages}
+            if recorder.error is not None:
+                raise recorder.error
             return {"message": {"content": "Acme Ltd"}}
 
     monkeypatch.setitem(sys.modules, "ollama", types.SimpleNamespace(Client=Client))
@@ -64,6 +76,34 @@ def test_ollama_provider_complete_passes_host_and_timeout_to_client(fake_ollama:
 
     assert fake_ollama.client_kwargs == {"host": "http://gpu-box:11434", "timeout": 30}
 
+
+
+@pytest.mark.parametrize(
+    ("raised", "tip_part"),
+    [
+        (_StatusError("model 'llama3' not found", 404), "ollama pull llama3"),
+        (ConnectionError("Failed to connect to Ollama"), "ollama serve"),
+        (TimeoutError("timed out"), "[ai] timeout"),
+        (ModuleNotFoundError("No module named 'ollama'"), "uv sync --extra ai"),
+    ],
+)
+def test_ollama_provider_complete_known_failure_raises_with_tip(
+    fake_ollama: _Recorder, raised: Exception, tip_part: str
+) -> None:
+    fake_ollama.error = raised
+
+    with pytest.raises(AIProviderError) as exc_info:
+        OllamaProvider(model="llama3").complete("Which group?")
+
+    assert tip_part in exc_info.value.tip
+    assert exc_info.value.__cause__ is raised
+
+
+def test_ollama_provider_complete_unknown_failure_propagates_unchanged(fake_ollama: _Recorder) -> None:
+    fake_ollama.error = ValueError("odd")
+
+    with pytest.raises(ValueError, match="odd"):
+        OllamaProvider(model="llama3").complete("Which group?")
 
 # endregion
 
