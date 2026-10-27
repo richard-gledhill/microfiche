@@ -445,7 +445,29 @@ def _save_edits(path: Path, editor: ConfigEditor, *, backup: bool, verbose: bool
     if not typer.confirm("Write these changes?", default=False):
         console.print("Nothing was written.")
         return
-    _write(path, editor, backup=backup, verbose=verbose, quiet=quiet)
+    if _write(path, editor, backup=backup, verbose=verbose, quiet=quiet) and any(
+        change.key.startswith("ai.") for change in changes
+    ):
+        _offer_ai_test(path)
+
+
+def _offer_ai_test(path: Path) -> None:
+    """Offer to try the AI settings just saved. The check is the same one `--use-ai` makes; a failure only reports.
+
+    Never automatic: a fresh install may have no Ollama or no ``ai`` extra, and with OpenAI it is a call to a
+    hosted service the person has not asked for.
+    """
+
+    if not typer.confirm("\nTest the AI connection?", default=False):
+        return
+    try:
+        result = check_ai(Library(path).config.ai)
+    except ConfigError as err:
+        console.print(f"[yellow]{escape(str(err))}[/yellow]", soft_wrap=True)
+        return
+    colour = "green" if result.ok else "yellow"
+    label = "AI check passed" if result.ok else "The AI check failed"
+    console.print(f"[{colour}]{label}: {escape(result.detail)}[/{colour}]", soft_wrap=True)
 
 
 def _write(path: Path, editor: ConfigEditor, *, backup: bool = True, verbose: bool, quiet: bool) -> bool:
