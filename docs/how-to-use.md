@@ -1187,6 +1187,12 @@ microfiche is pre-release. At the moment:
   ledger names its old path), and `reclassify` reads a bundle's folder through the ledger, so a corrupt ledger stops it.
 - There is no command to bring items up to the new depth after you reduce it; they stay where they are. An opt-in way
   is recorded as an idea, to be reviewed.
+- In a two-level library, a folder you make directly inside a group (such as `attachments/`) is read as a category,
+  listed in `microfiche-library.json` and used for filing, unless `[exclusions]` names it. Loose files saved directly in
+  a group folder are never listed there. `reclassify` treats such a file as out of place and proposes moving it into
+  a category when one matches. A group with no category folders cannot be filed into either: a document that names it
+  goes to review. See the
+  [request for change](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/RFC-011-groups-without-categories.md).
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
   inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).

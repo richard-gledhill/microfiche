@@ -32,4 +32,6 @@ When an RFC is picked up, what the product should do moves to a requirement in
 | [RFC-006: Subcategories (depth 3)](RFC-006-subcategories-depth-3.md) | Draft | A third library level, gated on a calibration measurement |
 | [RFC-007: Library creation (`init`) and group templates](RFC-007-group-templates.md) | Draft | Named group templates; `init` itself is built |
 | [RFC-008: OCR for scanned PDFs](RFC-008-ocr-scanned-pdfs.md) | Draft | Read scanned PDFs that have no text layer |
-| [RFC-009: Ollama model setting and failure tips](RFC-009-ollama-model-setting.md) | Draft | No hardcoded Ollama model, and a fix-it tip when the AI provider fails |
+| [RFC-009: Ollama model setting, failure tips and pre-run AI check](RFC-009-ollama-model-setting.md) | Draft | No hardcoded Ollama model, a fix-it tip when the AI provider fails, and a hello-world check before `--use-ai` runs |
+| [RFC-010: Folder-name matching](RFC-010-folder-name-matching.md) | Draft | Match folder names written with `-`, `_`, camelCase, `&` or other special characters, without lowering confidence; precedes the word-boundary work |
+| [RFC-011: Groups without categories](RFC-011-groups-without-categories.md) | Draft | At depth 2, file straight into a group that has no category folders instead of sending the unit to review; the narrow case of RFC-004 |
