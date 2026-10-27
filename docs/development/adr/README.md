@@ -12,5 +12,6 @@ considered and why they lost, and the consequences. The `.adr-dir` file at the r
 | [ADR-001](ADR-001-configuration-layout.md) | Configuration layout: packaged defaults, settings vs. library file | Accepted |
 | [ADR-002](ADR-002-switch-to-rapidfuzz.md) | Switch from `thefuzz` to `rapidfuzz` | Accepted |
 | [ADR-003](ADR-003-operational-safety.md) | Operational safety: collisions, duplicates, moves, run lock, failure isolation | Accepted |
+| [ADR-004](ADR-004-ai-provider-setup.md) | AI provider setup: no default model, fix-it tips, pre-run check | Accepted |
 
 ADR-001 to ADR-003 were written as reviews before this folder existed; each keeps the review below its decision.
