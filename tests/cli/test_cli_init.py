@@ -410,8 +410,10 @@ class _Answers:
 class _Down:
     """A stand-in provider whose server is down."""
 
+    _error = ConnectionError("connection refused")
+
     def complete(self, prompt: str) -> str:
-        raise ConnectionError("connection refused")
+        raise self._error
 
 
 def test_init_ai_setting_changed_offers_connection_test_default_no(
@@ -438,7 +440,9 @@ def test_init_ai_setting_changed_test_yes_reports_the_answer(tmp_path: Path, mon
     assert "ollama llama3 answered in" in _text(result.output)
 
 
-def test_init_ai_test_fails_init_still_succeeds_with_the_reason(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_init_ai_test_fails_init_still_succeeds_with_the_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     library = _library(tmp_path)
     monkeypatch.setattr("microfiche.core.ai.check.build_provider", lambda config: _Down())
 

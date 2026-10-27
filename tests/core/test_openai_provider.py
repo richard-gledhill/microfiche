@@ -87,7 +87,6 @@ def test_openai_provider_complete_passes_key_and_timeout_to_client(fake_openai: 
     assert fake_openai.client_kwargs == {"api_key": "sk-test", "timeout": 30}
 
 
-
 @pytest.mark.parametrize(
     ("raised", "tip_part"),
     [
@@ -115,6 +114,7 @@ def test_openai_provider_complete_unknown_failure_propagates_unchanged(fake_open
 
     with pytest.raises(ValueError, match="odd"):
         OpenAIProvider(model="gpt-4o").complete("Which group?")
+
 
 # endregion
 

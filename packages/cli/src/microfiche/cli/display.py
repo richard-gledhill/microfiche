@@ -77,7 +77,9 @@ def render_sort_report(console: Console, report: SortReport) -> None:
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
     console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
     if report.ai_unavailable is not None:
-        console.print(f"[yellow]The AI fallback was unavailable ({escape(report.ai_unavailable)}).[/yellow]", soft_wrap=True)
+        console.print(
+            f"[yellow]The AI fallback was unavailable ({escape(report.ai_unavailable)}).[/yellow]", soft_wrap=True
+        )
     _render_units(console, report)
     _render_inbox_notes(console, report)
     if report.library_sync is not None:

@@ -77,7 +77,6 @@ def test_ollama_provider_complete_passes_host_and_timeout_to_client(fake_ollama:
     assert fake_ollama.client_kwargs == {"host": "http://gpu-box:11434", "timeout": 30}
 
 
-
 @pytest.mark.parametrize(
     ("raised", "tip_part"),
     [
@@ -104,6 +103,7 @@ def test_ollama_provider_complete_unknown_failure_propagates_unchanged(fake_olla
 
     with pytest.raises(ValueError, match="odd"):
         OllamaProvider(model="llama3").complete("Which group?")
+
 
 # endregion
 

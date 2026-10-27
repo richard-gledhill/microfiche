@@ -539,15 +539,19 @@ def test_sort_use_ai_openai_without_key_fails_cleanly_and_sorts_nothing(
 class _CheckFailsProvider:
     """An AI provider whose server is down: the pre-run check fails."""
 
+    _error = ConnectionError("connection refused")
+
     def complete(self, prompt: str) -> str:
-        raise ConnectionError("connection refused")
+        raise self._error
 
 
 class _TippedProvider:
     """An AI provider that fails the way a real one does: with a next step."""
 
+    _error = AIProviderError("ResponseError: model not found", "Run `ollama pull llama3`.")
+
     def complete(self, prompt: str) -> str:
-        raise AIProviderError("ResponseError: model not found", "Run `ollama pull llama3`.")
+        raise self._error
 
 
 def _state_files(library: Path) -> set[str]:
