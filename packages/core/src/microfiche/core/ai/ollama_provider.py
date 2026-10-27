@@ -52,7 +52,7 @@ class OllamaProvider:
 
         return {
             "not_found": f"Run `ollama pull {self.model}`, or set [ai] model to one `ollama list` shows.",
-            "unreachable": "Start Ollama (`ollama serve`), or check [ai] host.",
+            "unreachable": "Start Ollama (`ollama serve`), or check [ai] host. If it was running, it may have dropped the call (out of memory?).",
             "timeout": "Raise [ai] timeout, or use a smaller model.",
             "missing_package": "Install the ollama package (from a source checkout: `uv sync --package core --extra ai`).",
         }

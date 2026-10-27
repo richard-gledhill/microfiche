@@ -18,6 +18,10 @@ class APIConnectionError(Exception):
     """Stands in for a client library's connection error, which is not a builtin ``ConnectionError``."""
 
 
+class RemoteProtocolError(Exception):
+    """Stands in for httpx's error when the server drops the connection without answering."""
+
+
 class APITimeoutError(APIConnectionError):
     """Stands in for a client library's timeout, which subclasses its connection error."""
 
@@ -40,6 +44,7 @@ class APITimeoutError(APIConnectionError):
         (ResponseError("forbidden", 403), "unauthorized"),
         (ConnectionError("refused"), "unreachable"),
         (APIConnectionError("down"), "unreachable"),
+        (RemoteProtocolError("Server disconnected without sending a response."), "unreachable"),
         (TimeoutError("timed out"), "timeout"),
         (APITimeoutError("timed out"), "timeout"),  # a timeout wins over the connection error it subclasses
         (ResponseError("overloaded", 503), None),

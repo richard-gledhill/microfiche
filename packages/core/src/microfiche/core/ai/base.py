@@ -65,7 +65,7 @@ def failure_kind(err: BaseException) -> FailureKind | None:
         return "missing_package"
     if isinstance(err, TimeoutError) or any("Timeout" in name for name in names):
         return "timeout"  # before "unreachable": a client's timeout often subclasses its connection error
-    if isinstance(err, ConnectionError) or any("Connect" in name for name in names):
+    if isinstance(err, ConnectionError) or any("Connect" in name or "RemoteProtocol" in name for name in names):
         return "unreachable"
     if status == 404:
         return "not_found"
