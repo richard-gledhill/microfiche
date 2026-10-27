@@ -83,7 +83,7 @@ def test_ollama_provider_complete_passes_host_and_timeout_to_client(fake_ollama:
         (_StatusError("model 'llama3' not found", 404), "ollama pull llama3"),
         (ConnectionError("Failed to connect to Ollama"), "ollama serve"),
         (TimeoutError("timed out"), "[ai] timeout"),
-        (ModuleNotFoundError("No module named 'ollama'"), "uv sync --extra ai"),
+        (ModuleNotFoundError("No module named 'ollama'"), "uv sync --package core --extra ai"),
     ],
 )
 def test_ollama_provider_complete_known_failure_raises_with_tip(

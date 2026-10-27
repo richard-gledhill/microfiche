@@ -94,7 +94,7 @@ def test_openai_provider_complete_passes_key_and_timeout_to_client(fake_openai: 
         (_StatusError("bad key", 401), "api_key_env"),
         (ConnectionError("down"), "network"),
         (TimeoutError("timed out"), "[ai] timeout"),
-        (ModuleNotFoundError("No module named 'openai'"), "uv sync --extra ai"),
+        (ModuleNotFoundError("No module named 'openai'"), "uv sync --package core --extra ai"),
     ],
 )
 def test_openai_provider_complete_known_failure_raises_with_tip(

@@ -1,7 +1,7 @@
 """Local model inference via Ollama.
 
 Keeps classification fully offline per the PRD's privacy constraints. Requires a running local
-Ollama server and the optional `ollama` dependency (``uv sync --extra ai``).
+Ollama server and the optional `ollama` dependency (``uv sync --package core --extra ai``).
 """
 
 from __future__ import annotations
@@ -54,5 +54,5 @@ class OllamaProvider:
             "not_found": f"Run `ollama pull {self.model}`, or set [ai] model to one `ollama list` shows.",
             "unreachable": "Start Ollama (`ollama serve`), or check [ai] host.",
             "timeout": "Raise [ai] timeout, or use a smaller model.",
-            "missing_package": "Install the ai extra (`uv sync --extra ai`).",
+            "missing_package": "Install the ollama package (from a source checkout: `uv sync --package core --extra ai`).",
         }
