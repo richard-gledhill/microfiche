@@ -27,11 +27,13 @@ fuzzy_group_threshold = 85
 [ai]
 # "ollama" runs on your machine. "openai" sends the text of each document it is asked about to OpenAI.
 provider = "ollama"
-# The model to ask. Empty means the provider's own default.
+# The model to ask. Required with --use-ai; there is no default. Ollama: a model you have pulled, e.g. "llama3.1"
+# (`ollama list` shows them, `ollama pull <name>` installs one). OpenAI: a model name, e.g. "gpt-4o-mini".
 model = ""
-# Where the Ollama server is. Empty means Ollama's default address. Ollama only.
+# Where the Ollama server is. Empty means Ollama's default address, http://localhost:11434. Set it for a server on
+# another machine, e.g. "http://gpu-box:11434". Ollama only.
 host = ""
-# Seconds to wait for one answer.
+# Seconds to wait for one answer. A first call can be slow while Ollama loads the model: raise this if it times out.
 timeout = 120
 # The NAME of the environment variable holding the OpenAI key. The key itself never goes in this file.
 api_key_env = "OPENAI_API_KEY"

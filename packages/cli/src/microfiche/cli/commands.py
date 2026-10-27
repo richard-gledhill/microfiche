@@ -97,7 +97,9 @@ def sort(
         False,
         "--use-ai",
         help="Fall back to the AI named in the library's config (Ollama unless it says otherwise) for "
-        "classifications the rules engine can't resolve.",
+        "classifications the rules engine can't resolve. Needs [ai] model set. Before any document is read, one "
+        "test question (no document text) checks the AI answers; if it does not, nothing is moved and the "
+        "command stops with the reason.",
     ),
     dry_run: bool = typer.Option(
         False,
@@ -143,7 +145,8 @@ def review(
     use_ai: bool = typer.Option(
         False,
         "--use-ai",
-        help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does.",
+        help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, "
+        "including the test question first (see `sort --help`).",
     ),
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,

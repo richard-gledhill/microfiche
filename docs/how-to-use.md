@@ -717,9 +717,9 @@ Ollama model; nothing leaves your machine. These are the settings, with their de
 ```toml
 [ai]
 provider = "ollama"               # "ollama" or "openai"
-model = ""                        # empty = the provider's own default model
-host = ""                         # Ollama only; empty = Ollama's default address
-timeout = 120                     # seconds to wait for one answer
+model = ""                        # required with --use-ai: e.g. "llama3.1" (Ollama), "gpt-4o-mini" (OpenAI)
+host = ""                         # Ollama only; empty = http://localhost:11434, or e.g. "http://gpu-box:11434"
+timeout = 120                     # seconds to wait for one answer; raise it if Ollama is slow to load the model
 api_key_env = "OPENAI_API_KEY"    # the NAME of the variable holding your OpenAI key
 ai_confidence = 0.70              # how sure any AI answer is
 max_document_chars = 4000         # how much of each document is sent; 0 = all of it

@@ -67,7 +67,7 @@ $ microfiche sort [OPTIONS]
 * `--library <directory>`: Path to the library root.  [required]
 * `--keep-folders`: Sort whole folders from the inbox intact, filed under the group or category most of their documents belong to, for this run.
 * `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library's keep_folders setting says.
-* `--use-ai`: Fall back to the AI named in the library's config (Ollama unless it says otherwise) for classifications the rules engine can't resolve.
+* `--use-ai`: Fall back to the AI named in the library's config (Ollama unless it says otherwise) for classifications the rules engine can't resolve. Needs [ai] model set. Before any document is read, one test question (no document text) checks the AI answers; if it does not, nothing is moved and the command stops with the reason.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
@@ -91,7 +91,7 @@ $ microfiche review [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
-* `--use-ai`: Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does.
+* `--use-ai`: Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, including the test question first (see `sort --help`).
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

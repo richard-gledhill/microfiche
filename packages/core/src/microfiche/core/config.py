@@ -165,9 +165,14 @@ class AIConfig(_ConfigSection):
     Attributes:
         provider (Literal["ollama", "openai"]): Who answers. ``"ollama"`` runs on your machine;
             ``"openai"`` sends the text of every document the AI is asked about to OpenAI.
-        model (str): The model to ask. Empty means the provider's own default.
-        host (str): Where the Ollama server is. Empty means Ollama's default address. Ollama only.
-        timeout (float): Seconds to wait for one answer. Greater than 0.
+        model (str): The model to ask. Required with ``--use-ai``; there is no default. Ollama: a model you have
+            pulled, such as ``"llama3.1"`` (``ollama list`` shows them, ``ollama pull <name>`` installs one).
+            OpenAI: a model name, such as ``"gpt-4o-mini"``.
+        host (str): Where the Ollama server is. Empty means Ollama's default address,
+            ``http://localhost:11434``. Set it for a server on another machine, such as
+            ``"http://gpu-box:11434"``. Ollama only.
+        timeout (float): Seconds to wait for one answer. Greater than 0. A first call can be slow while Ollama
+            loads the model: raise it if that times out.
         api_key_env (str): The *name* of the environment variable holding the OpenAI key. The key
             itself never goes in the file.
         ai_confidence (float): From 0 to 1. How sure any answer from the AI fallback is, whatever

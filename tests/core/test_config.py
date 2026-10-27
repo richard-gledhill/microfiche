@@ -325,8 +325,8 @@ def test_load_config_ai_provider_settings_default_to_local_ollama() -> None:
     settings = load_config(Path("does-not-exist")).ai
 
     assert settings.provider == "ollama"
-    assert settings.model == ""  # empty means the provider's own default model
-    assert settings.host == ""  # empty means Ollama's default address
+    assert settings.model == ""  # empty here: --use-ai needs a model, there is no default
+    assert settings.host == ""  # empty means Ollama's default address, http://localhost:11434
     assert settings.timeout == 120
     assert settings.api_key_env == "OPENAI_API_KEY"
 
