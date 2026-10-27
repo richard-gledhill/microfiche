@@ -749,12 +749,21 @@ is moved.
 (and with OpenAI, costs more) and takes longer, and a document longer than the model's context window
 may fail or be cut off, so `sort` prints a warning once before it starts (even with `-q`) and records it in the log.
 
-**If the AI cannot be reached.** Ollama not running, a timeout, or the `ai` extra not installed does not stop
-the run. The first failure switches the AI off for the rest of that run (so a dead server is waited on once, not
-once per document), and `sort` shows one warning on screen: `AI fallback unavailable (<reason>): the rest of the
-run uses the rules only, ...`. Everything the rules can decide is filed as usual. Anything only the AI could have
-answered stays under **Needs review**. With `-q` the warning is not shown on screen, but it is still in the log
-file (see [Troubleshooting](#5-troubleshooting)).
+**A test before the run.** `--use-ai` needs `[ai] model` set to a model you chose: there is no default, and an
+empty `model` stops the command with a note on how to set one (`ollama list` shows the Ollama models you have;
+`ollama pull <name>` installs one). Before `sort` or `review` reads a document, it asks the AI one test question
+that contains no document text ("Reply with the single word: OK") and prints `AI check passed: ollama llama3
+answered in 1.2 s` (hidden by `-q`). If the AI does not answer, nothing is moved and the command stops with
+exit code 1, saying what failed and what to do: pull the model, start Ollama (`ollama serve`), raise
+`[ai] timeout` (a model's first load can be slow), or install the `ai` extra. This happens for `sort --dry-run
+--use-ai` too, so a preview is a good way to try your setup. In `microfiche init`, changing an `[ai]` setting
+offers the same test.
+
+**If the AI fails part-way.** If it answered the test but then fails (the server stops, say), the first failure
+switches the AI off for the rest of that run (so a dead server is waited on once, not once per document).
+Everything the rules can decide is filed as usual, and anything only the AI could have answered stays under
+**Needs review**. `sort` says so in its summary, even with `-q`: `The AI fallback was unavailable (<reason>).`
+The warning is also in the log file (see [Troubleshooting](#5-troubleshooting)).
 
 ### Working through Needs review
 
@@ -1200,7 +1209,8 @@ microfiche is pre-release. At the moment:
 - The library file is synced by `init`, on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).
   A folder that is a link or junction is not a group or category.
-- `-q` hides the "AI fallback unavailable" warning on screen. It is still in the log file.
+- `-q` hides the "AI fallback unavailable" log warning on screen (it is still in the log file); the `sort`
+  summary line says it anyway.
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
   again in the summary's **Needs review** list.
 - The log file is written only by commands that change the library, and not by `rollback` when the config can't be

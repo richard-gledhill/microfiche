@@ -207,8 +207,11 @@ thing microfiche ever removes: no file is deleted, and the folder is empty when 
   nothing about failures.
 - The AI fallback: any exception from the provider (a connection failure, a timeout, a missing optional package) makes
   `LLMClassifier` stop asking for the rest of the run, answering "no match" so the rules' answers stand. The first failure
-  is kept (`failure`), logged once at WARNING, and exposed as data in `SortReport.ai_unavailable`; the CLI prints no line
-  of its own for it, so the user sees the one warning (see "core emits, the CLI configures logging" below).
+  is kept (`failure`), logged once at WARNING, and exposed as data in `SortReport.ai_unavailable`, which the `sort`
+  summary prints. A provider names the fix for the failures it knows (`ai/base.py::AIProviderError`, built from the
+  provider's own tips) and `describe_ai_failure` joins the two. Before a `--use-ai` run reads a document,
+  `ai/check.py::check_ai` makes one hello-world call, outside the run lock, and a failed call stops the command with
+  exit 1 ([ADR-004](../adr/ADR-004-ai-provider-setup.md)). Neither provider has a default model.
 - Inputs are filtered before they are read: names matching `[sorting] ignore` are skipped without comment, a symlink or
   Windows junction is skipped and listed (`is_link` checks the reparse *tag*, because OneDrive's on-demand placeholders are
   reparse points too), and a file over `[parsing] max_file_mb` is refused by `parse_document` before it is opened, so it
