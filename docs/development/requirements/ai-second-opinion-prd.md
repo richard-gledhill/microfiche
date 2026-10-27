@@ -3,7 +3,8 @@
 Status: Draft
 
 - **Id:** `ai-second-opinion` ([capability map](post-mvp-capability-map.md), #4)
-- **Depends on:** `matching-precision` (measured against the corrected rules)
+- **Depends on:** `matching-precision` (measured against the corrected rules); `ai-provider-setup` (done: the
+  model-availability check before the first document, see [ADR-004](../adr/ADR-004-ai-provider-setup.md))
 
 ## Why
 
@@ -17,8 +18,7 @@ where the rules are weakest, for users who already turned it on.
 
 - As a user running `sort --use-ai`, I want the AI to double-check matches that rest only on a keyword hint, so a
   wrong hint sends the document to review instead of the wrong folder.
-- As a user on a slow machine, I want AI calls to be as fast as they can be, and to know at the start if the model is
-  missing.
+- As a user on a slow machine, I want AI calls to be as fast as they can be.
 
 ## Requirements
 
@@ -29,8 +29,6 @@ where the rules are weakest, for users who already turned it on.
   unit goes to review with both answers in the reason. The AI never moves a unit somewhere the rules did not propose.
 - `reclassify` gains `--use-ai`, with the same fallback and verification as `sort`.
 - `OllamaProvider` turns off the model's "thinking" where the model supports it.
-- Before the first document, check the configured model is available, and say so once if it is not (the run continues
-  rules-only, as today when the provider fails).
 - Nothing changes without `--use-ai`. The privacy notice for OpenAI still applies.
 
 **Should**
@@ -58,7 +56,8 @@ Guidance for the spec, not binding.
   answering the same per-stage question.
 - Replay the saved answers in `tests/calibration/` to measure without a model.
 - Ollama: pass the chat option that disables thinking (check the `ollama` client version's API before relying on a
-  parameter name), and use `client.list()` or `show()` for the availability check.
+  parameter name). The model-availability check is not part of this feature: `ai-provider-setup` already makes one test
+  call before any document ([ADR-004](../adr/ADR-004-ai-provider-setup.md)).
 
 ## Related
 
