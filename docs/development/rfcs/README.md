@@ -25,4 +25,6 @@ linked from here.
 | [RFC-006-subcategories-depth-3.md](RFC-006-subcategories-depth-3.md) | Subcategories (depth 3). |
 | [RFC-007-group-templates.md](RFC-007-group-templates.md) | Library creation and group templates, with the removed code and where to restore it from. |
 | [RFC-008-ocr-scanned-pdfs.md](RFC-008-ocr-scanned-pdfs.md) | OCR for scanned PDFs. |
-| [RFC-009-ollama-model-setting.md](RFC-009-ollama-model-setting.md) | Ollama model setting and fix-it tips for AI provider failures. |
+| [RFC-009-ollama-model-setting.md](RFC-009-ollama-model-setting.md) | Ollama model setting, fix-it tips for AI provider failures, and a pre-run AI check. |
+| [RFC-010-folder-name-matching.md](RFC-010-folder-name-matching.md) | Folder-name matching: separators, case styles and special characters. |
+| [RFC-011-groups-without-categories.md](RFC-011-groups-without-categories.md) | Groups with no category folders: file straight into the group. |

@@ -1,4 +1,4 @@
-# RFC-009: Ollama model setting and failure tips
+# RFC-009: Ollama model setting, failure tips and a pre-run AI check
 
 Status: Draft
 
@@ -43,15 +43,42 @@ next step, after a run has already sent everything the AI would have answered to
   - the `ollama` package missing: ``install the ai extra (`uv sync --extra ai`)``.
 - **Show the failure in the `sort` summary**, not only as a log line, so `-q` and a scrolled-away warning do not hide
   why documents went to review.
+- **Test the AI before the run, with a hello-world call.** Raised on 2026-10-25. Today a dead server or an unpulled
+  model only shows up part-way through a run, when the first failure switches the AI off for the rest of it. Instead,
+  when `--use-ai` is given, `_build_ai_classifier` (shared by `sort` and `review`) makes one call before any document
+  is classified:
+  - a new `core/ai/check.py::check_ai(config) -> AICheck(ok, detail, seconds)` builds the provider with
+    `build_provider` and calls `complete("Reply with the single word: OK")`. Any exception becomes
+    `describe_error(err)` plus the matching tip from the action above; success is any non-empty reply (models are
+    chatty, so the reply is not compared with `OK`), reported with the provider, model and time taken;
+  - no new flag: `--use-ai` is already the opt-in, and it already prints the OpenAI notice before the first document.
+    The call sends no document text. With Ollama it also loads the model, so the first real answer is not slow;
+  - it runs for `sort --dry-run --use-ai` too, since a preview is how people test their setup;
+  - on failure the command stops with exit 1 before anything is moved, and the message is printed directly, so `-q`
+    cannot hide it. The alternative, warning and carrying on with the rules only, is today's behaviour and keeps the
+    "did not notice" problem (see the options below).
 
 ## Questions to settle before building it
 
 - Validate an empty Ollama `model` in `load_config` (fails every command, even ones that never use the AI) or only in
   `build_provider` (fails only `--use-ai` runs)? The second is likely right.
-- Should `microfiche init` ask for, or fill in, the Ollama model?
-- Check once at the start of a run that the model exists (`ollama.Client.show`), so the user hears about it before
-  the first document rather than part-way through?
+- Should `microfiche init` ask for, or fill in, the Ollama model? Related: `init` could offer "Test the AI
+  connection?" (default no) after the walk-through changes an `[ai]` setting, as a thin prompt over the same
+  `check_ai`. An automatic check in `init` is rejected: `init` also runs on a fresh install, where Ollama may not be
+  running or the `ai` extra not installed, and with `openai` it would be an unrequested call to a hosted service.
+- **Pre-run check:** on failure, abort with exit 1 (proposed: the user asked for AI, nothing has moved yet, and
+  rerunning costs nothing) or warn and continue with the rules only?
+- The check sits inside the run lock in `sort` (`_build_ai_classifier` is called within `_locked`), so a slow timeout
+  holds the lock. Run it before taking the lock, or accept that?
+- A cold Ollama model load can exceed `[ai] timeout` and look like a failure. The timeout tip must name the setting;
+  should the check allow a longer timeout than a normal call?
+- Does the check replace the earlier idea of `ollama.Client.show` (does the model exist)? The hello-world call proves
+  more (the model loads and answers) but needs a model run, where `show` is cheap.
 - Does the OpenAI provider's hardcoded `model: str = "gpt-4o-mini"` get the same treatment, for consistency?
 - Where does the tip mapping live: in each provider (which knows its own exception types) or in `LLMClassifier`?
 - Tests it would need: an empty Ollama `model` refused with the tip; a fake client raising each failure kind and the
-  matching tip in `failure`; the `sort` summary printing `ai_unavailable`; the `ai` extra missing.
+  matching tip in `failure`; the `sort` summary printing `ai_unavailable`; the `ai` extra missing; `check_ai` with a
+  fake provider (ok, raises, empty reply, missing key; patch `microfiche.core.ai.check.build_provider`); `sort
+  --use-ai` stopping before any file moves on a failed check, with `-q` too.
+- Docs it would touch: `docs/how-to-use.md` (both tabs, and Current limitations), the Usage section of `README.md`,
+  `make docs-cli`, and `mvp-roadmap.md` (which lists "`-q` hides the AI-unavailable warning" as a known gap).
