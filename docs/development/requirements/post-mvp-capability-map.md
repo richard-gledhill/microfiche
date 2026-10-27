@@ -17,7 +17,7 @@ feature.
 | Step | # | Id | Requirement | Theme | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | 1 | `library-init` | [`init`: set up, check and edit a library's configuration](library-init-prd.md) | Adoption | — | Done |
-| 2 | — | `ai-provider-setup` | [RFC-009: Ollama model setting, failure tips and a pre-run AI check](../rfcs/RFC-009-ollama-model-setting.md) | Bug fix | — | RFC draft |
+| 2 | — | `ai-provider-setup` | [RFC-009: Ollama model setting, failure tips and a pre-run AI check](../rfcs/RFC-009-ollama-model-setting.md) | Bug fix | — | RFC accepted ([ADR-004](../adr/ADR-004-ai-provider-setup.md)) |
 | 3 | 2 | `matching-precision` | [Word-boundary matching and an ambiguity margin](matching-precision-prd.md), starting with [RFC-010: folder-name normalisation](../rfcs/RFC-010-folder-name-matching.md) | Trust, bug fix | — | Draft |
 | 4 | — | `empty-group-filing` | [RFC-011: groups with no category folders](../rfcs/RFC-011-groups-without-categories.md) | Bug fix | `matching-precision` (same classifier code) | RFC draft |
 | 5 | 3 | `hint-learning` | [Learn keyword hints from review choices](hint-learning-prd.md) | Less review work | `matching-precision` | Draft |
