@@ -1,9 +1,14 @@
 # Matching precision: word boundaries and an ambiguity margin
 
-Status: Draft
+Status: Accepted
+
+Settled on 2026-10-28. The first slice, folder-name normalisation, shipped under
+[RFC-010](../rfcs/RFC-010-folder-name-matching.md) / [ADR-005](../adr/ADR-005-folder-name-matching.md), so names and
+text are already plain words separated by single spaces. The rest is built in two PRs, each with its own calibration
+run: **(A) word boundaries**, then **(B) the ambiguity margin**.
 
 - **Id:** `matching-precision` ([capability map](post-mvp-capability-map.md), #2)
-- **Depends on:** nothing (built after `library-init`, which is smaller and unblocks new users)
+- **Depends on:** nothing; RFC-010 (normalisation) is its first slice and is done
 
 ## Why
 
@@ -39,21 +44,22 @@ candidates is too close to call: their confidences are within a **margin** of ea
 - At each stage (group, then category within the resolved group), collect every candidate with its confidence. If the
   runner-up's confidence is within the margin of the best one's, leave the unit unresolved at that stage and send it to
   review; the reason names the candidates and their confidences. Otherwise the best candidate wins as today.
-- The margin is a setting, `[classification] ambiguity_margin` (name to confirm), from 0 to 1. Its shipped default is
+- The margin is a setting, `[classification] ambiguity_margin`, from 0 to 1. Its shipped default is
   chosen by calibration and recorded in [calibration.md](../testing/calibration.md). The packaged defaults file is the
   only place the default lives.
 - The result must not depend on the order of folders or of entries in the library file.
 - Re-run the calibration, record the new numbers in [calibration.md](../testing/calibration.md), and update the pinned
   findings in `tests/calibration/test_calibration.py`.
 
-**Should**
+**Should** (both in scope)
 - Keep a filename rule decisive: a filename rule match is not overridden by an ambiguity found in the text.
 - Folder units: apply the margin to the vote, so a near tie between two categories goes to review as an exact tie does
   today.
-- Show the competing candidates in `review`, so the user can pick one directly.
 
 **Won't (this time)**
 - Weighting by position or frequency (title over body, counts). Revisit with calibration on real, longer documents.
+- Showing the competing candidates in `review` so the user can pick one directly. It touches `cli/review.py`: a
+  follow-up after the margin ships. Until then the candidates appear in the review reason only.
 
 ## Acceptance criteria
 
@@ -95,8 +101,13 @@ Guidance for the spec, not binding.
   this requirement absorbs.
 - The `Car` known limit in [mvp-roadmap.md](mvp-roadmap.md#release-stage-6) and the docs' "Current limitations".
 
-## Open questions
+## Decisions
 
-- What default margin? Decided by calibration; record the trade-off at each value tried.
-- Does the margin compare against the runner-up only, or count every candidate within it (which matters for the reason
-  text, not the outcome)?
+- **Two PRs.** (A) word boundaries, then (B) the ambiguity margin, so the calibration run for each shows its own effect.
+  After normalisation a boundary test is `f" {name} " in f" {text} "`, so the `` problem with `C++` and `R&D` in the
+  outline above does not arise.
+- **Setting name:** `[classification] ambiguity_margin`.
+- **Reason text lists every candidate within the margin of the best**, not only the runner-up. The outcome is the same;
+  the reason shows what the user would choose between.
+- **Default margin:** still decided by calibration (0, 0.05, 0.1, 0.15 tried), with the trade-off at each value recorded
+  in `calibration.md`. Build (B) to find it.

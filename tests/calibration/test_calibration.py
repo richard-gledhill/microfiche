@@ -1,6 +1,7 @@
 """Tests for the calibration harness and for the integrity of the bundled corpus."""
 
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from harness import (
     ADVERSARIAL_KINDS,
     CORPUS_ROOT,
     FLAT_CORPUS_ROOT,
+    STYLES_CORPUS_ROOT,
     UNFILED,
     Blend,
     Case,
@@ -456,6 +458,52 @@ def test_flat_corpus_report_renders_group_signals(flat_corpus: list[Case]) -> No
 
     assert "group hint" in report
     assert "category" not in report.split("BY HOW THE ANSWER WAS FOUND")[1]  # a flat library has no category signal
+
+
+# endregion
+
+
+# region Folder-name styles
+
+
+STYLES_LIBRARY = STYLES_CORPUS_ROOT / "team-notes"
+
+
+@pytest.fixture(scope="module")
+def styles_corpus() -> list[Case]:
+    return load_corpus(STYLES_CORPUS_ROOT)
+
+
+def test_styles_corpus_folders_written_in_several_styles() -> None:
+    taxonomy = Library(STYLES_LIBRARY).taxonomy()
+
+    assert set(taxonomy.group_names) == {"project-alpha", "ProjectBeta", "R&D"}
+    categories = {category for group in taxonomy.group_names for category in taxonomy.categories_for(group)}
+    assert categories == {"01-meeting-notes", "status_reports", "TermsAndConditions", "Budget & Forecast"}
+
+
+def test_styles_corpus_normalised_names_file_every_document_correctly(styles_corpus: list[Case]) -> None:
+    """Each folder style names words that the text spells in plain English, so all of them should file."""
+
+    belonging = [case for case in styles_corpus if case.truth is not None]
+    outcome = evaluate(styles_corpus, DEFAULT_CONFIDENCE_THRESHOLD)
+
+    assert len(belonging) == 8
+    assert outcome.filed_correct == 8
+    assert outcome.filed_wrong == 0
+    assert all(case.confidence == 0.9 for case in belonging)  # a normalised name is not discounted
+
+
+def test_styles_corpus_literal_names_file_nothing(tmp_path: Path) -> None:
+    """The same library with `normalise_names = false`: what RFC-010 fixed, measured."""
+
+    shutil.copytree(STYLES_LIBRARY, tmp_path / STYLES_LIBRARY.name)
+    config = tmp_path / STYLES_LIBRARY.name / ".microfiche" / "microfiche-config.toml"
+    config.write_text("[classification]\nnormalise_names = false\n" + config.read_text(encoding="utf-8"))
+
+    outcome = evaluate(load_corpus(tmp_path), DEFAULT_CONFIDENCE_THRESHOLD)
+
+    assert outcome.filed == 0
 
 
 # endregion

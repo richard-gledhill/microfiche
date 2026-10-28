@@ -31,6 +31,7 @@ from microfiche.core.parsers import read_documents
 
 CORPUS_ROOT = Path(__file__).parent / "corpus"
 FLAT_CORPUS_ROOT = Path(__file__).parent / "corpus_flat"  # depth-1 libraries: documents sit directly in a group
+STYLES_CORPUS_ROOT = Path(__file__).parent / "corpus_styles"  # folders written in different naming styles
 UNFILED = "_unfiled"
 THRESHOLDS = (0.0, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0)
 

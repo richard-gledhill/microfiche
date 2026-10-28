@@ -207,10 +207,11 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 - **Ambiguity check.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). Hold a document when more than one group is named in its text, or more than one
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
-- **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration corpus not yet extended with separator-named folders.
-- **Match group names on word boundaries.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice A): names, hints and
-  fuzzy group matches count only as whole words when `normalise_names` is on. A hint no longer matches inside a longer
-  word (`lecture` in `lectures`); results in [calibration.md](../testing/calibration.md#word-boundaries).
+- **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration covers it in a separate `corpus_styles` corpus ([calibration.md](../testing/calibration.md#folder-name-styles)).
+- **Match group names on word boundaries.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). `Car` matches `carrier` and `card`; short or common group
+  names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
+  regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
+  the same boundary test to fuzzy matches (see [ADR-002](../adr/ADR-002-switch-to-rapidfuzz.md)).
 - **Use the AI where the rules are ambiguous or hint-level.** Requirement drafted:
   [ai-second-opinion-prd.md](ai-second-opinion-prd.md). Today it is asked only when the rules are unsure,
   never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is
