@@ -278,13 +278,12 @@ def test_sample_flat_sort_every_item_has_its_expected_outcome(tmp_path: Path) ->
             assert item.reason in held[item.name], item.name  # held for the reason the sample says, not just held
 
 
-def test_sample_flat_sort_short_group_name_inside_a_word_is_a_known_limit(tmp_path: Path) -> None:
+def test_sample_flat_sort_short_group_name_inside_a_word_is_not_a_match(tmp_path: Path) -> None:
     built = _build(tmp_path, "flat")
 
     report = run_sort(Library(built.root))
 
-    # Documented in docs/how-to-use.md ("Current limitations") and docs/development/testing/calibration.md.
-    assert _filed_where(report)["scarf-pattern.md"] == "Car"
+    assert "scarf-pattern.md" not in _filed_where(report)
 
 
 # endregion

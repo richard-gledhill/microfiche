@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from microfiche.core.models.classification import CategoryMatch, GroupMatch
-from microfiche.core.rules.normalise import normalise_for_matching
+from microfiche.core.rules.normalise import contains_words, normalise_for_matching
 
 _LEADING_ORDER_PREFIX_RE = re.compile(r"^\d+\s*")
 
@@ -45,7 +45,7 @@ def match_category(
 
     for category_name in category_names:
         wanted = _prepare_name(category_name, normalise)
-        if wanted and wanted in lowered:
+        if _found(wanted, lowered, normalise):
             return CategoryMatch(
                 name=category_name,
                 confidence=name_confidence,
@@ -55,7 +55,7 @@ def match_category(
     for category_name in category_names:
         for keyword in hints.get(category_name, []):
             wanted = _prepare_hint(keyword, normalise)
-            if wanted and wanted in lowered:
+            if _found(wanted, lowered, normalise):
                 return CategoryMatch(
                     name=category_name,
                     confidence=hint_confidence,
@@ -89,7 +89,7 @@ def match_group_hints(
         group_name: keyword
         for group_name, keywords in hints.items()
         for keyword in keywords
-        if (wanted := _prepare_hint(keyword, normalise)) and wanted in lowered
+        if _found(_prepare_hint(keyword, normalise), lowered, normalise)
     }
     if len(found) > 1:
         which = ", ".join(f"'{group}' ('{keyword}')" for group, keyword in found.items())
@@ -113,3 +113,11 @@ def _prepare_name(name: str, normalise: bool) -> str:
 
 def _prepare_hint(keyword: str, normalise: bool) -> str:
     return normalise_for_matching(keyword) if normalise else keyword.lower()
+
+
+def _found(wanted: str, text: str, normalise: bool) -> bool:
+    """Whether ``wanted`` is in ``text``: as whole words when normalising, as a plain substring when not."""
+
+    if not wanted:
+        return False
+    return contains_words(text, wanted) if normalise else wanted in text
