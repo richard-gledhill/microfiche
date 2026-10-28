@@ -105,33 +105,33 @@ At the thresholds that matter (identical results between them):
 
 | Threshold | What files | All 136 | Ordinary 109 | Tricky 27 |
 |---|---|---|---|---|
-| ≤ 0.75 | rules, names, hints | 113 filed: 89 right, 24 wrong | 88 filed: 87 right, 1 wrong | 25 filed: 2 right, 23 wrong |
-| 0.8 – 0.85 | rules, names | 49 filed: 38 right, 11 wrong | 38 filed: 38 right, 0 wrong | 11 filed: 0 right, 11 wrong |
+| ≤ 0.75 | rules, names, hints | 110 filed: 90 right, 20 wrong | 87 filed: 86 right, 1 wrong | 23 filed: 4 right, 19 wrong |
+| 0.8 – 0.9 | rules, names | 48 filed: 39 right, 9 wrong | 38 filed: 38 right, 0 wrong | 10 filed: 1 right, 9 wrong |
 | 0.95 | filename rules only | 6 filed: 6 right | 6 filed: 6 right | none filed |
 
-(At 0.9 one fuzzy lookalike drops out: 48 filed, 10 wrong. Below 0.75 nothing changes for the rules alone, because their lowest score is 0.75.)
+(Below 0.75 nothing changes for the rules alone, because their lowest score is 0.75. Figures are after word-boundary matching; see [Word boundaries](#word-boundaries).)
 
 How reliable each kind of evidence was:
 
 | How the answer was found | Score | Ordinary: right / answered | Tricky: right / answered |
 |---|---|---|---|
 | filename rule | 0.95 | 6 / 6 | — |
-| category name | 0.90 | 32 / 32 | 0 / 11 |
-| keyword hint | 0.75 | 49 / 50 | 2 / 14 |
+| category name | 0.90 | 32 / 32 | 1 / 10 |
+| keyword hint | 0.75 | 48 / 49 | 3 / 13 |
 
-(The one ordinary failure is a *fuzzy* group match: a machine-learning lecture that mentions "a
-database" was filed under the `Databases` course.)
+(The one ordinary failure is a *fuzzy* group match: a machine-learning lecture that mentions "a database" was
+filed under the `Databases` course. "Database" is a whole word, so word boundaries do not stop it.)
 
 **Sensitivity to how many documents are tricky.** The corpus is 20% tricky on purpose; a real library
 will differ. Blending the ordinary and tricky outcomes at other shares, per 100 documents:
 
 | Tricky documents | 0.75: right / wrong | 0.8: right / wrong | Break-even for 0.8 |
 |---|---|---|---|
-| 0% | 79.8 / 0.9 | 34.9 / 0.0 | 49 reviews per misfile |
-| 5% | 76.2 / 5.1 | 33.1 / 2.0 | 14 |
-| 10% | 72.6 / 9.3 | 31.4 / 4.1 | 8 |
-| 20% | 65.3 / 17.8 | 27.9 / 8.1 | 4 |
-| 30% | 58.1 / 26.2 | 24.4 / 12.2 | 2.4 |
+| 0% | 78.9 / 0.9 | 34.9 / 0.0 | 48 reviews per misfile |
+| 5% | 75.7 / 4.4 | 33.3 / 1.7 | 15.6 |
+| 10% | 72.5 / 7.9 | 31.7 / 3.3 | 9.0 |
+| 20% | 66.1 / 14.8 | 28.6 / 6.7 | 4.6 |
+| 30% | 59.7 / 21.8 | 25.5 / 10.0 | 2.9 |
 
 "Break-even" is how many needless reviews one avoided misfile must be worth for 0.8 to beat 0.75. Only
 if misfiles are many times worse than reviews *and* tricky documents are common does 0.8 pay off —
@@ -139,8 +139,7 @@ and a held document waits in the inbox for `review` (or for filing by hand).
 
 ## Why 0.75
 
-- On ordinary documents every kind of evidence is accurate (the single failure is a fuzzy group), so
-  holding hint matches back buys nothing there and costs more than half the correct filings (87 down to 38).
+- On ordinary documents every kind of evidence is accurate (the single failure is a fuzzy group), so holding hint matches back buys nothing there and costs more than half the correct filings (86 down to 38).
 - On tricky documents the dangerous matches are the *high-scoring* ones: category names (0.90) and
   group names (1.00) that appear incidentally. Raising the threshold to 0.8 removes the hint-driven
   misfires but keeps every name-driven one.
@@ -181,20 +180,39 @@ measure yours with `ai_arm.py`.
 
 ## Follow-ups
 
-Recorded on the [roadmap](../requirements/mvp-roadmap.md); none is implemented.
+Recorded on the [roadmap](../requirements/mvp-roadmap.md); none is implemented. Word-boundary matching,
+formerly the second, is built: see [Word boundaries](#word-boundaries).
 
 1. **Ambiguity check.** Hold a document when more than one group is named in its text, or more than one
    category has evidence (a filename rule counts as unambiguous). On this corpus: at 0.75, misfires
    24 → 8 with correct filings 89 → 87; at 0.8, 11 → 3 and 38 → 37. Caveats: it was devised after
    seeing the misfires, and these documents are short; long real documents will mention more than one
    category far more often, so the cost in correct filings is unmeasured.
-2. **Match group names on word boundaries.** `Car` matches `carrier` and `card`, `Home` matches
-   `homework`. Short or common group names are filed with full confidence on a substring (`shortname`:
-   0 of 2 right).
-3. **Use the AI where the rules are ambiguous or only hint-level**, not just where they're silent, and
+2. **Use the AI where the rules are ambiguous or only hint-level**, not just where they're silent, and
    let a library set the score its AI answers get.
-4. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
+3. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
    library you already trust, and re-check the default.
+
+## Word boundaries
+
+A group name, category name or keyword hint now matches only as whole words (with `normalise_names` on, the default),
+and a fuzzy group match must start and end on a word edge. Before, `Car` matched inside `carrier`, `care` and `scarf`,
+and `Home` inside `homework`. Measured on the main corpus at the default threshold:
+
+| Measure | Before | After |
+|---|---|---|
+| Filed automatically | 113 | 110 |
+| Filed correctly | 89 | 90 |
+| Misfiled | 24 | 20 |
+| Ordinary documents misfiled | 1 | 1 |
+| Ordinary documents filed correctly | 87 | 86 |
+
+Four misfiles went to review or to the right folder (two `shortname` documents now file correctly, two fuzzy lookalikes are held); one correct filing was lost. The lost one is a legitimate near-miss:
+`Acme Limited` against the folder `Acme Ltd` is a fuzzy match whose best alignment ends inside `Limited`, so the span is
+not on a word edge. The rest are the short-name and fuzzy-lookalike documents the change was for. The `shortname` documents
+now file correctly or go to review; the flat corpus's adversarial documents file 3, 1 right, where it filed 4, none right.
+What remains is the ambiguity-margin work (`matching-precision`, slice B): the misfiles above are documents that name two
+groups or categories, which word boundaries cannot tell apart.
 
 ## Flat libraries (depth 1)
 
@@ -206,16 +224,15 @@ adversarial. Run it with `uv run python tests/calibration/report.py tests/calibr
 | At the default (0.75) | Documents | Filed | Right | Wrong |
 |---|---|---|---|---|
 | Ordinary, belonging to a group | 15 | 15 | 15 | 0 |
-| Adversarial | 5 | 4 | 0 | 4 |
+| Adversarial | 5 | 3 | 1 | 2 |
 
 By how the group was found, for the ordinary documents: an exact name (1.00) 4 of 4 right, a filename rule (0.95) 2 of
-2, a keyword hint (0.75) 9 of 9. Among the adversarial documents an exact name was wrong 4 of 4 times. Raising the threshold to 0.8 files only the 6 name and rule matches, so it files 9
+2, a keyword hint (0.75) 9 of 9. Among the adversarial documents an exact name was wrong 2 of 3 times (it was 4 of 4 before word boundaries). Raising the threshold to 0.8 files only the 6 name and rule matches, so it files 9
 fewer correct documents and is no safer: the finding for two levels holds at depth 1. The default does not change.
 
-What goes wrong is the same weakness, and it bites harder: with group names the only name signal, `Car` is found inside
-`care` ("lawn care") and `scarf` at 1.00, a passing mention (`car park`) beats the real group, and of two groups named
-in one document the first one wins. Matching group names on word boundaries (see [Follow-ups](#follow-ups)) would
-remove the first two.
+What goes wrong is the same weakness, and it bites harder: with group names the only name signal, a passing mention
+(`car park`) beats the real group, and of two groups named in one document the first one wins. Matching group names on
+word boundaries (see [Word boundaries](#word-boundaries)) already removed `Car` inside `care` ("lawn care") and `scarf`.
 
 The fifth adversarial document is a hint collision: `dentist` (a `Health` hint) and `MOT` (a `Car` hint) in one
 sentence. A first version of the flat matcher took the first group with a hint and filed it under `Car` at 0.75; found in

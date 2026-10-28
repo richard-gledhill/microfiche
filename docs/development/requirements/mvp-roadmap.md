@@ -184,7 +184,7 @@ which attaches the wheels to the release; CI on Linux and Windows with a coverag
 (`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. The simplification review, an independent code review, an independent docs review and a guided manual walkthrough (both shells, a
 31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed. Left open: publishing the docs site, checking `gh release download` against the
 release, and raising the coverage floor ([mvp-followups-prd.md](mvp-followups-prd.md#release-close-out-stage-6)). Known limits the docs state rather than hide: a bundle moved by hand is
-split by `reclassify`; `Car` matches inside `care` and `scarf` at full confidence; `-q` hides the "AI unavailable" warning; `review`
+split by `reclassify`; a short group name can still lose to a passing mention of another; `-q` hides the "AI unavailable" warning; `review`
 cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
 (a silent no-op worth a warning or a validation error after the MVP).
 
@@ -208,10 +208,9 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
   89 → 87. Needs measuring on long documents before it is built.
 - **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration corpus not yet extended with separator-named folders.
-- **Match group names on word boundaries.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). `Car` matches `carrier` and `card`; short or common group
-  names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
-  regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
-  the same boundary test to fuzzy matches (see [ADR-002](../adr/ADR-002-switch-to-rapidfuzz.md)).
+- **Match group names on word boundaries.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice A): names, hints and
+  fuzzy group matches count only as whole words when `normalise_names` is on. A hint no longer matches inside a longer
+  word (`lecture` in `lectures`); results in [calibration.md](../testing/calibration.md#word-boundaries).
 - **Use the AI where the rules are ambiguous or hint-level.** Requirement drafted:
   [ai-second-opinion-prd.md](ai-second-opinion-prd.md). Today it is asked only when the rules are unsure,
   never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is

@@ -414,7 +414,8 @@ carries on, and `config --sync` exits with an error.
 - Names are compared in one spelling (`[classification] normalise_names`, on by default), so `meeting-notes`,
   `meeting_notes`, `MeetingNotes` and `Meeting Notes` all match the words "meeting notes", `R&D` matches "R and D",
   an apostrophe or accent doesn't matter, and keyword hints are compared the same way. `+` and `#` are kept, so `C++` and
-  `C#` stay different names. A leading one-to-three-digit number such as `01 `, `01-` or `01_` is ignored, so you can use
+  `C#` stay different names. Names, hints and fuzzy group matches count only as whole words, so `Car` is not found in
+  `scarf` or `carrier` and a hint `lecture` does not match `lectures` (add both spellings as hints). A leading one-to-three-digit number such as `01 `, `01-` or `01_` is ignored, so you can use
   it to order folders; a date such as `2024-03 Invoices` is not. Your folders are never renamed. If two sibling
   folders read the same (`meeting-notes` and `meeting_notes`), or a name has no letters or digits, `config --sync` says so.
 - A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
@@ -1208,7 +1209,7 @@ microfiche is pre-release. At the moment:
   goes to review. See the
   [request for change](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/RFC-011-groups-without-categories.md).
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
-  inside another word (`Car` in `scarf`) is found with full confidence and misfiled; see the
+  that is also a passing mention (`car park`) can still beat the real group; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).
   `propose-categories` has nothing to propose in a flat library and says so.
 - The library file is synced by `init`, on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
