@@ -226,6 +226,27 @@ only thing to match on, a wrong guess has no second stage to correct it.
 This is 22 short, synthetic documents in one library, so its absolute rates say little. The AI arm, and its saved
 answers, cover the two-level corpus only and were not re-run for depth 1.
 
+## Folder-name styles
+
+Folder names written with separators, case styles, order prefixes or `&` used to match nothing (RFC-010,
+[ADR-005](../adr/ADR-005-folder-name-matching.md)). A third small corpus, `tests/calibration/corpus_styles/`, holds one
+library, `team-notes`: groups `project-alpha`, `ProjectBeta` and `R&D`; categories `01-meeting-notes`, `status_reports`,
+`TermsAndConditions` and `Budget & Forecast`; 10 documents, 2 of which belong to no group. Every document names its group
+and category in plain words ("Project Alpha meeting notes", "R and D budget and forecast"). It is kept apart from the main
+corpus so the saved AI answers, which cover the main corpus exactly, stay valid. Run it with
+`uv run python tests/calibration/report.py tests/calibration/corpus_styles`.
+
+| At the default (0.75) | Documents | Filed | Right | Wrong |
+|---|---|---|---|---|
+| `normalise_names = true` (default) | 8 | 8 | 8 | 0 |
+| `normalise_names = false` | 8 | 0 | 0 | 0 |
+
+With normalisation each filing is a category name match, 0.90, the same score a plain spelling gets: a normalised match is
+not discounted. Without it, 8 of 8 go to review, 6 of them with a group found but no category and 2 with no group at all.
+This shows the effect, not a rate: the documents were written to name their folders. It does not measure
+over-matching (`Notes` inside `Meeting Notes`), which is for the ambiguity margin in
+[matching-precision](../requirements/matching-precision-prd.md).
+
 ## Limitations
 
 - **Synthetic and authored with knowledge of the rules.** Adversarial documents were written to trip

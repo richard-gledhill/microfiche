@@ -1,0 +1,3 @@
+# Folders written in different styles: kebab, snake, Pascal, order-prefixed and with special characters.
+[exclusions]
+exclude = ["sorting*", "_sorting*", ".*", "_*"]
