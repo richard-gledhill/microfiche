@@ -7,4 +7,4 @@
 - [x] Calibrated; plurals do not match (documented); pins and `calibration.md` updated
 - [x] Docs: how-to-use, limitations, roadmap
 - [ ] `make check`, `make test`
-- [ ] PR
+- [x] PR #103

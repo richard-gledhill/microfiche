@@ -8,6 +8,9 @@ AI results are in [`tests/calibration/`](../../../tests/calibration/).
 
 The default is **0.75**. It was 0.8 until this was measured.
 
+The bullets below are the findings as first measured. The tables further down are current, after word-boundary
+matching and the ambiguity margin.
+
 - **The threshold only chooses between kinds of evidence.** The classifier's scores are fixed per kind
   of match, not per document, so there are only a handful of meaningful thresholds: ≤ 0.75 files
   keyword-hint matches, names and filename rules; 0.76–0.9 files names and filename rules; 0.91–0.95
@@ -21,10 +24,10 @@ The default is **0.75**. It was 0.8 until this was measured.
   50. On deliberately tricky documents a category name (0.90) was wrong 11 times out of 11, and a hint
   (0.75) 12 times out of 14. No threshold can separate those, because the confident mistakes score
   *higher* than the cautious right answers.
-- **Safer filing needs better matching, not a higher cut-off.** A prototype check, "hold a document
-  when more than one group is named or more than one category has evidence", cut misfires from 24 to 8
-  on this corpus at the cost of 2 correct filings. It is not implemented (see
-  [Follow-ups](#follow-ups)).
+- **Safer filing needs better matching, not a higher cut-off.** Holding a document when the evidence for
+  two groups or categories is within a margin (`ambiguity_margin`) cut misfiles from 24 to 6 on this corpus,
+  together with word-boundary matching, for no net loss of correct filings (89 either way; see
+  [Ambiguity margin](#ambiguity-margin)).
 - **The AI fallback is far more accurate than its score of 0.70** (98% on the one model measured),
   but as built it adds almost nothing: it is only asked when the rules are unsure, never about their
   confident mistakes, and at 0.75 or above its answers never file.
@@ -76,7 +79,7 @@ Each file is tagged in `kinds.json` with why it was written:
 | `nogroup` | 15 | belongs to no existing group |
 | `incidental` | 5 | another category's *name* appears in passing |
 | `incidental-hint` | 4 | another category's *hint* appears in passing |
-| `hintcollision` | 3 | hints of two categories both appear; the earlier category wins |
+| `hintcollision` | 3 | hints of two categories both appear; held for review by the ambiguity margin |
 | `crossref` | 9 | another group is mentioned in passing |
 | `shortname` | 2 | a short group name appears inside another word (`Car` in `carrier`) |
 | `lookalike` | 4 | belongs to no group but resembles one (`Project Atlantic`, `Project Phoenix Rising`) |
@@ -105,19 +108,20 @@ At the thresholds that matter (identical results between them):
 
 | Threshold | What files | All 136 | Ordinary 109 | Tricky 27 |
 |---|---|---|---|---|
-| ≤ 0.75 | rules, names, hints | 110 filed: 90 right, 20 wrong | 87 filed: 86 right, 1 wrong | 23 filed: 4 right, 19 wrong |
-| 0.8 – 0.9 | rules, names | 48 filed: 39 right, 9 wrong | 38 filed: 38 right, 0 wrong | 10 filed: 1 right, 9 wrong |
+| ≤ 0.75 | rules, names, hints | 95 filed: 89 right, 6 wrong | 87 filed: 86 right, 1 wrong | 8 filed: 3 right, 5 wrong |
+| 0.8 – 0.9 | rules, names | 41 filed: 39 right, 2 wrong | 38 filed: 38 right, 0 wrong | 3 filed: 1 right, 2 wrong |
 | 0.95 | filename rules only | 6 filed: 6 right | 6 filed: 6 right | none filed |
 
-(Below 0.75 nothing changes for the rules alone, because their lowest score is 0.75. Figures are after word-boundary matching; see [Word boundaries](#word-boundaries).)
+(Below 0.75 nothing changes for the rules alone, because their lowest score is 0.75. Figures are after word-boundary matching and the ambiguity margin; see [Word boundaries](#word-boundaries) and
+[Ambiguity margin](#ambiguity-margin).)
 
 How reliable each kind of evidence was:
 
 | How the answer was found | Score | Ordinary: right / answered | Tricky: right / answered |
 |---|---|---|---|
 | filename rule | 0.95 | 6 / 6 | — |
-| category name | 0.90 | 32 / 32 | 1 / 10 |
-| keyword hint | 0.75 | 48 / 49 | 3 / 13 |
+| category name | 0.90 | 32 / 32 | 1 / 3 |
+| keyword hint | 0.75 | 48 / 49 | 2 / 5 |
 
 (The one ordinary failure is a *fuzzy* group match: a machine-learning lecture that mentions "a database" was
 filed under the `Databases` course. "Database" is a whole word, so word boundaries do not stop it.)
@@ -128,10 +132,10 @@ will differ. Blending the ordinary and tricky outcomes at other shares, per 100 
 | Tricky documents | 0.75: right / wrong | 0.8: right / wrong | Break-even for 0.8 |
 |---|---|---|---|
 | 0% | 78.9 / 0.9 | 34.9 / 0.0 | 48 reviews per misfile |
-| 5% | 75.7 / 4.4 | 33.3 / 1.7 | 15.6 |
-| 10% | 72.5 / 7.9 | 31.7 / 3.3 | 9.0 |
-| 20% | 66.1 / 14.8 | 28.6 / 6.7 | 4.6 |
-| 30% | 59.7 / 21.8 | 25.5 / 10.0 | 2.9 |
+| 5% | 75.5 / 1.8 | 33.3 / 0.4 | 29.6 |
+| 10% | 72.1 / 2.7 | 31.7 / 0.7 | 20.8 |
+| 20% | 65.3 / 4.4 | 28.6 / 1.5 | 12.4 |
+| 30% | 58.6 / 6.2 | 25.5 / 2.2 | 8.3 |
 
 "Break-even" is how many needless reviews one avoided misfile must be worth for 0.8 to beat 0.75. Only
 if misfiles are many times worse than reviews *and* tricky documents are common does 0.8 pay off —
@@ -180,17 +184,13 @@ measure yours with `ai_arm.py`.
 
 ## Follow-ups
 
-Recorded on the [roadmap](../requirements/mvp-roadmap.md); none is implemented. Word-boundary matching,
-formerly the second, is built: see [Word boundaries](#word-boundaries).
+Recorded on the [roadmap](../requirements/mvp-roadmap.md); none is implemented. Word-boundary matching and
+the ambiguity check, formerly the first two, are built: see [Word boundaries](#word-boundaries) and
+[Ambiguity margin](#ambiguity-margin).
 
-1. **Ambiguity check.** Hold a document when more than one group is named in its text, or more than one
-   category has evidence (a filename rule counts as unambiguous). On this corpus: at 0.75, misfires
-   24 → 8 with correct filings 89 → 87; at 0.8, 11 → 3 and 38 → 37. Caveats: it was devised after
-   seeing the misfires, and these documents are short; long real documents will mention more than one
-   category far more often, so the cost in correct filings is unmeasured.
-2. **Use the AI where the rules are ambiguous or only hint-level**, not just where they're silent, and
+1. **Use the AI where the rules are ambiguous or only hint-level**, not just where they're silent, and
    let a library set the score its AI answers get.
-3. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
+2. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
    library you already trust, and re-check the default.
 
 ## Word boundaries
@@ -214,6 +214,37 @@ now file correctly or go to review; the flat corpus's adversarial documents file
 What remains is the ambiguity-margin work (`matching-precision`, slice B): the misfiles above are documents that name two
 groups or categories, which word boundaries cannot tell apart.
 
+## Ambiguity margin
+
+If the runner-up group (or category) is within `[classification] ambiguity_margin` of the best, the stage is not
+chosen: the document goes to review with the candidates named. An exactly named group settles the group stage, so a
+sibling that only looks like it (`Project X`, `Project Y`) never holds a document; two exact names do. A name inside
+a longer matched name (`Home` in `Home Insurance`) is dropped first. Swept on the main and flat corpora at the default
+threshold:
+
+| Margin | Filed | Right | Wrong | Misfile % | What changes |
+|---|---|---|---|---|---|
+| none (before) | 110 | 90 | 20 | 18.2 | |
+| 0 | 95 | 89 | 6 | 6.3 | holds only exact ties: two groups both named exactly, two categories both hint-matched |
+| 0.05 | 95 | 89 | 6 | 6.3 | same |
+| **0.10 (default)** | 95 | 89 | 6 | 6.3 | same |
+| 0.15 | 94 | 88 | 6 | 6.4 | also holds a category named by its name (0.90) beside another's hint (0.75): one more correct filing held, no misfile removed |
+| 0.20 | 94 | 88 | 6 | 6.4 | same |
+
+Misfiles fall from 20 to 6 for one correct filing (a tricky document that happened to be right). Of the 15 documents
+held, 14 would have been misfiled. They are cases of two groups named exactly (`crossref`, `lookalike`) or two categories hint-matched (`hintcollision`,
+`incidental-hint`) named exactly; ordinary documents are untouched. The default is **0.10**: the widest margin that costs nothing on
+this corpus, with room above the typical fuzzy-versus-exact gap. 0.15 is the first value that holds a name beside a
+hint, which is the line the setting should not cross by default, since a name is stronger evidence than a hint.
+Margins from 0 to 0.10 gave identical results here because the corpus's scores sit on a few fixed values; a real
+library with more fuzzy matches may separate them.
+
+What remains are the `incidental` documents, where another category's *name* appears in passing and is the only
+evidence, and the fuzzy `Databases` lecture. The ambiguity check cannot tell those from a correct filing.
+
+On the flat corpus the adversarial documents file 1 (right), where 3 were filed (1 right) after word boundaries: the
+hint collision, the `car park` mention and the `shed-cover` cross-reference are held. Ordinary documents are unchanged (15 of 15).
+
 ## Flat libraries (depth 1)
 
 A flat library has groups only, so a group's name, a filename rule on the group and the group's hints are all there
@@ -224,21 +255,21 @@ adversarial. Run it with `uv run python tests/calibration/report.py tests/calibr
 | At the default (0.75) | Documents | Filed | Right | Wrong |
 |---|---|---|---|---|
 | Ordinary, belonging to a group | 15 | 15 | 15 | 0 |
-| Adversarial | 5 | 3 | 1 | 2 |
+| Adversarial | 5 | 1 | 1 | 0 |
 
 By how the group was found, for the ordinary documents: an exact name (1.00) 4 of 4 right, a filename rule (0.95) 2 of
-2, a keyword hint (0.75) 9 of 9. Among the adversarial documents an exact name was wrong 2 of 3 times (it was 4 of 4 before word boundaries). Raising the threshold to 0.8 files only the 6 name and rule matches, so it files 9
+2, a keyword hint (0.75) 9 of 9. Among the adversarial documents an exact name was wrong 4 of 4 times before word boundaries, 2 of 3 after, and none now: the one still filed is right. Raising the threshold to 0.8 files only the 6 name and rule matches, so it files 9
 fewer correct documents and is no safer: the finding for two levels holds at depth 1. The default does not change.
 
 What goes wrong is the same weakness, and it bites harder: with group names the only name signal, a passing mention
-(`car park`) beats the real group, and of two groups named in one document the first one wins. Matching group names on
-word boundaries (see [Word boundaries](#word-boundaries)) already removed `Car` inside `care` ("lawn care") and `scarf`.
+(`car park`) used to beat the real group, and of two groups named in one document the first one won. Word boundaries
+(see [Word boundaries](#word-boundaries)) removed `Car` inside `care` ("lawn care") and `scarf`, and the
+[ambiguity margin](#ambiguity-margin) holds a document that names two groups.
 
 The fifth adversarial document is a hint collision: `dentist` (a `Health` hint) and `MOT` (a `Car` hint) in one
 sentence. A first version of the flat matcher took the first group with a hint and filed it under `Car` at 0.75; found in
-review, it now leaves a document to review when hints of more than one group appear. That is stricter than the
-two-level matcher, which still lets the earlier category win (`hintcollision` in the table above): with a group as the
-only thing to match on, a wrong guess has no second stage to correct it.
+review, it now leaves a document to review when hints of more than one group appear. The two-level matcher now does
+the same for categories through the ambiguity margin (`hintcollision` in the table above).
 
 This is 22 short, synthetic documents in one library, so its absolute rates say little. The AI arm, and its saved
 answers, cover the two-level corpus only and were not re-run for depth 1.
