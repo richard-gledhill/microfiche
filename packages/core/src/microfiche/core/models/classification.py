@@ -6,19 +6,29 @@ from pydantic import BaseModel
 
 
 class GroupMatch(BaseModel):
-    """Result of resolving which library group (level 1, e.g. a project) a document belongs to."""
+    """Result of resolving which library group (level 1, e.g. a project) a document belongs to.
+
+    ``candidates`` names the groups the evidence was too close to choose between, when ``name`` is ``None`` for that
+    reason; it is empty otherwise.
+    """
 
     name: str | None
     confidence: float
     reason: str
+    candidates: tuple[str, ...] = ()
 
 
 class CategoryMatch(BaseModel):
-    """Result of resolving which category (level 2) within a group a document belongs to."""
+    """Result of resolving which category (level 2) within a group a document belongs to.
+
+    ``candidates`` names the categories the evidence was too close to choose between, when ``name`` is ``None`` for
+    that reason; it is empty otherwise.
+    """
 
     name: str | None
     confidence: float
     reason: str
+    candidates: tuple[str, ...] = ()
 
 
 class ClassificationResult(BaseModel):
@@ -41,6 +51,12 @@ class ClassificationResult(BaseModel):
     overall_confidence: float
     classified_by: str
     confident: bool
+
+    @property
+    def ambiguous(self) -> bool:
+        """Whether a stage was held because the evidence was too close to choose between folders."""
+
+        return bool(self.group.candidates or (self.category and self.category.candidates))
 
     @property
     def folders(self) -> tuple[str, ...] | None:

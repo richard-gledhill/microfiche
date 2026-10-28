@@ -61,7 +61,7 @@ class RulesEngine:
         if by_filename.name is not None:
             return by_filename
         by_name = self._match_name(document, taxonomy)
-        if by_name.name is not None:
+        if by_name.name is not None or by_name.candidates:  # an ambiguous name is held, not settled by hints
             return by_name
         hints = {group: self._library_file.group_hints_for(group) for group in taxonomy.group_names}
         return match_group_hints(
@@ -100,6 +100,7 @@ class RulesEngine:
             name_confidence=self._settings.name_match_confidence,
             hint_confidence=self._settings.hint_match_confidence,
             normalise=self._settings.normalise_names,
+            margin=self._settings.ambiguity_margin,
         )
 
     def _match_name(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:
@@ -108,4 +109,5 @@ class RulesEngine:
             taxonomy.group_names,
             fuzzy_threshold=self._settings.fuzzy_group_threshold,
             normalise=self._settings.normalise_names,
+            margin=self._settings.ambiguity_margin,
         )

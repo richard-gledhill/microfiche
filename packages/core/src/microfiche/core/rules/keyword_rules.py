@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from microfiche.core.models.classification import CategoryMatch, GroupMatch
+from microfiche.core.rules.ambiguity import Candidate, choose
 from microfiche.core.rules.normalise import contains_words, normalise_for_matching
 
 _LEADING_ORDER_PREFIX_RE = re.compile(r"^\d+\s*")
@@ -24,8 +25,13 @@ def match_category(
     name_confidence: float,
     hint_confidence: float,
     normalise: bool = True,
+    margin: float = 0.0,
 ) -> CategoryMatch:
-    """Match ``text`` against a group's existing category names, falling back to keyword hints.
+    """Match ``text`` against a group's existing category names and keyword hints.
+
+    Each category the text gives evidence for is a candidate, scored by its best evidence: ``name_confidence`` if its
+    name appears, else ``hint_confidence`` if one of its hints does. The best candidate wins unless another is within
+    ``margin`` of it, in which case none is chosen.
 
     Args:
         text: The text to be analyzed for matching.
@@ -33,35 +39,42 @@ def match_category(
         hints: Keywords per category name, used when the category name itself doesn't appear.
         name_confidence: The confidence of a match on a category's name.
         hint_confidence: The confidence of a match on a keyword hint.
-        normalise: Compare names, hints and text through ``normalise_for_matching``. Off compares them
-            lowercased, as written.
+        normalise: Compare names, hints and text through ``normalise_for_matching`` and count only whole words. Off
+            compares them lowercased, as written.
+        margin: How close (0 to 1) the runner-up may be to the best before none is chosen.
 
     Returns:
-        The matching category with its confidence and the reason for it, or a match with
-        ``name=None`` when neither a name nor a hint matched.
+        The matching category with its confidence and the reason for it; a match with ``name=None`` and the close
+        ``candidates`` when the evidence is too close to call; or a match with ``name=None`` when neither a name nor
+        a hint matched.
     """
 
     lowered = _prepare_text(text, normalise)
+    candidates: list[Candidate] = []
 
     for category_name in category_names:
         wanted = _prepare_name(category_name, normalise)
         if _found(wanted, lowered, normalise):
-            return CategoryMatch(
-                name=category_name,
-                confidence=name_confidence,
-                reason=f"Category name '{category_name}' found in document text",
-            )
-
-    for category_name in category_names:
+            reason = f"Category name '{category_name}' found in document text"
+            candidates.append(Candidate(category_name, name_confidence, reason, wanted))
+            continue
         for keyword in hints.get(category_name, []):
             wanted = _prepare_hint(keyword, normalise)
             if _found(wanted, lowered, normalise):
-                return CategoryMatch(
-                    name=category_name,
-                    confidence=hint_confidence,
-                    reason=f"Keyword hint '{keyword}' matched for category '{category_name}'",
-                )
+                reason = f"Keyword hint '{keyword}' matched for category '{category_name}'"
+                candidates.append(Candidate(category_name, hint_confidence, reason, wanted))
+                break
 
+    choice = choose(candidates, margin)
+    if choice.winner is not None:
+        return CategoryMatch(name=choice.winner.name, confidence=choice.winner.confidence, reason=choice.winner.reason)
+    if choice.ambiguous:
+        return CategoryMatch(
+            name=None,
+            confidence=0.0,
+            reason=choice.reason("categories"),
+            candidates=tuple(c.name for c in choice.close),
+        )
     return CategoryMatch(name=None, confidence=0.0, reason="No category keyword or name matched")
 
 
