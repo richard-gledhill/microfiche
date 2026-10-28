@@ -38,3 +38,19 @@ def normalise_for_matching(text: str, *, folder_name: bool = False) -> str:
     text = _APOSTROPHES_RE.sub("", text.casefold())
     text = text.replace("&", " and ").replace("@", " at ")
     return _WHITESPACE_RE.sub(" ", _SEPARATORS_RE.sub(" ", text)).strip()
+
+
+def contains_words(text: str, phrase: str) -> bool:
+    """Whether ``phrase`` appears in ``text`` as whole words, both already normalised.
+
+    ``car`` is in ``my car insurance`` but not in ``carrier`` or ``scarf``. An empty phrase is never found.
+
+    Args:
+        text: Normalised text (single spaces between words).
+        phrase: A normalised name or hint.
+
+    Returns:
+        ``True`` if every word of the phrase is a whole word of the text, in order.
+    """
+
+    return bool(phrase) and f" {phrase} " in f" {text} "

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from microfiche.core.models.classification import GroupMatch
-from microfiche.core.rules.normalise import normalise_for_matching
+from microfiche.core.rules.normalise import contains_words, normalise_for_matching
 from rapidfuzz import fuzz
 
 
@@ -43,10 +43,15 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int, norm
         wanted = normalise_for_matching(group_name, folder_name=True) if normalise else group_name.lower()
         if not wanted:
             continue
-        if wanted in lowered:
+        if contains_words(lowered, wanted) if normalise else wanted in lowered:
             return GroupMatch(name=group_name, confidence=1.0, reason=f"Exact match on group name '{group_name}'")
 
-        score = round(fuzz.partial_ratio(wanted, lowered, score_cutoff=cutoff))
+        alignment = fuzz.partial_ratio_alignment(wanted, lowered, score_cutoff=cutoff)
+        if alignment is None or (
+            normalise and not _on_word_boundaries(lowered, alignment.dest_start, alignment.dest_end)
+        ):
+            continue
+        score = round(alignment.score)
         if score > best_score:
             best_name, best_score = group_name, score
 
@@ -58,3 +63,16 @@ def match_group(text: str, group_names: list[str], *, fuzzy_threshold: int, norm
         )
 
     return GroupMatch(name=None, confidence=0.0, reason="No known group name found in document text")
+
+
+def _on_word_boundaries(text: str, start: int, end: int) -> bool:
+    """Whether ``text[start:end]`` begins and ends at a word edge, so it is not part of a longer word.
+
+    The aligned window is as long as the name, so a near-miss can leave a space at either end; that space is the edge.
+    """
+
+    while start < end and text[start] == " ":
+        start += 1
+    while end > start and text[end - 1] == " ":
+        end -= 1
+    return (start == 0 or text[start - 1] == " ") and (end >= len(text) or text[end] == " ")

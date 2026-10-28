@@ -184,7 +184,7 @@ which attaches the wheels to the release; CI on Linux and Windows with a coverag
 (`scripts/make_sample_library.py`) whose every route is tested; and install-from-a-release instructions. The simplification review, an independent code review, an independent docs review and a guided manual walkthrough (both shells, a
 31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed. Left open: publishing the docs site, checking `gh release download` against the
 release, and raising the coverage floor ([mvp-followups-prd.md](mvp-followups-prd.md#release-close-out-stage-6)). Known limits the docs state rather than hide: a bundle moved by hand is
-split by `reclassify`; `Car` matches inside `care` and `scarf` at full confidence; `-q` hides the "AI unavailable" warning; `review`
+split by `reclassify`; a short group name can still lose to a passing mention of another; `-q` hides the "AI unavailable" warning; `review`
 cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
 (a silent no-op worth a warning or a validation error after the MVP).
 

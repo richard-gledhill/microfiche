@@ -578,10 +578,10 @@ def _flat_items() -> tuple[Item, ...]:
             "scarf-pattern.md",
             "md",
             "A pattern for a wool scarf, with the stitches for each row.",
-            "filed",
-            destination="Car",
-            covers={"group-exact-name"},
-            note="KNOWN LIMIT: the short group name 'Car' is found inside 'scarf' and is filed with full confidence.",
+            "review",
+            reason="No group keyword or name matched",
+            covers={"group-unresolved"},
+            note="The short group name 'Car' is inside 'scarf' but not a whole word, so it does not match.",
         ),
     )
 

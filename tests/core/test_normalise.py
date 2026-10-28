@@ -6,7 +6,7 @@ import pytest
 from microfiche.core.config import ClassificationConfig, load_config
 from microfiche.core.rules.group_rules import match_group
 from microfiche.core.rules.keyword_rules import match_category, match_group_hints
-from microfiche.core.rules.normalise import normalise_for_matching
+from microfiche.core.rules.normalise import contains_words, normalise_for_matching
 
 # region Normalise for matching
 
@@ -61,6 +61,30 @@ def test_normalise_for_matching_text_keeps_digit_prefix_and_camel_case() -> None
 def test_normalise_for_matching_idempotent(name: str) -> None:
     once = normalise_for_matching(name, folder_name=True)
     assert normalise_for_matching(once, folder_name=True) == once
+
+
+# endregion
+
+# region Whole words
+
+
+@pytest.mark.parametrize("text", ["car", "my car insurance", "the car.", "(Car)", "car, bus", "see car"])
+def test_contains_words_whole_word_found(text: str) -> None:
+    assert contains_words(normalise_for_matching(text), "car")
+
+
+@pytest.mark.parametrize("text", ["carrier", "care", "scarf", "cars", "card payment"])
+def test_contains_words_inside_longer_word_not_found(text: str) -> None:
+    assert not contains_words(normalise_for_matching(text), "car")
+
+
+def test_contains_words_multi_word_phrase_in_order() -> None:
+    assert contains_words("the meeting notes from monday", "meeting notes")
+    assert not contains_words("meeting minutes and notes", "meeting notes")
+
+
+def test_contains_words_empty_phrase_never_found() -> None:
+    assert not contains_words("anything", "")
 
 
 # endregion
@@ -128,6 +152,52 @@ def test_classification_config_normalise_names_default_on() -> None:
     settings: ClassificationConfig = load_config(Path("does-not-exist")).classification
 
     assert settings.normalise_names is True
+
+
+# endregion
+
+
+# region Rules match whole words
+
+
+def test_match_group_inside_longer_word_unresolved() -> None:
+    assert match_group("lawn care and a wool scarf", ["Car"], fuzzy_threshold=85).name is None
+
+
+def test_match_group_whole_word_found_with_punctuation() -> None:
+    assert match_group("Insurance for the (Car).", ["Car"], fuzzy_threshold=85).confidence == 1.0
+
+
+def test_match_group_fuzzy_span_inside_longer_word_refused() -> None:
+    assert match_group("the projectalphabet file", ["Project Alpha"], fuzzy_threshold=80).name is None
+
+
+def test_match_group_fuzzy_whole_words_accepted() -> None:
+    result = match_group("the projct alpha file", ["Project Alpha"], fuzzy_threshold=85)
+
+    assert result.name == "Project Alpha"
+    assert result.confidence < 1.0
+
+
+def test_match_category_hint_inside_longer_word_unresolved() -> None:
+    result = match_category(
+        "Lectures on graphs", ["Notes"], {"Notes": ["lecture"]}, name_confidence=0.9, hint_confidence=0.75
+    )
+
+    assert result.name is None
+
+
+def test_match_category_substring_still_matches_when_normalisation_off() -> None:
+    result = match_category(
+        "Lectures on graphs",
+        ["Notes"],
+        {"Notes": ["lecture"]},
+        name_confidence=0.9,
+        hint_confidence=0.75,
+        normalise=False,
+    )
+
+    assert result.name == "Notes"
 
 
 # endregion

@@ -436,13 +436,14 @@ def test_flat_corpus_higher_threshold_files_fewer_not_more_accurately(flat_corpu
     assert stricter.misfile_rate <= default.misfile_rate  # and no safer to speak of: ordinary documents never missed
 
 
-def test_flat_corpus_short_group_name_inside_another_word_misfiles_confidently(flat_corpus: list[Case]) -> None:
-    """With group names the only signal, `Car` in `care` and `scarf` is wrong at 1.00: see calibration.md."""
+def test_flat_corpus_short_group_name_inside_another_word_does_not_match(flat_corpus: list[Case]) -> None:
+    """`Car` inside `care` and `scarf` no longer matches: group names match whole words only."""
 
     shortnames = [case for case in flat_corpus if case.kind == "shortname"]
 
     assert shortnames
-    assert all(case.predicted[0] == "Car" and not case.correct and case.confidence == 1.0 for case in shortnames)
+    assert all(case.predicted[0] != "Car" or case.correct for case in shortnames)
+    assert not any(case.confidence == 1.0 and not case.correct for case in shortnames)
 
 
 def test_flat_corpus_hints_of_two_groups_are_held_not_guessed(flat_corpus: list[Case]) -> None:
@@ -606,7 +607,7 @@ def test_no_threshold_makes_name_match_reliable_when_tricky(corpus: list[Case]) 
     tricky_name_matches = [c for c in _adversarial(corpus) if c.resolved and c.category_signal == "name"]
 
     assert tricky_name_matches
-    assert not any(case.correct for case in tricky_name_matches)
+    assert sum(case.correct for case in tricky_name_matches) < len(tricky_name_matches) / 2
 
 
 # endregion
