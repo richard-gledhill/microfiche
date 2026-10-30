@@ -844,6 +844,32 @@ Pressing Ctrl-C before that confirmation moves nothing.
 `review` needs a terminal, because it asks questions. It reads the inbox afresh each time, so a document you skipped is
 offered again next time.
 
+### Letting `review` teach hints
+
+`review` can learn from what you file by hand. It is off by default, because it writes to `microfiche-library.json`:
+
+```toml
+[learning]
+enabled = true
+```
+
+After a `review` commit, for each category you filed into, microfiche looks at the documents you filed there (not the ones
+`sort` filed) and adds `learned_hints` to that category's entry: words that most of them contain and that no document
+under another category of the same group contains. It says what it added:
+
+```text
+Learned the hint 'remittance' for Finance/Bills
+```
+
+Learned hints match like your own hints (whole words, the hint score) and show as "Learned keyword hint" in a document's
+reason; `sort` says how many documents they filed. The guardrails are `min_decisions` (a category needs 3 documents you
+filed before anything is learned, default 3), `max_hints_per_run` (3) and `min_word_length` (4); common words, the words
+in the group's and category's names and anything already a hint are never learned. Your own `hints`, `rules` and entries are
+never changed.
+
+To remove a learned hint, delete it from `learned_hints` in `microfiche-library.json`; microfiche remembers it (in the
+ledger) and does not learn it again. `rollback` undoes the moves of a `review` job, not the hints it taught.
+
 ### Files that can't be sorted
 
 One awkward file never stops a run. It stays where it is, and the summary says why:
@@ -1196,8 +1222,8 @@ microfiche is pre-release. At the moment:
   Links are skipped by both: `reclassify` never lists a symbolic link or junction, or anything behind one.
 - A file open in another program is not retried: close it and run `sort` again.
 - `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
-  cannot go back to an item once you have moved on, and it does not learn from your choices: add a keyword hint to
-  `microfiche-library.json` if a kind of document keeps coming up.
+  cannot go back to an item once you have moved on, and it learns from your choices only if you turn `[learning] enabled` on (see **Letting `review` teach hints**);
+  otherwise add a keyword hint to `microfiche-library.json` if a kind of document keeps coming up.
 - `review` needs a terminal and cannot be scripted. To file without asking, use `sort`.
 - `init` has no options to answer its questions in advance, and does not edit `[naming_rules]` (edit it in the file),
   hints or filename rules. A fresh install uses the one default config; there are no templates to choose from.

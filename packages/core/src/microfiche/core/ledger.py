@@ -96,6 +96,15 @@ class Ledger:
             by_path[record.path] = record
         return list(by_path.values())
 
+    def learned_hints(self) -> set[tuple[str, str, str]]:
+        """Every ``(group, category, hint)`` microfiche has ever learned, as recorded by ``hint_learned`` events."""
+
+        return {
+            (record.group, record.category, record.hint)
+            for record in self.read_all()
+            if record.event == "hint_learned" and record.group and record.category and record.hint
+        }
+
     def folder_units(self) -> set[str]:
         """The library-relative paths of the folders currently filed whole (``keep_folders``).
 

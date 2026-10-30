@@ -274,6 +274,26 @@ the same for categories through the ambiguity margin (`hintcollision` in the tab
 This is 22 short, synthetic documents in one library, so its absolute rates say little. The AI arm, and its saved
 answers, cover the two-level corpus only and were not re-run for depth 1.
 
+## Learning from review choices
+
+`[learning] enabled` ([ADR-008](../adr/ADR-008-hint-learning.md)) adds hints from the documents a person filed in `review`.
+The corpus has no review decisions and is small (at most six documents in a category), so the thresholds could not be
+tuned on it. `tests/calibration/learning_sim.py` simulates it anyway: in every category with more than `min_decisions`
+documents, the first `min_decisions` count as the person's choices, the rest are held out, hints are learned, and each
+held-out document is classified with and without them.
+
+| Minimum decisions | Cap per run | Hints learned | Held-out documents | Changed | Newly right | Newly wrong |
+|---|---|---|---|---|---|---|
+| 2 | 2 | 14 | 28 | 1 | 0 | 0 |
+| 3 (default) | 3 (default) | 8 | 12 | 1 | 0 | 0 |
+| 5 | 3 | 1 | 1 | 0 | 0 | 0 |
+| 3 | 5 | 9 | 12 | 1 | 0 | 0 |
+
+Learning changed one held-out document at most and made none wrong: the guardrails (a word must be in most of the
+person's documents and in none under a sibling category) did their job, but there is too little text for a benefit to
+show. The defaults of 3, 3 and a minimum word length of 4 are a cautious starting point, not a measurement; the
+real test is a library with real review history.
+
 ## Folder-name styles
 
 Folder names written with separators, case styles, order prefixes or `&` used to match nothing (RFC-010,

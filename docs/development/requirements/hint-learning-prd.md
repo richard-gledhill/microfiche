@@ -1,6 +1,6 @@
 # Learn keyword hints from review choices
 
-Status: Accepted
+Status: Done
 
 Settled on 2026-10-30; the decisions that differ from the draft are under [Decisions](#decisions) and in
 [ADR-008](../adr/ADR-008-hint-learning.md).
@@ -97,6 +97,6 @@ Guidance for the spec, not binding.
 - **Deleting a learned hint sticks**, through a `hint_learned` ledger event rather than a new field or file.
 - **`rollback` does not remove learned hints.**
 - **`sort` reports** how many documents a learned hint filed.
-- **Thresholds** (minimum decisions, cap per run, minimum word length) are chosen on a held-out split of the calibration
-  corpus with simulated review decisions; the word length starts at 4. Built as part of the feature, recorded in
-  `calibration.md`.
+- **Thresholds:** minimum decisions 3, cap 3 per category per run, minimum word length 4. The held-out simulation
+  (`tests/calibration/learning_sim.py`) found the corpus too small to separate settings; it shows no newly wrong
+  filing at any of them. See [calibration.md](../testing/calibration.md#learning-from-review-choices).

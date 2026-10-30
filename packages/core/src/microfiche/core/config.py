@@ -233,6 +233,25 @@ class SortingConfig(_ConfigSection):
     ignore: list[str]
 
 
+class LearningConfig(_ConfigSection):
+    """Whether, and how cautiously, microfiche learns keyword hints from what you file in ``review``.
+
+    Attributes:
+        enabled (bool): Off by default. When on, after a ``review`` commit microfiche adds hints to the library file's
+            ``learned_hints``, from the documents you filed by hand. Your own hints are never changed. Delete a learned
+            hint to remove it; it is not learned again.
+        min_decisions (int): At least 1. A category must have this many documents you filed into it before anything is
+            learned for it.
+        max_hints_per_run (int): At least 1. The most hints added to one category by one ``review`` commit.
+        min_word_length (int): At least 2. Shorter words are never learned.
+    """
+
+    enabled: bool
+    min_decisions: int = Field(ge=1)
+    max_hints_per_run: int = Field(ge=1)
+    min_word_length: int = Field(ge=2)
+
+
 class ParsingConfig(_ConfigSection):
     """How documents are read.
 
@@ -316,6 +335,7 @@ class MicroficheConfig(_ConfigSection):
         ai (AIConfig): Configuration for the AI fallback.
         sorting (SortingConfig): Configuration for how the inbox is sorted.
         parsing (ParsingConfig): Configuration for how documents are read.
+        learning (LearningConfig): Configuration for learning keyword hints from review choices.
         logging (LoggingConfig): Configuration for the diagnostic log file.
     """
 
@@ -326,6 +346,7 @@ class MicroficheConfig(_ConfigSection):
     ai: AIConfig
     sorting: SortingConfig
     parsing: ParsingConfig
+    learning: LearningConfig
     logging: LoggingConfig
 
 

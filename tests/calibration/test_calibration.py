@@ -24,6 +24,7 @@ from harness import (
     misfiles,
     sweep,
 )
+from learning_sim import SWEEP, simulate
 from microfiche.core.library.library import Library
 from microfiche.core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD
 
@@ -507,6 +508,18 @@ def test_styles_corpus_literal_names_file_nothing(tmp_path: Path) -> None:
 
 # endregion
 
+
+# region Learning from review choices
+
+
+def test_learning_sim_guardrails_never_make_a_held_out_document_wrong() -> None:
+    for min_decisions, cap in SWEEP:
+        result = simulate(min_decisions, cap)
+
+        assert result.now_wrong == 0, (min_decisions, cap)
+
+
+# endregion
 
 # region The report
 

@@ -171,6 +171,7 @@ def test_config_editor_settings_every_packaged_setting_in_order(tmp_path: Path) 
         "ai",
         "sorting",
         "parsing",
+        "learning",
         "logging",
         "exclusions",
         "naming_rules",

@@ -23,6 +23,7 @@ from microfiche.core.ai.llm_classifier import LLMClassifier
 from microfiche.core.config import MICROFICHE_DIRNAME
 from microfiche.core.duplicates import Duplicate, DuplicateIndex
 from microfiche.core.filer import DestinationClaims, FailedFiling, destination_for, file_batch
+from microfiche.core.learning import LearnedHint, learn_hints
 from microfiche.core.library.library import Library
 from microfiche.core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
 from microfiche.core.models.job import Job
@@ -85,12 +86,15 @@ class ReviewOutcome:
         failed: Chosen units that were not filed and are still in the inbox, each with the reason.
         created: The group and category folders that did not exist and were created by filing into them.
         into_empty_groups: How many units were filed straight into a group because it has no category folders.
+        learned: The keyword hints learned from this commit's choices (see ``microfiche.core.learning``); empty unless
+            ``[learning] enabled`` is on.
     """
 
     job: Job | None = None
     failed: list[FailedFiling] = field(default_factory=list)
     created: list[Path] = field(default_factory=list)
     into_empty_groups: int = 0
+    learned: list[LearnedHint] = field(default_factory=list)
 
 
 # endregion
@@ -374,6 +378,13 @@ class ReviewSession:
         outcome.into_empty_groups = sum(
             1 for unit, c in ready if unit.source_path not in failed and len(c.folders or ()) < self.depth
         )
+        if result.job is not None:
+            filed_into = {
+                (c.folders[0], c.folders[1])
+                for unit, c in ready
+                if unit.source_path not in failed and c.folders is not None and len(c.folders) == 2
+            }
+            outcome.learned = learn_hints(self._library, filed_into, result.job.job_id)
         # A folder made for a unit that then could not be moved is still empty: take back what was just made here.
         for path in reversed(missing):
             if path.is_dir() and not any(path.iterdir()):

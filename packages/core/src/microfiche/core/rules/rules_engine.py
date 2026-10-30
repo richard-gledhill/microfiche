@@ -93,6 +93,7 @@ class RulesEngine:
         if by_filename.name is not None:
             return by_filename
         hints = {category: self._library_file.hints_for(group, category) for category in categories}
+        learned = {category: set(self._library_file.learned_hints_for(group, category)) for category in categories}
         return match_category(
             document.content,
             categories,
@@ -101,6 +102,7 @@ class RulesEngine:
             hint_confidence=self._settings.hint_match_confidence,
             normalise=self._settings.normalise_names,
             margin=self._settings.ambiguity_margin,
+            learned=learned,
         )
 
     def _match_name(self, document: Document, taxonomy: Taxonomy) -> GroupMatch:

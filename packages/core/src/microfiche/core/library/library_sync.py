@@ -105,7 +105,7 @@ def sync_library_file(library: Library) -> LibrarySync:
 
     merged = existing.model_copy(update={"groups": groups})
     try:
-        _write(path, merged)
+        write_library_file(path, merged)
     except OSError as err:
         sync.write_error = str(err)
         _logger.warning("library file: could not write %s: %s", LIBRARY_FILENAME, err)
@@ -114,6 +114,23 @@ def sync_library_file(library: Library) -> LibrarySync:
     library.library_file = merged
     _logger.info("library file: added %d folder(s): %s", len(sync.added), ", ".join(sync.added))
     return sync
+
+
+def write_library_file(path: Path, library_file: LibraryFile) -> None:
+    """Write ``library_file`` to ``path`` through a temporary file in the same folder, renamed into place."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    text = library_file.model_dump_json(indent=2, by_alias=True, exclude_defaults=True)
+    try:
+        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())  # on disk before the rename, so a power cut can't leave an empty file
+        os.replace(temporary, path)
+    except OSError:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 # endregion
@@ -182,23 +199,6 @@ def _find_name_problems(folders: list[FolderNode], parent: Path, sync: LibrarySy
             listed = ", ".join(repr(name) for name in names)
             where = parent.as_posix() if parent != Path() else "the library root"
             sync.name_warnings.append(f"In {where}, {listed} match the same words, so only the first is ever chosen")
-
-
-def _write(path: Path, library_file: LibraryFile) -> None:
-    """Write ``library_file`` to ``path`` through a temporary file in the same folder, renamed into place."""
-
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".tmp")
-    text = library_file.model_dump_json(indent=2, by_alias=True, exclude_defaults=True)
-    try:
-        with temporary.open("w", encoding="utf-8", newline="\n") as handle:
-            handle.write(text + "\n")
-            handle.flush()
-            os.fsync(handle.fileno())  # on disk before the rename, so a power cut can't leave an empty file
-        os.replace(temporary, path)
-    except OSError:
-        temporary.unlink(missing_ok=True)
-        raise
 
 
 # endregion

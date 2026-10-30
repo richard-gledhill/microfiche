@@ -31,6 +31,10 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   left for review; it never reaches the ledger because nothing is filed.)
 - **`category` is `null` in a flat library** (`depth = 1`), which has no categories, and so is `category_reason`. A ledger
   can therefore hold records of both shapes if a library's depth is changed; the records are read as they were written.
+- **`hint_learned`** (`[learning] enabled`): one record per keyword hint added to the library file after a `review` commit.
+  It is not a filing: `path` is `group/category`, `original_path` and `content_hash` are empty, `unit_type` is `folder`,
+  `hint` holds the word and `classified_by` is `learning`. `Ledger.current()` ignores it; `Ledger.learned_hints()` reads
+  it, so a hint later missing from the library file counts as one the person deleted and is not learned again.
 - **Events.** `"filed"` is written when a unit is moved into the library. `"rolled_back"` is
   written when a rollback moves it out again; it carries only the identifying fields
   (`job_id`, `path`, `original_path`, `content_hash`, `unit_type`) and leaves the classification

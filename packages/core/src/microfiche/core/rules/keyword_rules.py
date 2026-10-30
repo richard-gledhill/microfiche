@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from microfiche.core.models.classification import CategoryMatch, GroupMatch
+from microfiche.core.models.classification import LEARNED_HINT_REASON, CategoryMatch, GroupMatch
 from microfiche.core.rules.ambiguity import Candidate, choose
 from microfiche.core.rules.normalise import contains_words, normalise_for_matching
 
@@ -26,6 +26,7 @@ def match_category(
     hint_confidence: float,
     normalise: bool = True,
     margin: float = 0.0,
+    learned: dict[str, set[str]] | None = None,
 ) -> CategoryMatch:
     """Match ``text`` against a group's existing category names and keyword hints.
 
@@ -42,6 +43,8 @@ def match_category(
         normalise: Compare names, hints and text through ``normalise_for_matching`` and count only whole words. Off
             compares them lowercased, as written.
         margin: How close (0 to 1) the runner-up may be to the best before none is chosen.
+        learned: Per category, which of its ``hints`` microfiche learned rather than the user wrote; a match on one says
+            so in its reason.
 
     Returns:
         The matching category with its confidence and the reason for it; a match with ``name=None`` and the close
@@ -61,7 +64,8 @@ def match_category(
         for keyword in hints.get(category_name, []):
             wanted = _prepare_hint(keyword, normalise)
             if _found(wanted, lowered, normalise):
-                reason = f"Keyword hint '{keyword}' matched for category '{category_name}'"
+                kind = LEARNED_HINT_REASON if keyword in (learned or {}).get(category_name, ()) else "Keyword hint"
+                reason = f"{kind} '{keyword}' matched for category '{category_name}'"
                 candidates.append(Candidate(category_name, hint_confidence, reason, wanted))
                 break
 
