@@ -1,0 +1,144 @@
+{
+  "$defs": {
+    "FailureEntry": {
+      "description": "A unit that could not be moved, and why.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "FailureEntry",
+      "type": "object"
+    },
+    "FiledUnit": {
+      "description": "An inbox unit `file` moved.",
+      "properties": {
+        "path": {
+          "description": "Where it was in the inbox, relative to the library.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where it is now, relative to the library.",
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "destination"
+      ],
+      "title": "FiledUnit",
+      "type": "object"
+    }
+  },
+  "description": "The result of ``file``: nothing is filed unless every unit named could be.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "file",
+      "default": "file",
+      "title": "Command",
+      "type": "string"
+    },
+    "destination": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The group, and category, units were filed under; null if refused.",
+      "title": "Destination"
+    },
+    "filed": {
+      "items": {
+        "$ref": "#/$defs/FiledUnit"
+      },
+      "title": "Filed",
+      "type": "array"
+    },
+    "refused": {
+      "description": "Units (or the destination, for every unit) that were refused, with why.",
+      "items": {
+        "$ref": "#/$defs/FailureEntry"
+      },
+      "title": "Refused",
+      "type": "array"
+    },
+    "failed": {
+      "description": "Units that passed the checks but could not be moved, with why.",
+      "items": {
+        "$ref": "#/$defs/FailureEntry"
+      },
+      "title": "Failed",
+      "type": "array"
+    },
+    "job_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The job that filed them, for `rollback`; null if nothing was filed.",
+      "title": "Job Id"
+    },
+    "learned_hints": {
+      "description": "Hints learned from this filing, as group/category: word.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Learned Hints",
+      "type": "array"
+    }
+  },
+  "required": [
+    "destination",
+    "filed",
+    "refused",
+    "failed",
+    "job_id",
+    "learned_hints"
+  ],
+  "title": "microfiche file --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,6 +1,6 @@
 # `--json` output and filing without the prompts
 
-Status: Accepted
+Status: Done
 
 Settled on 2026-10-30 ([ADR-010](../adr/ADR-010-scriptable-output.md)). Built in two PRs: `--json`, then `file`.
 

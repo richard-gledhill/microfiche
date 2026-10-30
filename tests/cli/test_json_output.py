@@ -11,6 +11,7 @@ from microfiche.cli.json_output import (
     AuditOutput,
     ConfigOutput,
     ErrorOutput,
+    FileOutput,
     ReclassifyOutput,
     ReviewQueueOutput,
     RollbackOutput,
@@ -237,6 +238,157 @@ def test_output_schema_matches_committed_file(name: str) -> None:
 def test_every_output_carries_a_version() -> None:
     for name, schema in output_schemas().items():
         assert "version" in schema["properties"], name
+
+
+# endregion
+
+# region file
+
+
+_SOLAR = "SolarConstructionNotes.md"  # names no group: always left for a decision
+_PHOENIX_NOTE = "PhoenixArchitectureNotes.md"  # confident: `sort` would file it
+
+
+def test_file_moves_a_held_unit_as_one_job_that_rollback_undoes(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(
+        _json(["file", _SOLAR, "--library", str(library), "--to", "Project Phoenix/03 Research"])
+    )
+
+    assert output.destination == ["Project Phoenix", "03 Research"]
+    assert [unit.destination for unit in output.filed] == [f"Project Phoenix/03 Research/{_SOLAR}"]
+    assert (library / "Project Phoenix" / "03 Research" / _SOLAR).is_file()
+    assert not (library / "_sorting" / _SOLAR).exists()
+    rolled = RollbackOutput.model_validate(_json(["rollback", "--library", str(library), "--last"]))
+    assert rolled.job_id == output.job_id
+    assert (library / "_sorting" / _SOLAR).is_file()
+
+
+def test_file_destination_is_matched_ignoring_case_and_slash_style(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(
+        _json(["file", _SOLAR, "--library", str(library), "--to", r"project phoenix\03 research"])
+    )
+
+    assert output.destination == ["Project Phoenix", "03 Research"]
+
+
+def test_file_is_recorded_as_the_users_choice(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _json(["file", _SOLAR, "--library", str(library), "--to", "Project Phoenix/03 Research"])
+
+    ledger = (library / ".microfiche" / "ledger.jsonl").read_text(encoding="utf-8")
+
+    assert '"classified_by":"user"' in ledger
+
+
+@pytest.mark.parametrize(
+    ("destination", "reason"),
+    [
+        ("Project Phoenix/99 Nowhere", "no category called '99 Nowhere'"),
+        ("Nowhere/03 Research", "no group called 'Nowhere'"),
+        ("Project Phoenix", "also needs a category"),
+    ],
+)
+def test_file_unknown_destination_refused_with_the_reason_and_nothing_moves(
+    tmp_path: Path, destination: str, reason: str
+) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(_json(["file", _SOLAR, "--library", str(library), "--to", destination], code=1))
+
+    assert output.filed == []
+    assert output.job_id is None
+    assert reason in output.refused[0].reason
+    assert (library / "_sorting" / _SOLAR).is_file()
+
+
+def test_file_unit_sort_would_file_is_refused(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(
+        _json(["file", _PHOENIX_NOTE, "--library", str(library), "--to", "Project Phoenix/03 Research"], code=1)
+    )
+
+    assert "not waiting for a decision" in output.refused[0].reason
+    assert (library / "_sorting" / _PHOENIX_NOTE).is_file()
+
+
+def test_file_taken_name_refused_and_the_other_units_are_not_moved_either(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "Project Phoenix" / "03 Research" / _SOLAR).write_text("already here", encoding="utf-8")
+    other = library / "_sorting" / "OtherNotes.md"
+    other.write_text("Nothing recognisable.", encoding="utf-8")
+
+    output = FileOutput.model_validate(
+        _json(
+            ["file", "OtherNotes.md", _SOLAR, "--library", str(library), "--to", "Project Phoenix/03 Research"], code=1
+        )
+    )
+
+    assert [entry.path for entry in output.refused] == [_SOLAR]
+    assert output.filed == []
+    assert other.is_file()  # all or nothing
+
+
+def test_file_unit_named_twice_is_refused(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(
+        _json(["file", _SOLAR, _SOLAR, "--library", str(library), "--to", "Project Phoenix/03 Research"], code=1)
+    )
+
+    assert "already been decided" in output.refused[0].reason
+
+
+def test_file_several_units_in_one_job(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "OtherNotes.md").write_text("Nothing recognisable.", encoding="utf-8")
+
+    output = FileOutput.model_validate(
+        _json(["file", _SOLAR, "OtherNotes.md", "--library", str(library), "--to", "Project Phoenix/03 Research"])
+    )
+
+    assert len(output.filed) == 2
+    assert output.job_id is not None
+
+
+def test_file_absolute_path_inside_the_inbox_names_the_unit(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    output = FileOutput.model_validate(
+        _json([
+            "file",
+            str(library / "_sorting" / _SOLAR),
+            "--library",
+            str(library),
+            "--to",
+            "Project Phoenix/03 Research",
+        ])
+    )
+
+    assert len(output.filed) == 1
+
+
+def test_file_without_json_prints_for_a_person(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["file", _SOLAR, "--library", str(library), "--to", "Project Phoenix/03 Research"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "Filed: 1" in result.stdout
+
+
+def test_file_refusal_without_json_says_why_and_exits_non_zero(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+
+    result = runner.invoke(app, ["file", _SOLAR, "--library", str(library), "--to", "Nowhere/Nothing"])
+
+    assert result.exit_code == 1
+    assert "no group called 'Nowhere'" in result.stdout
+    assert "Nothing was moved" in result.stdout
 
 
 # endregion

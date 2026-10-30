@@ -185,7 +185,7 @@ which attaches the wheels to the release; CI on Linux and Windows with a coverag
 31 GB library, and the Windows-only link and open-file cases) are done, and their findings fixed. Left open: publishing the docs site, checking `gh release download` against the
 release, and raising the coverage floor ([mvp-followups-prd.md](mvp-followups-prd.md#release-close-out-stage-6)). Known limits the docs state rather than hide: a bundle moved by hand is
 split by `reclassify`; a short group name can still lose to a passing mention of another; `-q` hides the "AI unavailable" warning; `review`
-cannot be scripted and has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
+has no ranked suggestions; and at depth 2, `hints` and `rules` on a group's own entry are accepted but unused
 (a silent no-op worth a warning or a validation error after the MVP).
 
 ## Future work and deferred beyond MVP
@@ -241,7 +241,7 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
 - **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche. Requirement drafted, as a background
   check in the existing commands rather than a command: [drift-check-prd.md](drift-check-prd.md).
 - **Watch mode**, a daemon that sorts as files arrive. Requirement drafted: [watch-mode-prd.md](watch-mode-prd.md).
-- **`--json` output** for scripting. Built for `sort`, `reclassify`, `rollback`, `audit`, `config` and `review --list` ([ADR-010](../adr/ADR-010-scriptable-output.md)); the non-interactive `file` command is the second PR. Requirement: [scriptable-output-prd.md](scriptable-output-prd.md).
+- **`--json` output** for scripting. Built for `sort`, `reclassify`, `rollback`, `audit`, `config` and `review --list` ([ADR-010](../adr/ADR-010-scriptable-output.md)); `file` files held inbox documents without prompts. Requirement: [scriptable-output-prd.md](scriptable-output-prd.md).
 - **Rotation or compaction** of the append-only ledger and `audit.log`.
 - **Structured (JSON) log output** and log shipping.
 - **Showing a failed move once.** A unit that can't be moved (a file open in Word) is reported twice on screen: as a

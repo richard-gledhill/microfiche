@@ -126,6 +126,7 @@ flowchart TD
     cli_commands --> a_check
     cli_commands --> core_classifier
     cli_commands --> cli_json_output
+    cli_commands --> m_unit
 
     cli_display --> core_config
     cli_display --> core_organizer

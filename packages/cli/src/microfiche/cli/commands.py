@@ -23,6 +23,7 @@ from microfiche.cli.json_output import (
     ErrorOutput,
     audit_output,
     config_output,
+    file_output,
     reclassify_output,
     review_queue_output,
     rollback_output,
@@ -62,9 +63,10 @@ from microfiche.core.library_init import (
     install_defaults,
     rebuild_library_file,
 )
+from microfiche.core.models.unit import SortableUnit
 from microfiche.core.organizer import run_sort
 from microfiche.core.reclassify import ReclassifyProposal, apply_reclassification, items_below_depth, run_reclassify
-from microfiche.core.review import ReviewOutcome, ReviewSession
+from microfiche.core.review import ReviewError, ReviewOutcome, ReviewSession
 from microfiche.core.runlock import LockHolder, RunLockError, run_lock
 from microfiche.core.scanner import scan_sorting_inbox
 from rich.console import Console
@@ -89,6 +91,10 @@ _QUIET_OPTION = typer.Option(False, "--quiet", "-q", help="Show errors only on s
 _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, help="Path to the library root.")
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
+_UNITS_ARGUMENT = typer.Argument(
+    ...,
+    help="The inbox documents or folders to file, named by their path inside the inbox (`review --list` shows them).",
+)
 _JSON_OPTION = typer.Option(
     False,
     "--json",
@@ -250,6 +256,56 @@ def review(
             console.print("Nothing was moved.")
             return
     render_outcome(console, _file_chosen(opened, session, verbose=verbose, quiet=quiet))
+
+
+@_json_command
+def file_units(
+    units: list[str] = _UNITS_ARGUMENT,
+    library: Path = _LIBRARY_OPTION,
+    to: str = typer.Option(
+        ...,
+        "--to",
+        help="Where they go, as a folder that already exists: `Group/Category`, or `Group` in a library of groups only "
+        "(or for a group that has no categories, with [sorting] file_in_empty_groups).",
+    ),
+    as_json: bool = _JSON_OPTION,
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
+    """File held inbox documents into a folder, without asking.
+
+    Does what `review` does for the documents you name, from a script: the same checks (the folder exists, the name is
+    free there, the document is not a copy of one already in the library, it has not changed), and the same single
+    job, which `rollback` can undo. Only documents `sort` left for a decision can be filed. If any one is refused,
+    nothing is moved and the exit code is 1.
+    """
+
+    opened = _open_library(library, uses_hints=True, needs_config=True)
+    with (
+        _logging("file", opened, verbose=verbose, quiet=quiet, writes=False),
+        progress_bar(quiet=quiet, ai=False) as on_progress,
+    ):
+        session = ReviewSession.start(opened, progress=on_progress)
+    folders, decided, refused = _choose(session, units, to)
+    if refused:
+        if as_json:
+            _emit(file_output(opened, folders, [], None, refused))
+        else:
+            for name, why in refused:
+                console.print(f"[red]{escape(name)}[/red]: {escape(why)}", soft_wrap=True)
+            console.print("Nothing was moved.")
+        raise typer.Exit(code=1)
+    with (
+        _locked(opened, "file") as cleared_lock,
+        _logging("file", opened, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
+    ):
+        outcome = session.commit()
+    if as_json:
+        _emit(file_output(opened, folders, decided, outcome, ()))
+    else:
+        render_outcome(console, outcome)
+    if outcome.failed:
+        raise typer.Exit(code=1)
 
 
 def propose_categories(
@@ -847,6 +903,36 @@ def _emit(output: Any) -> None:
     """Write ``output`` (a ``json_output`` model) to stdout as the command's one JSON document."""
 
     typer.echo(output.model_dump_json(indent=2))
+
+
+def _choose(
+    session: ReviewSession, names: list[str], destination: str
+) -> tuple[tuple[str, ...] | None, list[SortableUnit], list[tuple[str, str]]]:
+    """Choose ``destination`` for each of ``names`` in ``session``, refusing the ones that cannot go there.
+
+    Returns:
+        The folders the destination names (``None`` if it names none), the units chosen, and ``(name, reason)`` for each
+        refusal. A destination that is not a place refuses every name with the same reason.
+    """
+
+    try:
+        folders = session.place(destination)
+    except ReviewError as err:
+        return None, [], [(name, str(err)) for name in names]
+    decided: list[SortableUnit] = []
+    refused: list[tuple[str, str]] = []
+    for name in names:
+        try:
+            item = session.item_named(name)
+            problem = session.decide(item, folders)
+        except ReviewError as err:
+            refused.append((name, str(err)))
+            continue
+        if problem is not None:
+            refused.append((name, problem))
+        else:
+            decided.append(item.unit)
+    return folders, decided, refused
 
 
 def _list_queue(opened: Library, *, use_ai: bool, as_json: bool, verbose: bool, quiet: bool) -> None:
