@@ -18,5 +18,6 @@ considered and why they lost, and the consequences. The `.adr-dir` file at the r
 | [ADR-007](ADR-007-leaf-groups.md) | File into a group that has no category folders (opt-in setting) | Accepted |
 | [ADR-008](ADR-008-hint-learning.md) | Learn keyword hints from review choices (opt-in) | Accepted |
 | [ADR-009](ADR-009-ai-second-opinion.md) | Let the AI check low-confidence rules answers (opt-in) | Accepted |
+| [ADR-010](ADR-010-scriptable-output.md) | A JSON output contract and a non-interactive `file` command | Accepted |
 
 ADR-001 to ADR-003 were written as reviews before this folder existed; each keeps the review below its decision.
