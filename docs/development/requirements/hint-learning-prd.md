@@ -1,6 +1,9 @@
 # Learn keyword hints from review choices
 
-Status: Draft
+Status: Accepted
+
+Settled on 2026-10-30; the decisions that differ from the draft are under [Decisions](#decisions) and in
+[ADR-008](../adr/ADR-008-hint-learning.md).
 
 - **Id:** `hint-learning` ([capability map](post-mvp-capability-map.md), #3)
 - **Depends on:** `matching-precision` (learned hints are matched on word boundaries, and a learned hint that clashes
@@ -22,7 +25,8 @@ microfiche can learn the hints itself, without asking.
 ## Requirements
 
 **Must**
-- After a `review` commit, update `microfiche-library.json` automatically, with no prompt: for each category the user
+- Learning is opt-in: `[learning] enabled`, default off.
+- After a `review` commit, when enabled, update `microfiche-library.json` automatically, with no prompt: for each category the user
   filed into, add words that are frequent in the documents the user filed there and rare in the library's other
   categories, and that are not already hints or the category's name.
 - Learn only from documents recorded with `classified_by = "user"`.
@@ -35,14 +39,13 @@ microfiche can learn the hints itself, without asking.
   mixed with, reordered among or overwrite what the user wrote. They match like hints, at the hint confidence.
 - Say what was learned: the `review` summary lists each hint added and its category, and the diagnostic log records
   it. No document text beyond the hint words is written anywhere.
-- Learned hints can be removed by deleting them from the library file, and a removed hint is not learned again (it is
-  remembered as rejected).
+- Learned hints can be removed by deleting them from the library file, and a removed hint is not learned again (the
+  learning pass records what it learned as a `hint_learned` ledger event, so a missing hint counts as rejected).
 - Writes go through the same atomic write as `library_sync`, under the run lock already held by the commit. A failed
   write is a warning, never a failed commit.
 - The library file's JSON Schema is regenerated (`make library-schema`) for the new field.
 
 **Should**
-- Learn from `reclassify --apply` choices as well, when those come from the user.
 - Report, in the `sort` summary, how many documents were filed by a learned hint, so the user can see whether learning
   is paying off.
 
@@ -52,6 +55,7 @@ microfiche can learn the hints itself, without asking.
 - A command to list or reset learned hints.
 
 **Won't (this time)**
+- Learning from `reclassify --apply`: it applies the rules' own output, not a person's choice.
 - Training a classifier on the ledger ([mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp)). This is term frequency,
   not a model.
 - Learning group names or new categories. Folders stay the only source of the taxonomy.
@@ -86,8 +90,13 @@ Guidance for the spec, not binding.
 - [mvp-roadmap.md](mvp-roadmap.md#review-stage-5): "it does not learn from choices".
 - [mvp-followups-prd.md](mvp-followups-prd.md) D21 (learning hints from `review` choices).
 
-## Open questions
+## Decisions
 
-- The thresholds: minimum decisions, cap per run, minimum word length. Choose them on a held-out split of the
-  calibration corpus.
-- Should learned hints be undone by `rollback` of the review job that taught them? Rollback today only moves files.
+- **Opt-in, default off** (`[learning] enabled`). The first `review` commit does not rewrite the user's file unasked.
+- **Review only.** `reclassify --apply` does not teach.
+- **Deleting a learned hint sticks**, through a `hint_learned` ledger event rather than a new field or file.
+- **`rollback` does not remove learned hints.**
+- **`sort` reports** how many documents a learned hint filed.
+- **Thresholds** (minimum decisions, cap per run, minimum word length) are chosen on a held-out split of the calibration
+  corpus with simulated review decisions; the word length starts at 4. Built as part of the feature, recorded in
+  `calibration.md`.
