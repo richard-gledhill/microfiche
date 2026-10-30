@@ -15,5 +15,6 @@ considered and why they lost, and the consequences. The `.adr-dir` file at the r
 | [ADR-004](ADR-004-ai-provider-setup.md) | AI provider setup: no default model, fix-it tips, pre-run check | Accepted |
 | [ADR-005](ADR-005-folder-name-matching.md) | Folder-name matching compares a normalised spelling | Accepted |
 | [ADR-006](ADR-006-ambiguity-margin.md) | Ambiguity margin: hold a stage when the evidence is too close to call | Accepted |
+| [ADR-007](ADR-007-leaf-groups.md) | File into a group that has no category folders (opt-in setting) | Accepted |
 
 ADR-001 to ADR-003 were written as reviews before this folder existed; each keeps the review below its decision.
