@@ -993,6 +993,31 @@ fields can appear without a bump. The shape of each is a JSON Schema in the repo
 `review` itself asks questions and has no JSON mode: use `review --list --json` to see the queue. `--json` with
 `--dry-run` previews as it always did; the exit code is `1` if a move failed.
 
+### Filing held documents from a script
+
+`file` does for named documents what `review` does by hand, without asking. Name them by their path inside the inbox (as
+`review --list` prints them) and give the folder with `--to`:
+
+=== "Bash"
+
+    ```bash
+    microfiche file SolarConstructionNotes.md --library ~/Documents/Library --to "Project Phoenix/03 Research" --json
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    microfiche file SolarConstructionNotes.md --library "$HOME\Documents\Library" --to "Project Phoenix/03 Research" --json
+    ```
+
+The folder must already exist (`Group/Category`, or just `Group` in a library of groups only); case does not matter and
+nothing is created. Several documents can be named for one folder: they are filed as **one job**, which `rollback`
+undoes, recorded as your choice (so `[learning]`, if on, learns from it). The checks are `review`'s: the document is
+still waiting for a decision (not one `sort` would file, not a copy of a document already in the library), its name is
+free in the folder, and it has not changed. **If any document is refused, nothing is moved** and the exit code is `1`;
+with `--json` the document says which and why (`refused`). A document that passed but could not be moved (open in another
+program) is listed under `failed`, also with exit code `1`.
+
 ## 4. Maintain the library
 
 Suggest new category names based on what's in the inbox (prints suggestions only — never creates
@@ -1277,8 +1302,8 @@ microfiche is pre-release. At the moment:
 - `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
   cannot go back to an item once you have moved on, and it learns from your choices only if you turn `[learning] enabled` on (see **Letting `review` teach hints**);
   otherwise add a keyword hint to `microfiche-library.json` if a kind of document keeps coming up.
-- `review` needs a terminal. A script can read its queue (`review --list --json`) but cannot yet file a held document;
-  to file without asking, use `sort`.
+- `review` needs a terminal. A script reads its queue with `review --list --json` and files held documents with `file`.
+  `file` cannot plan a new folder and does not use the AI.
 - `init` has no options to answer its questions in advance, and does not edit `[naming_rules]` (edit it in the file),
   hints or filename rules. A fresh install uses the one default config; there are no templates to choose from.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional

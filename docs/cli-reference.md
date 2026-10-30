@@ -20,6 +20,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 * `init`: Set up the library's configuration, or...
 * `sort`: Classify and file what is in the inbox.
 * `review`: Decide where the leftover documents go.
+* `file`: File held inbox documents into a folder,...
 * `propose-categories`: Suggest new category folder names.
 * `reclassify`: Re-check where filed documents belong.
 * `audit`: Show the audit log.
@@ -94,6 +95,34 @@ $ microfiche review [OPTIONS]
 * `--library <directory>`: Path to the library root.  [required]
 * `--list`: Only list what `review` would ask about, with the classifier's best guess for each, and ask nothing. Works without a terminal.
 * `--use-ai`: Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, including the test question first (see `sort --help`).
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
+* `--help`: Show this message and exit.
+
+## `microfiche file`
+
+File held inbox documents into a folder, without asking.
+
+Does what `review` does for the documents you name, from a script: the same checks (the folder exists, the name is
+free there, the document is not a copy of one already in the library, it has not changed), and the same single
+job, which `rollback` can undo. Only documents `sort` left for a decision can be filed. If any one is refused,
+nothing is moved and the exit code is 1.
+
+**Usage**:
+
+```console
+$ microfiche file [OPTIONS] {units}...
+```
+
+**Arguments**:
+
+* `units...`: The inbox documents or folders to file, named by their path inside the inbox (`review --list` shows them).  [required]
+
+**Options**:
+
+* `--library <directory>`: Path to the library root.  [required]
+* `--to <str>`: Where they go, as a folder that already exists: `Group/Category`, or `Group` in a library of groups only (or for a group that has no categories, with [sorting] file_in_empty_groups).  [required]
 * `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
