@@ -732,9 +732,21 @@ model = ""                        # required with --use-ai: e.g. "llama3.1" (Oll
 host = ""                         # Ollama only; empty = http://localhost:11434, or e.g. "http://gpu-box:11434"
 timeout = 120                     # seconds to wait for one answer; raise it if Ollama is slow to load the model
 api_key_env = "OPENAI_API_KEY"    # the NAME of the variable holding your OpenAI key
+verify_below = 0                  # 0 = off; 0.8 has the AI check hint matches, 0.95 names and near-miss groups too
 ai_confidence = 0.70              # how sure any AI answer is
 max_document_chars = 4000         # how much of each document is sent; 0 = all of it
 ```
+
+**A second opinion.** By default the AI is asked only about what the rules could not place, and its answers (0.70) are
+not filed at the default threshold. Set `verify_below` above 0 and `--use-ai` also has it check the rules' answers that
+would file but score below that: keyword hints score 0.75, so `0.8` checks hints, and `0.95` checks category names and
+near-miss group names as well. If the AI picks the same folder the document files as it would have, with "confirmed
+by the AI" in its reason. If it picks another folder, or none, the document is left in the inbox for `review` with both
+answers in the reason; the AI never files a document anywhere the rules did not propose. If the AI stops answering,
+the rules' answers stand and `sort` warns once. Each check is one more call (a few seconds on a local model), and `sort`
+prints how many answers were checked, confirmed and overruled. On the calibration corpus with one model, `0.95` removed
+every misfile that remained without losing a correct filing; that is one model on short synthetic documents (see
+[the calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#ai-second-opinion)).
 
 **Using OpenAI instead.** Set `provider = "openai"` and put your key in the environment variable named
 by `api_key_env`, not in the file (microfiche refuses a value that looks like a key). This sends the
