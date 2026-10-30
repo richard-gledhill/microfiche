@@ -1,0 +1,82 @@
+{
+  "$defs": {
+    "AuditEntry": {
+      "description": "One line of the audit log.",
+      "properties": {
+        "timestamp": {
+          "title": "Timestamp",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "timestamp",
+        "job_id",
+        "action",
+        "source",
+        "destination"
+      ],
+      "title": "AuditEntry",
+      "type": "object"
+    }
+  },
+  "description": "The audit log, parsed.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "audit",
+      "default": "audit",
+      "title": "Command",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/AuditEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "unparsed": {
+      "description": "Lines that did not match the audit format, as written.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Unparsed",
+      "type": "array"
+    }
+  },
+  "required": [
+    "entries",
+    "unparsed"
+  ],
+  "title": "microfiche audit --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

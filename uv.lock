@@ -1,10 +1,10 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11, <4.0"
 resolution-markers = [
     "python_full_version >= '3.15'",
     "python_full_version >= '3.12' and python_full_version < '3.15' and sys_platform == 'emscripten'",
-    "python_full_version < '3.12' or (python_full_version >= '3.12' and python_full_version < '3.15' and sys_platform != 'emscripten')",
+    "(python_full_version < '3.15' and sys_platform != 'emscripten') or (python_full_version < '3.12' and sys_platform == 'emscripten')",
 ]
 
 [manifest]
@@ -349,6 +349,7 @@ version = "0.1.6"
 source = { editable = "packages/cli" }
 dependencies = [
     { name = "core" },
+    { name = "pydantic" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -356,6 +357,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "packages/core" },
+    { name = "pydantic", specifier = ">=2" },
     { name = "rich" },
     { name = "typer" },
 ]
@@ -1286,7 +1288,6 @@ wheels = [
 name = "microfiche"
 version = "0.1.6"
 source = { virtual = "." }
-default-groups = ["dependencies", "dev", "docs"]
 
 [package.dev-dependencies]
 dependencies = [
@@ -1556,7 +1557,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorclass" },
     { name = "easygui" },
-    { name = "msoffcrypto-tool", marker = "platform_python_implementation != 'PyPy' or (sys_platform != 'darwin' and sys_platform != 'win32')" },
+    { name = "msoffcrypto-tool", marker = "(platform_python_implementation != 'PyPy' and sys_platform == 'darwin') or (platform_python_implementation != 'PyPy' and sys_platform == 'win32') or (sys_platform != 'darwin' and sys_platform != 'win32')" },
     { name = "olefile" },
     { name = "pcodedmp" },
     { name = "pyparsing" },

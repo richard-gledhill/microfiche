@@ -1,0 +1,390 @@
+{
+  "$defs": {
+    "DuplicateEntry": {
+      "description": "An inbox file left where it is because the library already holds a copy.",
+      "properties": {
+        "path": {
+          "description": "Where the unit is, relative to the library, with forward slashes.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "folders": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The group, and category if the library has them, the unit was or would be filed under; null if unresolved.",
+          "title": "Folders"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "classified_by": {
+          "title": "Classified By",
+          "type": "string"
+        },
+        "confident": {
+          "title": "Confident",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why the classifier chose that, or why it could not. Contains no document text.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the unit was filed (a filed unit of a real run).",
+          "title": "Destination"
+        },
+        "existing": {
+          "description": "Where the copy is, relative to the library.",
+          "title": "Existing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "folders",
+        "confidence",
+        "classified_by",
+        "confident",
+        "reason",
+        "existing"
+      ],
+      "title": "DuplicateEntry",
+      "type": "object"
+    },
+    "FolderKept": {
+      "description": "An inbox folder that files were taken from but which still holds something.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "FolderKept",
+      "type": "object"
+    },
+    "SyncEntry": {
+      "description": "What a library file sync found.",
+      "properties": {
+        "created": {
+          "title": "Created",
+          "type": "boolean"
+        },
+        "added": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Added",
+          "type": "array"
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "possible_renames": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Possible Renames",
+          "type": "array"
+        },
+        "name_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Name Warnings",
+          "type": "array"
+        },
+        "write_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Write Error"
+        }
+      },
+      "required": [
+        "created",
+        "added",
+        "missing",
+        "possible_renames",
+        "name_warnings",
+        "write_error"
+      ],
+      "title": "SyncEntry",
+      "type": "object"
+    },
+    "UnitEntry": {
+      "description": "One inbox unit (or filed document) and where the classifier put it.",
+      "properties": {
+        "path": {
+          "description": "Where the unit is, relative to the library, with forward slashes.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "folders": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The group, and category if the library has them, the unit was or would be filed under; null if unresolved.",
+          "title": "Folders"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "classified_by": {
+          "title": "Classified By",
+          "type": "string"
+        },
+        "confident": {
+          "title": "Confident",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why the classifier chose that, or why it could not. Contains no document text.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the unit was filed (a filed unit of a real run).",
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "folders",
+        "confidence",
+        "classified_by",
+        "confident",
+        "reason"
+      ],
+      "title": "UnitEntry",
+      "type": "object"
+    },
+    "Verification": {
+      "description": "How many rules answers the AI was asked to check (``[ai] verify_below``) and what it said.",
+      "properties": {
+        "checked": {
+          "default": 0,
+          "title": "Checked",
+          "type": "integer"
+        },
+        "confirmed": {
+          "default": 0,
+          "title": "Confirmed",
+          "type": "integer"
+        },
+        "overruled": {
+          "default": 0,
+          "title": "Overruled",
+          "type": "integer"
+        }
+      },
+      "title": "Verification",
+      "type": "object"
+    }
+  },
+  "description": "The result of ``sort`` (and ``sort --dry-run``).",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "sort",
+      "default": "sort",
+      "title": "Command",
+      "type": "string"
+    },
+    "dry_run": {
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "filed": {
+      "items": {
+        "$ref": "#/$defs/UnitEntry"
+      },
+      "title": "Filed",
+      "type": "array"
+    },
+    "needs_review": {
+      "items": {
+        "$ref": "#/$defs/UnitEntry"
+      },
+      "title": "Needs Review",
+      "type": "array"
+    },
+    "duplicates": {
+      "items": {
+        "$ref": "#/$defs/DuplicateEntry"
+      },
+      "title": "Duplicates",
+      "type": "array"
+    },
+    "skipped_links": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Skipped Links",
+      "type": "array"
+    },
+    "job_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The job that filed them, for `rollback`; null for a preview or nothing filed.",
+      "title": "Job Id"
+    },
+    "ai_unavailable": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ai Unavailable"
+    },
+    "ai_verification": {
+      "$ref": "#/$defs/Verification"
+    },
+    "filed_by_learned_hint": {
+      "title": "Filed By Learned Hint",
+      "type": "integer"
+    },
+    "filed_into_empty_groups": {
+      "title": "Filed Into Empty Groups",
+      "type": "integer"
+    },
+    "folders_removed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Folders Removed",
+      "type": "array"
+    },
+    "folders_kept": {
+      "items": {
+        "$ref": "#/$defs/FolderKept"
+      },
+      "title": "Folders Kept",
+      "type": "array"
+    },
+    "library_sync": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SyncEntry"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "dry_run",
+    "filed",
+    "needs_review",
+    "duplicates",
+    "skipped_links",
+    "job_id",
+    "ai_unavailable",
+    "ai_verification",
+    "filed_by_learned_hint",
+    "filed_into_empty_groups",
+    "folders_removed",
+    "folders_kept",
+    "library_sync"
+  ],
+  "title": "microfiche sort --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

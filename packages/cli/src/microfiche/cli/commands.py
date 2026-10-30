@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import functools
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn, ParamSpec, TypeVar
 
 import typer
 from microfiche.cli.display import (
@@ -18,7 +19,16 @@ from microfiche.cli.display import (
     render_sort_report,
 )
 from microfiche.cli.init_prompts import ask_revert, render_changes, walk_through
-from microfiche.cli.logging import FILE_ONLY, configure_logging, reset_logging
+from microfiche.cli.json_output import (
+    ErrorOutput,
+    audit_output,
+    config_output,
+    reclassify_output,
+    review_queue_output,
+    rollback_output,
+    sort_output,
+)
+from microfiche.cli.logging import FILE_ONLY, configure_logging, reset_logging, stderr_console
 from microfiche.cli.progress import progress_bar
 from microfiche.cli.review import render_outcome, render_summary, stdin_is_terminal, work_queue
 from microfiche.core.ai.base import AIProvider
@@ -64,6 +74,10 @@ from rich.markup import escape
 
 console = Console()
 _logger = logging.getLogger(__name__)
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+# Whether the running command was given --json: then `console` is the stderr one, and a failure is also a JSON document.
+_json_active = False
 
 _VERBOSE_OPTION = typer.Option(
     False,
@@ -75,6 +89,42 @@ _QUIET_OPTION = typer.Option(False, "--quiet", "-q", help="Show errors only on s
 _LIBRARY_OPTION = typer.Option(..., "--library", exists=True, file_okay=False, help="Path to the library root.")
 _FOLDER_OPTION = typer.Option(None, "--folder", help="Limit to this folder; defaults to the whole library.")
 _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; without this it's a dry run.")
+_JSON_OPTION = typer.Option(
+    False,
+    "--json",
+    help="Print the result as one JSON document on stdout and nothing else there (messages and progress go to "
+    "stderr). The shape is versioned and documented in schemas/.",
+)
+
+
+@contextmanager
+def _json_mode(enabled: bool) -> Iterator[None]:
+    """For the length of one command run with ``--json``, send messages to stderr and make failures JSON too.
+
+    Rebinds the module's ``console`` (display functions are handed it at call time), so nothing but the JSON document
+    reaches stdout. Restored afterwards, because the process may run several commands (the tests do).
+    """
+
+    global console, _json_active
+    saved = console, _json_active
+    if enabled:
+        console, _json_active = stderr_console, True
+    try:
+        yield
+    finally:
+        console, _json_active = saved
+
+
+def _json_command(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Run a command inside ``_json_mode`` when it was given ``--json`` (its ``as_json`` argument)."""
+
+    @functools.wraps(function)
+    def run(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        with _json_mode(bool(kwargs.get("as_json"))):
+            return function(*args, **kwargs)
+
+    return run
+
 
 # endregion
 
@@ -82,6 +132,7 @@ _APPLY_OPTION = typer.Option(False, "--apply", help="Actually move files; withou
 # region Public API
 
 
+@_json_command
 def sort(
     library: Path = _LIBRARY_OPTION,
     keep_folders: bool = typer.Option(
@@ -109,6 +160,7 @@ def sort(
         help="Preview what would be filed and what would need review, without moving or recording anything. "
         "Classification, including any --use-ai calls, runs as usual.",
     ),
+    as_json: bool = _JSON_OPTION,
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -139,17 +191,28 @@ def sort(
             dry_run=dry_run,
             progress=on_progress,
         )
-    render_sort_report(console, report)
+    if as_json:
+        _emit(sort_output(report, opened))
+    else:
+        render_sort_report(console, report)
 
 
+@_json_command
 def review(
     library: Path = _LIBRARY_OPTION,
+    list_queue: bool = typer.Option(
+        False,
+        "--list",
+        help="Only list what `review` would ask about, with the classifier's best guess for each, and ask nothing. "
+        "Works without a terminal.",
+    ),
     use_ai: bool = typer.Option(
         False,
         "--use-ai",
         help="Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, "
         "including the test question first (see `sort --help`).",
     ),
+    as_json: bool = _JSON_OPTION,
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -158,10 +221,15 @@ def review(
     Works through the documents `sort` left in the inbox. For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
     Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
     then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
-    documents already in the library. Needs a terminal.
+    documents already in the library. Needs a terminal, except with --list, which only prints the queue.
     """
 
     opened = _open_library(library, uses_hints=True)
+    if as_json and not list_queue:
+        _fail("--json needs --list: `review` itself asks questions, so there is nothing to print as JSON.")
+    if list_queue:
+        _list_queue(opened, use_ai=use_ai, as_json=as_json, verbose=verbose, quiet=quiet)
+        return
     if not stdin_is_terminal():
         _fail("review asks questions, so it needs a terminal. Use `sort`, or file the documents by hand.")
     provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None
@@ -246,6 +314,7 @@ def init(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet
     _finish_init(library, terminal=terminal, verbose=verbose, quiet=quiet)
 
 
+@_json_command
 def config(
     library: Path = _LIBRARY_OPTION,
     sync: bool = typer.Option(
@@ -254,6 +323,7 @@ def config(
         help="Instead of showing the configuration, add an entry to the library file for every folder that has "
         "none, and list entries whose folder is gone.",
     ),
+    as_json: bool = _JSON_OPTION,
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -272,9 +342,16 @@ def config(
     ):
         if sync:
             result = sync_library_file(opened)
+        elif as_json:
+            _emit(config_output(opened.config, None))
         else:
             render_config(console, opened.config)
     if result is None:
+        return
+    if as_json:
+        _emit(config_output(None, result))
+        if result.write_error is not None:
+            raise typer.Exit(code=1)
         return
     render_library_sync(console, result)
     if result.write_error is not None:
@@ -283,6 +360,7 @@ def config(
         console.print("The library file already lists every folder.")
 
 
+@_json_command
 def reclassify(
     library: Path = _LIBRARY_OPTION,
     folder: Path | None = _FOLDER_OPTION,
@@ -294,6 +372,7 @@ def reclassify(
         "to check rules answers scoring below [ai] verify_below. A document the AI disagrees with is left where it "
         "is. Needs [ai] model set; one test question (no document text) checks the AI answers first.",
     ),
+    as_json: bool = _JSON_OPTION,
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -320,12 +399,28 @@ def reclassify(
             _fail(str(err))
         except LedgerCorruptError as err:
             _fail(f"The ledger can't be read, so filed folders can't be told apart: {err}")
-        render_reclassify_table(console, proposals, root=lib.root, dry_run=not apply)
+        if not as_json:
+            render_reclassify_table(console, proposals, root=lib.root, dry_run=not apply)
         if ai_classifier is not None:
-            _describe_ai_use(proposals, ai_classifier)
+            _describe_ai_use(proposals, ai_classifier, quiet_counts=as_json)
         result = apply_reclassification(lib, proposals) if apply else None
         below_depth = items_below_depth(lib)  # after any move, so it is what is still below
     depth = lib.config.library_structure.depth
+    if as_json:
+        _emit(
+            reclassify_output(
+                proposals,
+                lib,
+                dry_run=result is None,
+                job=result.job if result else None,
+                failed=result.failed if result else (),
+                below_depth=below_depth,
+                ai_unavailable=ai_classifier.failure if ai_classifier is not None else None,
+            )
+        )
+        if result is not None and result.failed:
+            raise typer.Exit(code=1)
+        return
     render_reclassify_result(
         console,
         proposals,
@@ -338,23 +433,37 @@ def reclassify(
     )
 
 
-def audit(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:
+@_json_command
+def audit(
+    library: Path = _LIBRARY_OPTION,
+    as_json: bool = _JSON_OPTION,
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
     """Show the audit log."""
 
     lib = Library(library)
     with _logging("audit", lib, verbose=verbose, quiet=quiet, writes=False):
         log_path = lib.state_dir / AUDIT_LOG_FILENAME
         if not log_path.exists():
+            if as_json:
+                _emit(audit_output(""))
+                return
             console.print("[yellow]No audit log found yet.[/yellow]")
+            return
+        if as_json:
+            _emit(audit_output(log_path.read_text(encoding="utf-8")))
             return
         # markup=False: audit lines contain file paths, and "[...]" in a name must not be read as markup.
         console.print(log_path.read_text(encoding="utf-8"), markup=False, highlight=False, soft_wrap=True)
 
 
+@_json_command
 def rollback(
     library: Path = _LIBRARY_OPTION,
     job_id: str | None = typer.Option(None, "--job-id", help="The id `sort` printed. Give this or --last."),
     last: bool = typer.Option(False, "--last", help="Undo the newest job that has not been undone."),
+    as_json: bool = _JSON_OPTION,
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -380,6 +489,9 @@ def rollback(
             f"{err}\nRollback stopped part-way; the moves already reversed are recorded. "
             "Fix the problem above and re-run the same command to finish."
         )
+    if as_json:
+        _emit(rollback_output(job))
+        return
     moves = sum(1 for event in job.moves if event.action == "move")
     restored = sum(1 for event in job.moves if event.action == "remove_folder")
     folders = f" and recreated {restored} emptied folder(s)" if restored else ""
@@ -655,11 +767,18 @@ def _build_ai_classifier(settings: AIConfig, provider: AIProvider) -> LLMClassif
     return LLMClassifier(provider, settings)
 
 
-def _describe_ai_use(proposals: list[ReclassifyProposal], ai_classifier: LLMClassifier) -> None:
-    """Say, once, what the AI did in a ``reclassify`` run: an unavailable AI, and the answers it checked."""
+def _describe_ai_use(
+    proposals: list[ReclassifyProposal], ai_classifier: LLMClassifier, *, quiet_counts: bool = False
+) -> None:
+    """Say, once, what the AI did in a ``reclassify`` run: an unavailable AI, and the answers it checked.
+
+    ``quiet_counts`` leaves the counts out, because the JSON document carries them.
+    """
 
     if ai_classifier.failure is not None:
         console.print(f"[yellow]The AI fallback was unavailable ({escape(ai_classifier.failure)}).[/yellow]")
+    if quiet_counts:
+        return
     confirmed = sum(proposal.classification.confirmed_by_ai for proposal in proposals)
     overruled = sum(proposal.classification.ai_overruled for proposal in proposals)
     render_ai_verification(console, VerificationStats(confirmed + overruled, confirmed, overruled))
@@ -712,10 +831,43 @@ def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool |
 
 
 def _fail(message: str) -> NoReturn:
-    """Print ``message`` as an error and exit with a non-zero status."""
+    """Print ``message`` as an error and exit with a non-zero status.
+
+    With ``--json`` the message goes to stderr as usual and stdout gets an ``ErrorOutput``, so a script always reads
+    one JSON document.
+    """
 
     console.print(f"[red]{escape(message)}[/red]", soft_wrap=True)
+    if _json_active:
+        _emit(ErrorOutput(error=message))
     raise typer.Exit(code=1)
+
+
+def _emit(output: Any) -> None:
+    """Write ``output`` (a ``json_output`` model) to stdout as the command's one JSON document."""
+
+    typer.echo(output.model_dump_json(indent=2))
+
+
+def _list_queue(opened: Library, *, use_ai: bool, as_json: bool, verbose: bool, quiet: bool) -> None:
+    """Print what `review` would ask about, without asking: as JSON, or one line per unit."""
+
+    provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None
+    with (
+        _logging("review", opened, verbose=verbose, quiet=quiet, writes=False),
+        progress_bar(quiet=quiet, ai=use_ai) as on_progress,
+    ):
+        ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
+        session = ReviewSession.start(opened, ai_classifier=ai_classifier, progress=on_progress)
+    if as_json:
+        _emit(review_queue_output(session, opened))
+        return
+    _describe_queue(session)
+    if not session.items:
+        console.print("Nothing to review: the inbox has no document waiting for a decision.")
+    for item in session.items:
+        guess = "/".join(item.suggestion) if item.suggestion else "no guess"
+        console.print(f"{escape(item.name)}: {escape(guess)} ({escape(item.reason)})", soft_wrap=True)
 
 
 # endregion

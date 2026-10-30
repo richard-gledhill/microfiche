@@ -1,0 +1,181 @@
+{
+  "$defs": {
+    "FailureEntry": {
+      "description": "A unit that could not be moved, and why.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "FailureEntry",
+      "type": "object"
+    },
+    "ProposalEntry": {
+      "description": "What ``reclassify`` would do with one filed document or bundle.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "move",
+            "keep",
+            "review",
+            "conflict"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "folders": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Folders"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "path",
+        "action",
+        "folders",
+        "confidence",
+        "reason",
+        "destination"
+      ],
+      "title": "ProposalEntry",
+      "type": "object"
+    },
+    "Verification": {
+      "description": "How many rules answers the AI was asked to check (``[ai] verify_below``) and what it said.",
+      "properties": {
+        "checked": {
+          "default": 0,
+          "title": "Checked",
+          "type": "integer"
+        },
+        "confirmed": {
+          "default": 0,
+          "title": "Confirmed",
+          "type": "integer"
+        },
+        "overruled": {
+          "default": 0,
+          "title": "Overruled",
+          "type": "integer"
+        }
+      },
+      "title": "Verification",
+      "type": "object"
+    }
+  },
+  "description": "The result of ``reclassify`` (a preview unless ``--apply``).",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "reclassify",
+      "default": "reclassify",
+      "title": "Command",
+      "type": "string"
+    },
+    "dry_run": {
+      "title": "Dry Run",
+      "type": "boolean"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/ProposalEntry"
+      },
+      "title": "Proposals",
+      "type": "array"
+    },
+    "job_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Job Id"
+    },
+    "failed": {
+      "items": {
+        "$ref": "#/$defs/FailureEntry"
+      },
+      "title": "Failed",
+      "type": "array"
+    },
+    "items_below_depth": {
+      "title": "Items Below Depth",
+      "type": "integer"
+    },
+    "ai_unavailable": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ai Unavailable"
+    },
+    "ai_verification": {
+      "$ref": "#/$defs/Verification"
+    }
+  },
+  "required": [
+    "dry_run",
+    "proposals",
+    "job_id",
+    "failed",
+    "items_below_depth",
+    "ai_unavailable",
+    "ai_verification"
+  ],
+  "title": "microfiche reclassify --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

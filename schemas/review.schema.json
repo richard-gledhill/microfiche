@@ -1,0 +1,212 @@
+{
+  "$defs": {
+    "DuplicateEntry": {
+      "description": "An inbox file left where it is because the library already holds a copy.",
+      "properties": {
+        "path": {
+          "description": "Where the unit is, relative to the library, with forward slashes.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "folders": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The group, and category if the library has them, the unit was or would be filed under; null if unresolved.",
+          "title": "Folders"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "classified_by": {
+          "title": "Classified By",
+          "type": "string"
+        },
+        "confident": {
+          "title": "Confident",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why the classifier chose that, or why it could not. Contains no document text.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the unit was filed (a filed unit of a real run).",
+          "title": "Destination"
+        },
+        "existing": {
+          "description": "Where the copy is, relative to the library.",
+          "title": "Existing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "folders",
+        "confidence",
+        "classified_by",
+        "confident",
+        "reason",
+        "existing"
+      ],
+      "title": "DuplicateEntry",
+      "type": "object"
+    },
+    "UnitEntry": {
+      "description": "One inbox unit (or filed document) and where the classifier put it.",
+      "properties": {
+        "path": {
+          "description": "Where the unit is, relative to the library, with forward slashes.",
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "file",
+            "folder"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "folders": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The group, and category if the library has them, the unit was or would be filed under; null if unresolved.",
+          "title": "Folders"
+        },
+        "confidence": {
+          "title": "Confidence",
+          "type": "number"
+        },
+        "classified_by": {
+          "title": "Classified By",
+          "type": "string"
+        },
+        "confident": {
+          "title": "Confident",
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "Why the classifier chose that, or why it could not. Contains no document text.",
+          "title": "Reason",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where the unit was filed (a filed unit of a real run).",
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "folders",
+        "confidence",
+        "classified_by",
+        "confident",
+        "reason"
+      ],
+      "title": "UnitEntry",
+      "type": "object"
+    }
+  },
+  "description": "``review --list``: what `review` would ask about, without asking.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "review",
+      "default": "review",
+      "title": "Command",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/UnitEntry"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "duplicates": {
+      "items": {
+        "$ref": "#/$defs/DuplicateEntry"
+      },
+      "title": "Duplicates",
+      "type": "array"
+    },
+    "waiting": {
+      "description": "Units confident enough for `sort` to file, which are not in the queue.",
+      "title": "Waiting",
+      "type": "integer"
+    },
+    "ai_unavailable": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Ai Unavailable"
+    }
+  },
+  "required": [
+    "items",
+    "duplicates",
+    "waiting",
+    "ai_unavailable"
+  ],
+  "title": "microfiche review --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

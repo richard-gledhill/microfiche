@@ -1,0 +1,37 @@
+{
+  "description": "The result of ``rollback``.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "rollback",
+      "default": "rollback",
+      "title": "Command",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "moves_reverted": {
+      "title": "Moves Reverted",
+      "type": "integer"
+    },
+    "folders_recreated": {
+      "title": "Folders Recreated",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "job_id",
+    "moves_reverted",
+    "folders_recreated"
+  ],
+  "title": "microfiche rollback --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

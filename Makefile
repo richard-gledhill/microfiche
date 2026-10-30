@@ -46,6 +46,10 @@ docs-cli: ## Regenerate docs/cli-reference.md from the Typer app
 library-schema: ## Regenerate microfiche/microfiche-library.schema.json from the library file model
 	@uv run python -c "import json, pathlib; from microfiche.core.library.library_file import json_schema; pathlib.Path('microfiche/microfiche-library.schema.json').write_text(json.dumps(json_schema(), indent=2) + chr(10), encoding='utf-8', newline=chr(10))"
 
+.PHONY: output-schemas
+output-schemas: ## Regenerate the JSON Schemas of the --json outputs in schemas/
+	@uv run python -c "import pathlib; from microfiche.cli.json_output import write_output_schemas; write_output_schemas(pathlib.Path('schemas'))"
+
 .PHONY: module-diagram
 module-diagram: ## Regenerate the import graph in docs/development/architecture/module-diagram.md from the source
 	@uv run python scripts/module_diagram.py
