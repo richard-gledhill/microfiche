@@ -411,6 +411,10 @@ carries on, and `config --sync` exits with an error.
   appear in your documents (project, client or course names usually do). A document that doesn't
   mention any group is listed under **Needs review** and left in the inbox.
 - Categories can use hints, so they don't need to appear literally.
+- A document that names two groups about equally (both by name), or whose text points at two categories about equally
+  (two hints, say), is not guessed: it is listed under **Needs review** with both candidates and their confidences.
+  How close counts as "about equally" is `[classification] ambiguity_margin` (default 0.1; a category's name
+  is 0.15 stronger than a hint, so it still wins). A filename rule is never held by this.
 - Names are compared in one spelling (`[classification] normalise_names`, on by default), so `meeting-notes`,
   `meeting_notes`, `MeetingNotes` and `Meeting Notes` all match the words "meeting notes", `R&D` matches "R and D",
   an apostrophe or accent doesn't matter, and keyword hints are compared the same way. `+` and `#` are kept, so `C++` and
@@ -531,6 +535,7 @@ name_match_confidence = 0.9       # a category's name found in the text
 filename_match_confidence = 0.95  # a filename rule
 hint_match_confidence = 0.75      # a keyword hint
 fuzzy_group_threshold = 85        # how close (0-100) a near-miss must be to a group's name
+ambiguity_margin = 0.1            # hold a document if the runner-up group or category is this close (0 = exact ties only)
 normalise_names = true            # compare names, hints and text in one spelling ("meeting-notes" = "Meeting Notes")
 
 [ai]

@@ -329,14 +329,13 @@ def test_known_documents_naming_no_group_unresolved() -> None:
     assert case.truth is None
 
 
-def test_known_documents_cross_reference_misfiles_confidently() -> None:
-    """The corpus exists to show this: a passing mention of another project outranks the real one."""
+def test_known_documents_cross_reference_held_when_two_groups_named() -> None:
+    """A passing mention of another project used to outrank the real one; both are named exactly, so it is held."""
 
     case = _corpus_case("software-projects/Project Phoenix/02 Architecture/carrier-adapter.md")
 
-    assert not case.correct
-    assert case.predicted[0] == "Project Atlas"
-    assert case.group_signal == "exact"
+    assert not case.resolved
+    assert not case.is_filed(0.0)
 
 
 # endregion
@@ -608,6 +607,17 @@ def test_no_threshold_makes_name_match_reliable_when_tricky(corpus: list[Case]) 
 
     assert tricky_name_matches
     assert sum(case.correct for case in tricky_name_matches) < len(tricky_name_matches) / 2
+
+
+def test_ambiguity_margin_holds_documents_that_name_two_groups_or_categories(corpus: list[Case]) -> None:
+    """Misfiles at the default fell from 20 to 6 (ordinary documents untouched): see calibration.md."""
+
+    outcome = evaluate(corpus, DEFAULT_CONFIDENCE_THRESHOLD)
+    ordinary = evaluate(_ordinary(corpus), DEFAULT_CONFIDENCE_THRESHOLD)
+
+    assert outcome.filed_wrong <= 6
+    assert outcome.filed_correct >= 89
+    assert ordinary.filed_correct >= 86
 
 
 # endregion

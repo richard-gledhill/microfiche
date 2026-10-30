@@ -150,6 +150,9 @@ class ClassificationConfig(_ConfigSection):
             keyword hints appears in the document text.
         fuzzy_group_threshold (int): From 0 to 100. How close a near-miss must be to a group's name
             (a RapidFuzz partial-ratio score, rounded to a whole number) to count as that group.
+        ambiguity_margin (float): From 0 to 1. If the second-best group (or category) is within this many points of
+            confidence of the best, microfiche does not choose: the document goes to review with both named. 0 holds
+            only exact ties; raise it to hold more, lower it to file more.
         normalise_names (bool): Compare folder names, keyword hints and document text in one spelling, so
             ``meeting-notes``, ``MeetingNotes`` and ``01_meeting_notes`` all match "Meeting Notes", ``R&D`` matches
             "R and D" and accents are ignored. Folders are never renamed. Off compares them as written.
@@ -160,6 +163,7 @@ class ClassificationConfig(_ConfigSection):
     filename_match_confidence: float = Field(ge=0.0, le=1.0)
     hint_match_confidence: float = Field(ge=0.0, le=1.0)
     fuzzy_group_threshold: int = Field(ge=0, le=100)
+    ambiguity_margin: float = Field(ge=0.0, le=1.0)
     normalise_names: bool
 
 

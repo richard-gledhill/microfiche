@@ -161,7 +161,8 @@ class Classifier:
         (group, category) pair voted across all the documents inside it (see the "folder-as-unit"
         decision in docs/development/architecture/overview.md).
 
-        Each document whose group resolved casts one vote. The pair with the most votes wins, and
+        Each document whose group resolved casts one vote, unless the evidence for it was too close to call between
+        several folders (``ClassificationResult.ambiguous``): then it abstains. The pair with the most votes wins, and
         the winning pair's most confident document represents the folder. If two or more pairs
         share the top vote the folder is unresolved, with a reason listing the disagreement.
 
@@ -182,9 +183,9 @@ class Classifier:
         if len(per_document) == 1:
             return per_document[0]
 
-        pair_votes = Counter(_vote(result) for result in per_document if result.group.name)
+        pair_votes = Counter(_vote(result) for result in per_document if result.group.name and not result.ambiguous)
         if not pair_votes:
-            # No document in the folder resolved a group at all - surface the first result's
+            # No document in the folder resolved a group, or all were ambiguous - surface the first result's
             # reasoning so the review queue has something concrete to show the user.
             return per_document[0]
 

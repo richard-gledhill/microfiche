@@ -204,9 +204,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
 - **Calibrate on real, longer documents.** Add them to `tests/calibration/corpus/` (or point
   `report.py` at a library you trust) and re-check the default. The bundled corpus is synthetic,
   short, and written knowing the rules, so its absolute error rates are not predictive.
-- **Ambiguity check.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). Hold a document when more than one group is named in its text, or more than one
-  category has evidence. Prototype on the corpus: misfires 24 → 8 at the default, correct filings
-  89 → 87. Needs measuring on long documents before it is built.
+- **Ambiguity check.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice B): `[classification] ambiguity_margin` (default 0.1) holds a document when the runner-up group or category is within it; an exactly named group settles the group stage against fuzzy lookalikes. Misfires 24 → 6 with word boundaries, correct filings unchanged; see [calibration.md](../testing/calibration.md#ambiguity-margin). Still unmeasured on long documents.
 - **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration covers it in a separate `corpus_styles` corpus ([calibration.md](../testing/calibration.md#folder-name-styles)).
 - **Match group names on word boundaries.** Requirement drafted: [matching-precision-prd.md](matching-precision-prd.md). `Car` matches `carrier` and `card`; short or common group
   names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a

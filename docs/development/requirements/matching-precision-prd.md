@@ -1,6 +1,6 @@
 # Matching precision: word boundaries and an ambiguity margin
 
-Status: Accepted
+Status: Done
 
 Settled on 2026-10-28. The first slice, folder-name normalisation, shipped under
 [RFC-010](../rfcs/RFC-010-folder-name-matching.md) / [ADR-005](../adr/ADR-005-folder-name-matching.md), so names and
@@ -109,5 +109,7 @@ Guidance for the spec, not binding.
 - **Setting name:** `[classification] ambiguity_margin`.
 - **Reason text lists every candidate within the margin of the best**, not only the runner-up. The outcome is the same;
   the reason shows what the user would choose between.
-- **Default margin:** still decided by calibration (0, 0.05, 0.1, 0.15 tried), with the trade-off at each value recorded
-  in `calibration.md`. Build (B) to find it.
+- **Default margin: 0.1.** Swept at 0, 0.05, 0.1, 0.15 and 0.2; the trade-off is in
+  [calibration.md](../testing/calibration.md#ambiguity-margin). Built as slice B ([ADR-006](../adr/ADR-006-ambiguity-margin.md)),
+  which also records where this build departs from the outline: the margin is applied in the rules, an exact group name
+  settles the group stage against fuzzy candidates, and an ambiguous document abstains from a folder's vote.
