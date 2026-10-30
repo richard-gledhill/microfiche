@@ -185,6 +185,7 @@ uv run microfiche sort --library ~/Documents/Library -v   # also show progress m
 uv run microfiche review --library ~/Documents/Library   # decide, one by one, what `sort` left in the inbox
 uv run microfiche reclassify --library ~/Documents/Library   # re-review already-filed documents (dry run)
 uv run microfiche reclassify --library ~/Documents/Library --apply   # ...and re-file the ones marked "move"
+uv run microfiche reclassify --library ~/Documents/Library --use-ai   # ...with the AI's help, as `sort --use-ai`
 uv run microfiche propose-categories --library ~/Documents/Library
 uv run microfiche init --library ~/Documents/Library   # again: check the config, change settings one by one
 uv run microfiche config --library ~/Documents/Library   # show the loaded configuration

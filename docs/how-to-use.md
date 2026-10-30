@@ -1030,6 +1030,13 @@ job: it prints a job id, is recorded in the ledger and audit log, and can be und
 `--folder` works with `--apply` too. Preview first: classification is rule-based, so it is worth
 checking the table before moving anything.
 
+**With the AI.** `reclassify --use-ai` uses the AI as `sort --use-ai` does (see [The AI fallback](#the-ai-fallback)): it
+is asked about documents the rules cannot place and, if `[ai] verify_below` is above 0, to check rules answers that score
+below it. A document whose answer the AI disagrees with is shown as **review** and left where it is, so a second opinion
+can only keep a document from moving, never move it somewhere the rules did not propose. The same test question runs
+first, nothing is moved if it fails, and the table is followed by how many answers were checked, confirmed and
+overruled.
+
 **A folder that was filed whole stays whole.** When `keep_folders` is on, `sort` files a dropped folder as one unit.
 `reclassify` treats it the same way: it is one row in the table, classified by the group and category most of its
 documents belong to, and `--apply` moves the whole folder or none of it. A document inside it that reads as something
@@ -1216,7 +1223,8 @@ list, for those.
 
 microfiche is pre-release. At the moment:
 
-- `reclassify` doesn't use the AI fallback; it only applies the rule-based classifier.
+- `reclassify --use-ai` asks the AI the same questions as `sort`, so a preview costs the same calls; without `--use-ai`
+  it applies the rule-based classifier only.
 - At the default confidence threshold, documents matched only by the AI fallback are left for
   review, so `--use-ai` only suggests until you lower the threshold to `0.7`. See
   [How sure microfiche has to be](#how-sure-microfiche-has-to-be).

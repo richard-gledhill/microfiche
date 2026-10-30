@@ -123,6 +123,7 @@ flowchart TD
     cli_commands --> l_library_file
     cli_commands --> a_base
     cli_commands --> a_check
+    cli_commands --> core_classifier
 
     cli_display --> core_config
     cli_display --> core_organizer
@@ -131,6 +132,7 @@ flowchart TD
     cli_display --> core_filer
     cli_display --> l_library_file
     cli_display --> l_library_sync
+    cli_display --> core_classifier
 
     core_organizer --> a_llm
     core_organizer --> core_classifier
