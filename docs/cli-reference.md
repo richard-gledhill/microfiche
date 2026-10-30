@@ -134,6 +134,7 @@ $ microfiche reclassify [OPTIONS]
 * `--library <directory>`: Path to the library root.  [required]
 * `--folder <path>`: Limit to this folder; defaults to the whole library.
 * `--apply`: Actually move files; without this it's a dry run.
+* `--use-ai`: Use the AI named in the library's config as `sort --use-ai` does: for what the rules can't place, and to check rules answers scoring below [ai] verify_below. A document the AI disagrees with is left where it is. Needs [ai] model set; one test question (no document text) checks the AI answers first.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

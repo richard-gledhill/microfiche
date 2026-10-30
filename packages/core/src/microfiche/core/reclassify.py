@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Literal
 
-from microfiche.core.classifier import Classifier
+from microfiche.core.classifier import Classifier, Resolver
 from microfiche.core.filer import DestinationClaims, FilingResult, destination_for, file_batch
 from microfiche.core.ledger import Ledger
 from microfiche.core.library.library import Library
@@ -70,6 +70,7 @@ def run_reclassify(
     library: Library,
     *,
     scope: Path | None = None,
+    ai_classifier: Resolver | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> list[ReclassifyProposal]:
     """Classify already-filed documents and report where the classifier would file each now.
@@ -86,6 +87,9 @@ def run_reclassify(
     Args:
         library: The library whose filed documents to re-classify.
         scope: A folder inside the library to limit the run to; the whole library if omitted.
+        ai_classifier: An optional AI fallback, used as in ``run_sort``: asked about what the rules cannot place and,
+            with ``[ai] verify_below``, to check rules answers that score below it. A document it overrules is
+            proposed as ``review``.
         progress: Told how far the run has got, as ``progress(done, total)``: first ``progress(0, total)``, then
             the running count as each document finishes, ending on ``progress(total, total)``.
 
@@ -98,7 +102,7 @@ def run_reclassify(
     """
 
     taxonomy = library.taxonomy()
-    classifier = Classifier.from_library(library)
+    classifier = Classifier.from_library(library, ai_classifier)
 
     claims = DestinationClaims(library)
     proposals: list[ReclassifyProposal] = []

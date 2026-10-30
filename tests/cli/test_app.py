@@ -2299,3 +2299,90 @@ def test_review_flat_library_needs_only_a_group(tmp_path: Path) -> None:
 
 
 # endregion
+
+
+# region reclassify --use-ai
+
+
+class _FixedAnswerProvider:
+    """An AI provider that gives the same answer to every question, and counts the questions."""
+
+    def __init__(self, answer: str) -> None:
+        self.answer = answer
+        self.asked = 0
+
+    def complete(self, prompt: str) -> str:
+        self.asked += 1
+        return self.answer
+
+
+def _provider_answering(monkeypatch: pytest.MonkeyPatch, answer: str) -> _FixedAnswerProvider:
+    provider = _FixedAnswerProvider(answer)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: provider)
+    return provider
+
+
+def _library_with_a_hint_matched_note(tmp_path: Path, *, verify_below: float) -> Path:
+    """A note filed under Research whose text hits the Requirements hint (0.75): the rules would move it."""
+
+    library = _library(tmp_path)
+    _set_ai(library, f'model = "m"\nverify_below = {verify_below}\n')
+    (library / "Project Phoenix" / "03 Research" / "note.md").write_text(
+        "Project Phoenix: the acceptance criteria are attached.", encoding="utf-8"
+    )
+    return library
+
+
+def test_reclassify_use_ai_ai_agrees_move_stands_and_check_is_reported(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library_with_a_hint_matched_note(tmp_path, verify_below=0.8)
+    _provider_answering(monkeypatch, "01 Requirements")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--use-ai"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "AI second opinion: 1 checked, 1 confirmed, 0 overruled" in " ".join(result.stdout.split())
+    assert "move" in result.stdout
+
+
+def test_reclassify_use_ai_ai_disagrees_document_is_left_for_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library_with_a_hint_matched_note(tmp_path, verify_below=0.8)
+    _provider_answering(monkeypatch, "02 Architecture")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--use-ai", "--apply"])
+
+    assert result.exit_code == 0, result.stdout
+    assert "AI second opinion: 1 checked, 0 confirmed, 1 overruled" in " ".join(result.stdout.split())
+    assert (library / "Project Phoenix" / "03 Research" / "note.md").is_file()  # not moved
+
+
+def test_reclassify_without_use_ai_asks_no_ai(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    library = _library_with_a_hint_matched_note(tmp_path, verify_below=0.8)
+    provider = _provider_answering(monkeypatch, "02 Architecture")
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library)])
+
+    assert result.exit_code == 0, result.stdout
+    assert provider.asked == 0
+    assert "AI second opinion" not in result.stdout
+
+
+def test_reclassify_use_ai_failed_check_stops_before_anything_moves(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    library = _library_with_a_hint_matched_note(tmp_path, verify_below=0.8)
+    monkeypatch.setattr("microfiche.cli.commands.build_provider", lambda config: _CheckFailsProvider())
+    before, state_before = _tree(library), _state_files(library)
+
+    result = runner.invoke(app, ["reclassify", "--library", str(library), "--use-ai", "--apply"])
+
+    assert result.exit_code == 1
+    assert "ConnectionError: connection refused" in result.stdout
+    assert _tree(library) == before
+    assert _state_files(library) == state_before
+
+
+# endregion

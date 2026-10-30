@@ -10,6 +10,7 @@ from typing import NoReturn
 
 import typer
 from microfiche.cli.display import (
+    render_ai_verification,
     render_config,
     render_library_sync,
     render_reclassify_result,
@@ -24,6 +25,7 @@ from microfiche.core.ai.base import AIProvider
 from microfiche.core.ai.check import check_ai
 from microfiche.core.ai.factory import build_provider
 from microfiche.core.ai.llm_classifier import LLMClassifier
+from microfiche.core.classifier import VerificationStats
 from microfiche.core.config import CONFIG_FILENAME, AIConfig, ConfigError, ConfigProblem
 from microfiche.core.filer import (
     AUDIT_LOG_FILENAME,
@@ -51,7 +53,7 @@ from microfiche.core.library_init import (
     rebuild_library_file,
 )
 from microfiche.core.organizer import run_sort
-from microfiche.core.reclassify import apply_reclassification, items_below_depth, run_reclassify
+from microfiche.core.reclassify import ReclassifyProposal, apply_reclassification, items_below_depth, run_reclassify
 from microfiche.core.review import ReviewOutcome, ReviewSession
 from microfiche.core.runlock import LockHolder, RunLockError, run_lock
 from microfiche.core.scanner import scan_sorting_inbox
@@ -285,6 +287,13 @@ def reclassify(
     library: Path = _LIBRARY_OPTION,
     folder: Path | None = _FOLDER_OPTION,
     apply: bool = _APPLY_OPTION,
+    use_ai: bool = typer.Option(
+        False,
+        "--use-ai",
+        help="Use the AI named in the library's config as `sort --use-ai` does: for what the rules can't place, and "
+        "to check rules answers scoring below [ai] verify_below. A document the AI disagrees with is left where it "
+        "is. Needs [ai] model set; one test question (no document text) checks the AI answers first.",
+    ),
     verbose: bool = _VERBOSE_OPTION,
     quiet: bool = _QUIET_OPTION,
 ) -> None:
@@ -295,20 +304,25 @@ def reclassify(
     """
 
     lib = _open_library(library, uses_hints=True, needs_config=True)
+    provider = _checked_ai_provider(lib.config.ai, quiet=quiet) if use_ai else None  # before the lock: see there
+    ai_classifier = None
     with (
         _locked(
             lib, "reclassify", needed=apply
         ) as cleared_lock,  # held from planning to filing; the preview only reads
         _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply, cleared_lock=cleared_lock),
-        progress_bar(quiet=quiet, ai=False) as on_progress,
+        progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
+        ai_classifier = _build_ai_classifier(lib.config.ai, provider) if provider is not None else None
         try:
-            proposals = run_reclassify(lib, scope=folder, progress=on_progress)
+            proposals = run_reclassify(lib, scope=folder, ai_classifier=ai_classifier, progress=on_progress)
         except ScopeOutsideLibraryError as err:
             _fail(str(err))
         except LedgerCorruptError as err:
             _fail(f"The ledger can't be read, so filed folders can't be told apart: {err}")
         render_reclassify_table(console, proposals, root=lib.root, dry_run=not apply)
+        if ai_classifier is not None:
+            _describe_ai_use(proposals, ai_classifier)
         result = apply_reclassification(lib, proposals) if apply else None
         below_depth = items_below_depth(lib)  # after any move, so it is what is still below
     depth = lib.config.library_structure.depth
@@ -639,6 +653,16 @@ def _build_ai_classifier(settings: AIConfig, provider: AIProvider) -> LLMClassif
         console.print(f"[yellow]{notice}[/yellow]", soft_wrap=True)
         _logger.warning(notice, extra=FILE_ONLY)
     return LLMClassifier(provider, settings)
+
+
+def _describe_ai_use(proposals: list[ReclassifyProposal], ai_classifier: LLMClassifier) -> None:
+    """Say, once, what the AI did in a ``reclassify`` run: an unavailable AI, and the answers it checked."""
+
+    if ai_classifier.failure is not None:
+        console.print(f"[yellow]The AI fallback was unavailable ({escape(ai_classifier.failure)}).[/yellow]")
+    confirmed = sum(proposal.classification.confirmed_by_ai for proposal in proposals)
+    overruled = sum(proposal.classification.ai_overruled for proposal in proposals)
+    render_ai_verification(console, VerificationStats(confirmed + overruled, confirmed, overruled))
 
 
 def _describe_queue(session: ReviewSession) -> None:
