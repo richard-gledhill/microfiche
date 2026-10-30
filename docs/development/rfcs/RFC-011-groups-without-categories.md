@@ -1,6 +1,8 @@
 # RFC-011: Groups with no category folders
 
-Status: Draft
+Status: Accepted
+
+Decided on 2026-10-30 and recorded in [ADR-007](../adr/ADR-007-leaf-groups.md); the questions below were settled there.
 
 **Background:** raised on 2026-10-25 from a question about what `sort` does at depth 2 when a group has no category
 folders yet, and a very confident group match. Nothing built. Found by reading the code; not run.
