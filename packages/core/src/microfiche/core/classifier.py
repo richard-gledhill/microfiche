@@ -71,6 +71,9 @@ class Classifier:
         fallback: An optional second resolver, asked only for stages the primary can't answer
             confidently.
         threshold: How confident a result must be to count as ``confident``.
+        file_in_empty_groups: Whether a group with no category folders is itself the destination (see
+            ``[sorting] file_in_empty_groups``). Its category is then not asked for and the result has none, as in a
+            flat library.
     """
 
     def __init__(
@@ -79,10 +82,12 @@ class Classifier:
         fallback: Resolver | None = None,
         *,
         threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
+        file_in_empty_groups: bool = False,
     ) -> None:
         self._rules = rules
         self._fallback = fallback
         self._threshold = threshold
+        self._file_in_empty_groups = file_in_empty_groups
 
     @classmethod
     def from_library(cls, library: Library, fallback: Resolver | None = None) -> Classifier:
@@ -104,6 +109,7 @@ class Classifier:
             RulesEngine(library.library_file, config.classification),
             fallback,
             threshold=config.classification.confidence_threshold,
+            file_in_empty_groups=config.sorting.file_in_empty_groups,
         )
 
     def classify_document(self, document: Document, taxonomy: Taxonomy) -> ClassificationResult:
@@ -120,8 +126,8 @@ class Classifier:
 
         group, group_source = self._resolve(lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy))
         category: CategoryMatch | None
-        if taxonomy.is_flat:
-            category, category_source = None, group_source  # a flat library has no categories to choose
+        if taxonomy.is_flat or self._is_leaf(group, taxonomy):
+            category, category_source = None, group_source  # nothing below the group to choose
         elif group.name is None:
             category = CategoryMatch(name=None, confidence=0.0, reason="Group unresolved")
             category_source = self._rules
@@ -217,6 +223,11 @@ class Classifier:
         if fallback_answer.name is not None:
             return fallback_answer, self._fallback
         return answer, self._rules
+
+    def _is_leaf(self, group: GroupMatch, taxonomy: Taxonomy) -> bool:
+        """Whether the group resolved to a folder with no categories that this library files straight into."""
+
+        return self._file_in_empty_groups and group.name is not None and taxonomy.is_leaf(group.name)
 
     def _is_confident(self, match: GroupMatch | CategoryMatch) -> bool:
         return match.name is not None and match.confidence >= self._threshold

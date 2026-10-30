@@ -54,6 +54,9 @@ max_document_chars = 4000
 # override this for a single run: a flag beats this file, which beats the built-in default (true).
 [sorting]
 keep_folders = true
+# At depth 2, file a document that names a group with no category folders straight into the group. Off leaves it for
+# review, so a group made as a placeholder for categories to be added later gets nothing.
+file_in_empty_groups = false
 # File and folder names (globs) the inbox scan skips without comment: Office lock files and OS clutter.
 # A skipped file is never read or filed. Setting this replaces the list, it does not add to it.
 ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
@@ -83,7 +86,7 @@ backup_count = 3
 # inbox-style folders stay out of the taxonomy even when they aren't this library's own inbox -
 # for example the inboxes of sub-libraries nested inside it.
 [exclusions]
-exclude = ["sorting*", "_sorting*", ".*", "_*"]
+exclude = ["sorting*", "_sorting*", ".*", "_*", "attachments"]
 
 [naming_rules]
 rules = {}

@@ -627,10 +627,17 @@ def test_structure_skips_a_folder_the_ledger_records_as_filed_whole(tmp_path: Pa
 
 def test_structure_lists_a_folder_the_ledger_does_not_know(tmp_path: Path) -> None:
     root = _build(tmp_path / "library")
-    (root / "Project Phoenix" / "attachments").mkdir()
+    (root / "Project Phoenix" / "scans").mkdir()
     Ledger(root / ".microfiche").append([_filed_whole_record("Project Phoenix/pack")])
 
-    assert "attachments" in Library(root).taxonomy().categories_for("Project Phoenix")
+    assert "scans" in Library(root).taxonomy().categories_for("Project Phoenix")
+
+
+def test_structure_default_exclusions_keep_attachments_folder_out(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Project Phoenix" / "attachments").mkdir()
+
+    assert "attachments" not in Library(root).taxonomy().categories_for("Project Phoenix")
 
 
 def test_structure_unreadable_ledger_warns_and_lists_every_folder(

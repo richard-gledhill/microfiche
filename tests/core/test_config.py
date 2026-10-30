@@ -161,7 +161,7 @@ def test_load_config_missing_files_fall_back_to_defaults(tmp_path: Path) -> None
     config = load_config(tmp_path / "does-not-exist")
 
     assert config.library_structure.depth == 2
-    assert config.exclusions.exclude == ["sorting*", "_sorting*", ".*", "_*"]
+    assert config.exclusions.exclude == ["sorting*", "_sorting*", ".*", "_*", "attachments"]
 
 
 def test_load_config_partial_table_keeps_other_defaults(tmp_path: Path) -> None:

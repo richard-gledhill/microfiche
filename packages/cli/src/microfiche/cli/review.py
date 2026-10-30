@@ -80,6 +80,10 @@ def render_outcome(console: Console, outcome: ReviewOutcome) -> None:
             f"  [yellow]{escape(failure.unit.source_path.name)}[/yellow] stays in the inbox: {escape(failure.reason)}",
             soft_wrap=True,
         )
+    if outcome.into_empty_groups:
+        console.print(
+            f"  [dim]{outcome.into_empty_groups} filed straight into a group because it has no category folders.[/dim]"
+        )
     for folder in outcome.created:
         console.print(f"  [dim]Created the folder[/dim] {escape(folder.name)}", soft_wrap=True)
     if outcome.job is not None:
@@ -137,7 +141,10 @@ def _modify(console: Console, session: ReviewSession, item: ReviewItem) -> bool:
     if group is None:
         return False
     folders: tuple[str, ...] = (group,)
-    if session.depth > 1:
+    straight_in = session.can_file_in_group(group) and typer.confirm(
+        f"  '{group}' has no categories. File straight into it?", default=True
+    )
+    if session.depth > 1 and not straight_in:
         category = _choose_folder(console, session, (group,), "category")
         if category is None:
             return False

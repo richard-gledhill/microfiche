@@ -220,12 +220,16 @@ class SortingConfig(_ConfigSection):
             dominant category. If not, each document in it is filed on its own and the folder is
             removed once it is empty. The ``--keep-folders`` and ``--keep-folders-off`` options
             override it for one run.
+        file_in_empty_groups (bool): At depth 2, whether a document that names a group with no category folders is
+            filed straight into the group. Off (the default), it is left for review, so a group made as a placeholder
+            for categories to be added later receives nothing.
         ignore (list[str]): File and folder name patterns (globs) the inbox scan skips without
             comment, such as Office lock files (``~$*``) and ``Thumbs.db``. A skipped file is never
             read or filed; a folder is not descended into.
     """
 
     keep_folders: bool
+    file_in_empty_groups: bool
     ignore: list[str]
 
 

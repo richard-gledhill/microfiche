@@ -84,11 +84,13 @@ class ReviewOutcome:
         job: The job that filed the chosen units, or ``None`` if none was filed (nothing is written then).
         failed: Chosen units that were not filed and are still in the inbox, each with the reason.
         created: The group and category folders that did not exist and were created by filing into them.
+        into_empty_groups: How many units were filed straight into a group because it has no category folders.
     """
 
     job: Job | None = None
     failed: list[FailedFiling] = field(default_factory=list)
     created: list[Path] = field(default_factory=list)
+    into_empty_groups: int = 0
 
 
 # endregion
@@ -218,6 +220,17 @@ class ReviewSession:
             return []
         planned = {folders[1] for folders in self._new_folders if len(folders) == 2 and folders[0] == group}
         return sorted({*self._taxonomy.categories_for(group), *planned}, key=str.casefold)
+
+    def can_file_in_group(self, group: str) -> bool:
+        """Whether a unit can be filed straight into ``group``: it has no categories (existing or planned) and the
+        library files into such groups (``[sorting] file_in_empty_groups``)."""
+
+        return (
+            self._library.config.sorting.file_in_empty_groups
+            and not self._taxonomy.is_flat
+            and group in self.groups()
+            and not self.categories(group)
+        )
 
     def folder_problem(self, parent: tuple[str, ...], name: str) -> str | None:
         """Say why a new folder called ``name`` cannot be made under ``parent``, or ``None`` if it can.
@@ -357,6 +370,10 @@ class ReviewSession:
         result = file_batch(self._library, ready)
         outcome.job = result.job
         outcome.failed.extend(result.failed)
+        failed = {failure.unit.source_path for failure in result.failed}
+        outcome.into_empty_groups = sum(
+            1 for unit, c in ready if unit.source_path not in failed and len(c.folders or ()) < self.depth
+        )
         # A folder made for a unit that then could not be moved is still empty: take back what was just made here.
         for path in reversed(missing):
             if path.is_dir() and not any(path.iterdir()):
@@ -397,8 +414,11 @@ class ReviewSession:
         return problem
 
     def _is_place(self, folders: tuple[str, ...]) -> bool:
-        """Whether ``folders`` is a complete group (and category), existing or planned, for this library's depth."""
+        """Whether ``folders`` is a complete place, existing or planned: a group and category for this library's depth,
+        or just a group that has no categories when the library files into those."""
 
+        if len(folders) == 1 and self.depth > 1:
+            return self.can_file_in_group(folders[0])
         if len(folders) != self.depth or folders[0] not in self.groups():
             return False
         return self.depth == 1 or folders[1] in self.categories(folders[0])
