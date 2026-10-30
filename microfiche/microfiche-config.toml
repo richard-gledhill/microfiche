@@ -65,6 +65,14 @@ ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
 [parsing]
 max_file_mb = 50
 
+# Learn keyword hints from the documents you file by hand in `review`. Off by default: when on, a `review` commit
+# adds hints to `learned_hints` in microfiche-library.json (your own hints are never changed). Delete one to remove it.
+[learning]
+enabled = false
+min_decisions = 3       # documents you filed into a category before anything is learned for it
+max_hints_per_run = 3   # the most hints one `review` commit adds to a category
+min_word_length = 4     # shorter words are never learned
+
 # The diagnostic log microfiche writes under .microfiche/ (separate from the audit log).
 # level: how much it records (DEBUG, INFO, WARNING, ERROR or CRITICAL). file: its name, a plain file
 # name, not a path, and not the name of one of microfiche's own files there (audit.log, ledger.jsonl and

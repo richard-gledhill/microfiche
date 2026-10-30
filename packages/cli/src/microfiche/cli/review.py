@@ -80,6 +80,13 @@ def render_outcome(console: Console, outcome: ReviewOutcome) -> None:
             f"  [yellow]{escape(failure.unit.source_path.name)}[/yellow] stays in the inbox: {escape(failure.reason)}",
             soft_wrap=True,
         )
+    for hint in outcome.learned:
+        console.print(
+            f"  [dim]Learned the hint[/dim] '{escape(hint.hint)}' [dim]for[/dim] {escape(hint.group)}/{escape(hint.category)}",
+            soft_wrap=True,
+        )
+    if outcome.learned:
+        console.print("  [dim]Delete a learned hint from microfiche-library.json to remove it for good.[/dim]")
     if outcome.into_empty_groups:
         console.print(
             f"  [dim]{outcome.into_empty_groups} filed straight into a group because it has no category folders.[/dim]"

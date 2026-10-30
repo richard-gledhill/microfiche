@@ -51,6 +51,15 @@
           "title": "Hints",
           "type": "array"
         },
+        "learned_hints": {
+          "description": "Keywords microfiche learned from documents you filed in `review` (only when [learning] enabled). They match like hints. Delete one to remove it; it is not learned again.",
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Learned Hints",
+          "type": "array"
+        },
         "rules": {
           "description": "Filename rules for this folder, checked before the keyword hints.",
           "items": {

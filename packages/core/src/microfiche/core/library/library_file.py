@@ -67,6 +67,11 @@ class FolderNode(_Model):
         description="Keywords whose appearance in a document (any case) suggests this folder. "
         "Hints are not inherited by the folders below.",
     )
+    learned_hints: list[_Text] = Field(
+        default_factory=list,
+        description="Keywords microfiche learned from documents you filed in `review` (only when "
+        "[learning] enabled). They match like hints. Delete one to remove it; it is not learned again.",
+    )
     rules: list[FilingRule] = Field(
         default_factory=list,
         description="Filename rules for this folder, checked before the keyword hints.",
@@ -78,7 +83,7 @@ class FolderNode(_Model):
 
     @model_validator(mode="after")
     def _wildcard_holds_only_children(self) -> FolderNode:
-        if self.name == WILDCARD and (self.hints or self.rules):
+        if self.name == WILDCARD and (self.hints or self.learned_hints or self.rules):
             raise WildcardWithDataError
         _reject_duplicates(child.name for child in self.children)
         return self
@@ -123,7 +128,14 @@ class LibraryFile(_Model):
         """
 
         hints = (hint for node, _ in _matching(self.groups, (group, category)) for hint in node.hints)
-        return list(dict.fromkeys(hints))
+        learned = self.learned_hints_for(group, category)
+        return list(dict.fromkeys((*hints, *learned)))
+
+    def learned_hints_for(self, group: str, category: str) -> list[str]:
+        """The hints microfiche learned for ``group``/``category``, which match after the user's own."""
+
+        learned = (hint for node, _ in _matching(self.groups, (group, category)) for hint in node.learned_hints)
+        return list(dict.fromkeys(learned))
 
     def group_hints_for(self, group: str) -> list[str]:
         """The keyword hints for the group folder ``group`` itself, which a flat library matches on."""

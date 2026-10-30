@@ -15,6 +15,7 @@ from microfiche.core.config import (
     ConfigError,
     ConfigProblem,
     ExclusionsConfig,
+    LearningConfig,
     LibraryStructureConfig,
     LoggingConfig,
     MicroficheConfig,
@@ -54,6 +55,7 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("ai", AIConfig),
     ("sorting", SortingConfig),
     ("parsing", ParsingConfig),
+    ("learning", LearningConfig),
     ("logging", LoggingConfig),
 ]
 

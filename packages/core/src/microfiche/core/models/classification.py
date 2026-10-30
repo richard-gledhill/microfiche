@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+# What a category match's reason starts with when a hint the program learned (not the user's own) decided it.
+LEARNED_HINT_REASON = "Learned keyword hint"
+
 
 class GroupMatch(BaseModel):
     """Result of resolving which library group (level 1, e.g. a project) a document belongs to.
@@ -51,6 +54,12 @@ class ClassificationResult(BaseModel):
     overall_confidence: float
     classified_by: str
     confident: bool
+
+    @property
+    def by_learned_hint(self) -> bool:
+        """Whether a keyword hint microfiche learned (rather than one the user wrote) chose the category."""
+
+        return self.category is not None and self.category.reason.startswith(LEARNED_HINT_REASON)
 
     @property
     def ambiguous(self) -> bool:

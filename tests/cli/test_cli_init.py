@@ -175,7 +175,7 @@ def test_init_valid_other_settings_section_skippable(tmp_path: Path, monkeypatch
     library = _library(tmp_path)
     # all others: yes; [classification] no, [ai] no, [sorting] yes (file_in_empty_groups kept, ignore), [parsing],
     # [logging], [exclusions], [naming_rules] no; then write: yes.
-    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n\n*.bak, ~$*\n" + "n\n" * 4 + "y\n"
+    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n\n*.bak, ~$*\n" + "n\n" * 5 + "y\n"
 
     result = _init(library, answers, monkeypatch=monkeypatch)
 
@@ -458,7 +458,7 @@ def test_init_ai_test_empty_model_says_so_instead_of_failing(tmp_path: Path, mon
 
     # Change only the timeout, so the model stays empty: six common settings kept, the other sections:
     # [classification] no, [ai] yes (host kept, timeout 30, three kept), the five after it no; write yes; test yes.
-    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 3 + "n\n" * 5 + "y\ny\n"
+    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 3 + "n\n" * 6 + "y\ny\n"
     result = _init(library, answers, monkeypatch=monkeypatch)
 
     assert result.exit_code == 0, result.output

@@ -61,6 +61,18 @@ ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
 # A file bigger than this many megabytes is not read: it stays in the inbox for review, with the reason.
 max_file_mb = 50
 
+# Learn keyword hints from the documents you file by hand in `review`. Off by default: when on, a `review` commit
+# adds hints to `learned_hints` in microfiche-library.json (your own hints are never changed). Delete one to remove it.
+[learning]
+# Whether a `review` commit may add hints. Off by default.
+enabled = false
+# A category needs this many documents you filed into it before anything is learned for it.
+min_decisions = 3
+# The most hints one `review` commit adds to a category.
+max_hints_per_run = 3
+# Shorter words are never learned.
+min_word_length = 4
+
 [logging]
 # How much the log file (.microfiche/<file>) records: DEBUG, INFO, WARNING, ERROR or CRITICAL.
 level = "INFO"

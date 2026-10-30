@@ -76,6 +76,8 @@ def render_sort_report(console: Console, report: SortReport) -> None:
     console.print(f"[green]{'Would file' if report.dry_run else 'Filed'}:[/green] {len(report.filed)}")
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
     console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
+    if report.by_learned_hint:
+        console.print(f"[dim]{report.by_learned_hint} filed by a hint microfiche learned from your choices.[/dim]")
     if report.into_empty_groups:
         console.print(
             f"[dim]{report.into_empty_groups} filed straight into a group because it has no category folders.[/dim]"

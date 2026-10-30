@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-LedgerEvent = Literal["filed", "rolled_back"]
+LedgerEvent = Literal["filed", "rolled_back", "hint_learned"]
 
 
 class LedgerRecord(BaseModel):
@@ -37,6 +37,8 @@ class LedgerRecord(BaseModel):
         category_reason: Why the classifier chose that category.
         confidence: Overall classification confidence.
         classified_by: Which classifier produced the result (e.g. ``"rules_engine"``).
+        hint: For a ``"hint_learned"`` record, the keyword that was learned for ``group``/``category``. Such a record
+            has no file: its ``path`` is ``group/category`` and its hashes and ``original_path`` are empty.
     """
 
     event: LedgerEvent
@@ -52,3 +54,4 @@ class LedgerRecord(BaseModel):
     category_reason: str | None = None
     confidence: float | None = None
     classified_by: str | None = None
+    hint: str | None = None
