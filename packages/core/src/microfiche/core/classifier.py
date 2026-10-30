@@ -16,7 +16,7 @@ from typing import Protocol, TypeVar, runtime_checkable
 
 from microfiche.core.library.library import Library
 from microfiche.core.models.category import Taxonomy
-from microfiche.core.models.classification import CategoryMatch, ClassificationResult, GroupMatch
+from microfiche.core.models.classification import CONFIRMED_BY_AI, CategoryMatch, ClassificationResult, GroupMatch
 from microfiche.core.models.document import Document
 from microfiche.core.models.unit import SortableUnit
 from microfiche.core.rules.confidence import DEFAULT_CONFIDENCE_THRESHOLD, combine_confidence
@@ -288,7 +288,7 @@ class Classifier:
         self.verification.checked += 1
         if second.name == answer.name:
             self.verification.confirmed += 1
-            confirmed = answer.model_copy(update={"reason": f"{answer.reason}; confirmed by the AI"})
+            confirmed = answer.model_copy(update={"reason": f"{answer.reason}; {CONFIRMED_BY_AI}"})
             return confirmed, [self._rules, fallback], None
         self.verification.overruled += 1
         chose = f"it chose '{second.name}'" if second.name is not None else "it found no match"

@@ -6,6 +6,8 @@ from pydantic import BaseModel
 
 # What a category match's reason starts with when a hint the program learned (not the user's own) decided it.
 LEARNED_HINT_REASON = "Learned keyword hint"
+# What a match's reason ends with when the AI was asked to check it and agreed.
+CONFIRMED_BY_AI = "confirmed by the AI"
 
 
 class GroupMatch(BaseModel):
@@ -63,6 +65,14 @@ class ClassificationResult(BaseModel):
         """Whether a keyword hint microfiche learned (rather than one the user wrote) chose the category."""
 
         return self.category is not None and self.category.reason.startswith(LEARNED_HINT_REASON)
+
+    @property
+    def confirmed_by_ai(self) -> bool:
+        """Whether the AI was asked to check a rules answer for this unit and agreed (``[ai] verify_below``)."""
+
+        return any(
+            match is not None and match.reason.endswith(CONFIRMED_BY_AI) for match in (self.group, self.category)
+        )
 
     @property
     def ambiguous(self) -> bool:

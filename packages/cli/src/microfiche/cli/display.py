@@ -6,6 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from microfiche.core.classifier import VerificationStats
 from microfiche.core.config import MicroficheConfig
 from microfiche.core.filer import FailedFiling
 from microfiche.core.library.library_file import LIBRARY_FILENAME
@@ -61,6 +62,16 @@ def render_config(console: Console, config: MicroficheConfig) -> None:
     console.print(table)
 
 
+def render_ai_verification(console: Console, verification: VerificationStats) -> None:
+    """Say how many rules answers the AI checked, confirmed and overruled. Prints nothing if it checked none."""
+
+    if verification.checked:
+        console.print(
+            f"[dim]AI second opinion: {verification.checked} checked, {verification.confirmed} confirmed, "
+            f"{verification.overruled} overruled (left for review).[/dim]"
+        )
+
+
 def render_sort_report(console: Console, report: SortReport) -> None:
     """Print what a sort run filed and what it left for review, then the job to undo it.
 
@@ -76,12 +87,7 @@ def render_sort_report(console: Console, report: SortReport) -> None:
     console.print(f"[green]{'Would file' if report.dry_run else 'Filed'}:[/green] {len(report.filed)}")
     console.print(f"[yellow]Needs review:[/yellow] {len(report.needs_review)}")
     console.print(f"[cyan]Duplicates (left in the inbox):[/cyan] {len(report.duplicates)}")
-    verification = report.ai_verification
-    if verification.checked:
-        console.print(
-            f"[dim]AI second opinion: {verification.checked} checked, {verification.confirmed} confirmed, "
-            f"{verification.overruled} overruled (left for review).[/dim]"
-        )
+    render_ai_verification(console, report.ai_verification)
     if report.by_learned_hint:
         console.print(f"[dim]{report.by_learned_hint} filed by a hint microfiche learned from your choices.[/dim]")
     if report.into_empty_groups:

@@ -1,6 +1,6 @@
 # Ask the AI about hint-level matches
 
-Status: Accepted
+Status: Done
 
 Settled on 2026-10-30 ([ADR-009](../adr/ADR-009-ai-second-opinion.md)). Built in two PRs: verification in `sort` and
 `review` first, then `reclassify --use-ai`.
