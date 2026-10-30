@@ -1,6 +1,8 @@
 # Background drift check
 
-Status: Draft
+Status: Accepted
+
+Settled on 2026-10-30 ([ADR-011](../adr/ADR-011-drift-check.md)).
 
 - **Id:** `drift-check` ([capability map](post-mvp-capability-map.md), #6). Formerly drafted as `ledger-doctor`, a
   separate command; folded into the existing commands instead.
@@ -26,7 +28,8 @@ it, without the user having to remember to run a separate command. Watch mode ma
 - No new command. The check runs as part of the commands that already read the library: `sort`, `review`,
   `reclassify`, `rollback` and `config`.
 - It compares `Ledger.current()` with the filesystem and classifies each filed item as: in place; moved (same content
-  found elsewhere in the library); modified (same path, different content); or missing. Folder units filed whole are
+  found elsewhere in the library); modified (same path, different content, found only for files the command already
+  reads); or missing. Folder units filed whole are
   checked as one item.
 - It is cheap enough to run every time: a stat per recorded path, and hashing only to look for the new place of a
   missing item, reading sizes first as the duplicate check does. On a library of thousands of items it must not add a
@@ -38,8 +41,8 @@ it, without the user having to remember to run a separate command. Watch mode ma
   write nothing, as today.
 - The report is one summary line when there is drift ("2 filed items moved, 1 missing; recorded"), with details in the
   diagnostic log and with `-v`. Nothing is shown when everything is in place.
-- `rollback` of a job whose files have moved uses the recorded new place; for a missing or modified file it stops before
-  moving anything and says which files and why.
+- `rollback` of a job whose files have moved uses the recorded new place. A missing file stops it before anything moves,
+  naming the file; a modified file is moved back like any other and the edit is noted.
 
 **Should**
 - Include the drift summary in `--json` output, if `scriptable-output` is built first.
@@ -55,9 +58,10 @@ it, without the user having to remember to run a separate command. Watch mode ma
 - After moving one filed file to another category by hand, the next `sort` reports one moved item and records it; a
   second `sort` reports nothing.
 - `sort --dry-run` reports the same drift and writes nothing.
-- After editing a filed file, it is reported as modified; after deleting one, as missing; neither is recorded as moved.
+- After editing a filed file, `reclassify` and `rollback` report it as modified (`sort` does not hash filed files); after
+  deleting one, it is reported as missing; neither is recorded as moved. A file both moved and edited is reported missing.
 - `rollback` of the job that filed the moved file restores it from its new place; with a missing file it moves nothing
-  and names the file.
+  and names the file; with an edited file it moves it back and notes the edit.
 - On the 31 GB walkthrough library, the check adds less than an agreed time to `sort` (measure and record).
 - `make check` and `make test` pass, and `data-model.md` documents the new record.
 
@@ -79,7 +83,10 @@ Guidance for the spec, not binding.
 - [mvp-followups-prd.md](mvp-followups-prd.md) D12 (detecting folders moved by hand), and the known limit that a bundle
   moved by hand is split by `reclassify`.
 
-## Open questions
+## Decisions
 
-- Should `review` and `sort` skip the hash lookup when nothing is missing (the common case), so the cost is only stats?
-- How should an item that was moved *and* edited be found, given its hash changed?
+- **Hash only on demand.** A stat per path says in place or missing; the library is walked, sizes first, only to find a
+  missing item's new place. An edit is reported only where a command already reads the file.
+- **Moved and edited is missing.** It cannot be found by content, and nothing is guessed.
+- **A modified file does not stop `rollback`;** a missing one does.
+- **The summary** is one stderr line, details in the log, and an optional `drift` object in `--json`.
