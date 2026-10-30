@@ -70,6 +70,8 @@ The word *group* is used at every depth.
 taxonomy says so itself (`Taxonomy.depth`, `is_flat`), because an empty category list could otherwise mean either "no
 categories at this depth" or "a group with nowhere to file into". `Classifier` then runs one stage: the confidence is the
 group's, the AI fallback is asked the group prompt only, and a folder unit's vote is on the group alone.
+`[sorting] file_in_empty_groups` (default off, [ADR-007](../adr/ADR-007-leaf-groups.md)) gives a depth-2 group that has no
+category folders the same treatment: `Taxonomy.is_leaf`, no category stage, `category` is `None`.
 `ClassificationResult.category` is `None` (not an unresolved `CategoryMatch`), and `ClassificationResult.folders` is the
 tuple of folder names to file under, `(group,)` or `(group, category)`, so the filer, `reclassify` and the duplicate check
 do not care how many levels there are. With only its folder names to go on, a flat library's group entries in the library
