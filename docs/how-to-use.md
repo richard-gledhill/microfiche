@@ -882,6 +882,27 @@ never changed.
 To remove a learned hint, delete it from `learned_hints` in `microfiche-library.json`; microfiche remembers it (in the
 ledger) and does not learn it again. `rollback` undoes the moves of a `review` job, not the hints it taught.
 
+### When you move filed documents by hand
+
+You can reorganise the library in Obsidian or Explorer. microfiche notices: `sort`, `review`, `file`, `reclassify`,
+`rollback` and `config` compare what they have recorded with what is on disk, and tell you in one line when something
+differs, such as `2 filed items: 2 moved, 1 missing; recorded`. They never move, rename or delete anything because of it.
+
+- **Moved.** A document that is gone from where it was filed, but whose content is at exactly one other place in the
+  library, is *moved*. A command that changes the library (`sort`, `review`, `file`, `reclassify --apply`, `rollback`)
+  records the new place, so `rollback` and `reclassify` follow it; `--dry-run`, a `reclassify` preview and plain
+  `config` only report. The next command says nothing more about it. A folder filed whole is followed the same way,
+  if it keeps its name.
+- **Missing.** Gone, and not found by content. A document that was moved *and* edited, or two identical copies elsewhere,
+  also counts as missing: microfiche does not guess. `rollback` stops before moving anything and names the file.
+- **Edited.** Present but changed since it was filed. Only commands that read the file anyway can say so: `reclassify`
+  reports it, and `rollback` moves it back as it is and says it was edited. `sort` does not read filed documents, so it
+  does not notice an edit.
+
+The details are in the log (and with `-v`); `--json` output has a `drift` object. Finding a moved document searches the
+library for same-type files that nothing else accounts for, which can take a moment on a large library but only runs when
+something is missing.
+
 ### Files that can't be sorted
 
 One awkward file never stops a run. It stays where it is, and the summary says why:
@@ -1098,8 +1119,8 @@ overruled.
 **A folder that was filed whole stays whole.** When `keep_folders` is on, `sort` files a dropped folder as one unit.
 `reclassify` treats it the same way: it is one row in the table, classified by the group and category most of its
 documents belong to, and `--apply` moves the whole folder or none of it. A document inside it that reads as something
-else does not leave it. (Microfiche knows which folders it filed from its ledger, so a folder you moved by hand is
-no longer recognised and its files are read one by one.)
+else does not leave it. (Microfiche knows which folders it filed from its ledger, and follows a folder you moved by hand as long as it kept
+its name; see [When you move filed documents by hand](#when-you-move-filed-documents-by-hand).)
 
 **Keeping a folder out.** A folder inside a category that microfiche did not file, such as `attachments/`, is just a
 place files sit: `reclassify` reads its files one by one and may propose moving one out. To leave such a folder alone,
@@ -1338,7 +1359,7 @@ microfiche is pre-release. At the moment:
   read.
 - In a library with categories (`depth = 2`), `hints` or `rules` written on a *group's* own entry are accepted but not
   used: only a flat library matches on them. Put them on the group's category entries (`children`) instead.
-- If an undo stops part-way (for example a filed document was moved by hand), that job stays the newest one not undone, so
+- If an undo stops part-way (for example something now occupies a document's original place), that job stays the newest one not undone, so
   `rollback --last` tries it again and never reaches an older job. Fix the cause, or undo an older job by its id. "Newest"
   is by the time the job was made on this computer's clock. A job file that cannot be read is skipped with a warning.
 - `-q` also hides the warning that a leftover lock was cleared. It is still in the log file.

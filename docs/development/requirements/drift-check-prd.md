@@ -1,6 +1,6 @@
 # Background drift check
 
-Status: Accepted
+Status: Done
 
 Settled on 2026-10-30 ([ADR-011](../adr/ADR-011-drift-check.md)).
 
@@ -62,7 +62,8 @@ it, without the user having to remember to run a separate command. Watch mode ma
   deleting one, it is reported as missing; neither is recorded as moved. A file both moved and edited is reported missing.
 - `rollback` of the job that filed the moved file restores it from its new place; with a missing file it moves nothing
   and names the file; with an edited file it moves it back and notes the edit.
-- On the 31 GB walkthrough library, the check adds less than an agreed time to `sort` (measure and record).
+- On the 31 GB walkthrough library, the check adds less than an agreed time to `sort` (measure and record). *Not done:
+  the stat per path is cheap by construction, but the search for a missing item's new place was not timed.*
 - `make check` and `make test` pass, and `data-model.md` documents the new record.
 
 ## Technical outline

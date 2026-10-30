@@ -39,6 +39,7 @@ flowchart TD
         core_review["review.py"]
         core_library_init["library_init.py"]
         core_learning["learning.py"]
+        core_drift["drift.py"]
     end
 
     subgraph MODELS["core/models"]
@@ -127,6 +128,7 @@ flowchart TD
     cli_commands --> core_classifier
     cli_commands --> cli_json_output
     cli_commands --> m_unit
+    cli_commands --> core_drift
 
     cli_display --> core_config
     cli_display --> core_organizer
@@ -334,6 +336,12 @@ flowchart TD
     cli_json_output --> m_classification
     cli_json_output --> m_job
     cli_json_output --> m_unit
+    cli_json_output --> core_drift
+
+    core_drift --> core_ledger
+    core_drift --> l_library
+    core_drift --> m_ledger
+    core_drift --> u_hashing
 ```
 
 Every module in the graph is imported by another. `library/templates.py` and `utils/validation.py` were removed as unused
