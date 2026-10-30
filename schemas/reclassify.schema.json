@@ -1,5 +1,78 @@
 {
   "$defs": {
+    "DriftEntry": {
+      "description": "A filed unit that is not where the ledger says.",
+      "properties": {
+        "path": {
+          "description": "Where the ledger has it, relative to the library.",
+          "title": "Path",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "moved",
+            "missing",
+            "modified"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "new_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Where a moved unit is now.",
+          "title": "New Path"
+        }
+      },
+      "required": [
+        "path",
+        "state"
+      ],
+      "title": "DriftEntry",
+      "type": "object"
+    },
+    "DriftSummary": {
+      "description": "What the drift check found: units moved, edited or removed by hand since microfiche filed them.",
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/DriftEntry"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "recorded": {
+          "description": "Whether the moved units were written to the ledger.",
+          "title": "Recorded",
+          "type": "boolean"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Summary"
+        }
+      },
+      "required": [
+        "items",
+        "recorded",
+        "summary"
+      ],
+      "title": "DriftSummary",
+      "type": "object"
+    },
     "FailureEntry": {
       "description": "A unit that could not be moved, and why.",
       "properties": {
@@ -164,6 +237,18 @@
     },
     "ai_verification": {
       "$ref": "#/$defs/Verification"
+    },
+    "drift": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DriftSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Filed units found out of place; null if none."
     }
   },
   "required": [
