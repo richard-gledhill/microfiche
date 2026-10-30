@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "SyncEntry": {
+      "description": "What a library file sync found.",
+      "properties": {
+        "created": {
+          "title": "Created",
+          "type": "boolean"
+        },
+        "added": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Added",
+          "type": "array"
+        },
+        "missing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "possible_renames": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Possible Renames",
+          "type": "array"
+        },
+        "name_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Name Warnings",
+          "type": "array"
+        },
+        "write_error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Write Error"
+        }
+      },
+      "required": [
+        "created",
+        "added",
+        "missing",
+        "possible_renames",
+        "name_warnings",
+        "write_error"
+      ],
+      "title": "SyncEntry",
+      "type": "object"
+    }
+  },
+  "description": "``config``: the settings, or with ``--sync`` what the sync did.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "const": "config",
+      "default": "config",
+      "title": "Command",
+      "type": "string"
+    },
+    "config": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Every setting by section; null with --sync.",
+      "title": "Config"
+    },
+    "sync": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SyncEntry"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "What --sync did; null without it."
+    }
+  },
+  "required": [
+    "config",
+    "sync"
+  ],
+  "title": "microfiche config --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

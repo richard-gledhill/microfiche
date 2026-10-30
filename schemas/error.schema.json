@@ -1,0 +1,26 @@
+{
+  "description": "What stdout holds when a command stops before it can produce its result.",
+  "properties": {
+    "version": {
+      "default": 1,
+      "description": "The shape's version. It changes only for a breaking change.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "command": {
+      "default": "error",
+      "title": "Command",
+      "type": "string"
+    },
+    "error": {
+      "title": "Error",
+      "type": "string"
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "title": "microfiche error --json",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
