@@ -23,6 +23,7 @@ flowchart TD
         cli_progress["progress.py"]
         cli_streams["streams.py"]
         cli_init_prompts["init_prompts.py"]
+        cli_json_output["json_output.py"]
     end
 
     subgraph CORE["core (top level)"]
@@ -124,6 +125,7 @@ flowchart TD
     cli_commands --> a_base
     cli_commands --> a_check
     cli_commands --> core_classifier
+    cli_commands --> cli_json_output
 
     cli_display --> core_config
     cli_display --> core_organizer
@@ -319,6 +321,18 @@ flowchart TD
     core_learning --> m_ledger
     core_learning --> p_init
     core_learning --> r_normalise
+
+    cli_json_output --> core_classifier
+    cli_json_output --> core_config
+    cli_json_output --> core_filer
+    cli_json_output --> core_organizer
+    cli_json_output --> core_reclassify
+    cli_json_output --> core_review
+    cli_json_output --> l_library
+    cli_json_output --> l_library_sync
+    cli_json_output --> m_classification
+    cli_json_output --> m_job
+    cli_json_output --> m_unit
 ```
 
 Every module in the graph is imported by another. `library/templates.py` and `utils/validation.py` were removed as unused

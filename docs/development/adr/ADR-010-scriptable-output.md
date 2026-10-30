@@ -44,5 +44,6 @@ held document, and `watch-mode` and integrations have no stable output to act on
 ## Consequences
 
 - A stable surface for `watch-mode` and integrations; its shape is a promise, so changes need a `version` bump.
-- Seven JSON schemas to commit and keep fresh, one per output.
-- `cli` gains an `output/` package of models; `core` is unchanged apart from anything the models need exposed.
+- Seven JSON schemas to commit and keep fresh, one per output, in `schemas/` at the repository root (not in `microfiche/`,
+  which is the example library state folder). `make output-schemas` regenerates them.
+- `cli` gains one module, `json_output.py`, of models; `core` is unchanged.

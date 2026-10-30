@@ -69,6 +69,7 @@ $ microfiche sort [OPTIONS]
 * `--keep-folders-off`: File the documents inside inbox folders one by one for this run, and remove each folder once it is empty, whatever the library's keep_folders setting says.
 * `--use-ai`: Fall back to the AI named in the library's config (Ollama unless it says otherwise) for classifications the rules engine can't resolve. Needs [ai] model set. Before any document is read, one test question (no document text) checks the AI answers; if it does not, nothing is moved and the command stops with the reason.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -80,7 +81,7 @@ Decide where the leftover documents go.
 Works through the documents `sort` left in the inbox. For each one you can accept the best guess, pick a group and category (or plan a new folder), skip it, or quit.
 Nothing is moved while you answer. At the end you see what you chose and confirm once; the chosen documents are
 then filed as one job, which `rollback` can undo. Documents you skip stay in the inbox, and so do copies of
-documents already in the library. Needs a terminal.
+documents already in the library. Needs a terminal, except with --list, which only prints the queue.
 
 **Usage**:
 
@@ -91,7 +92,9 @@ $ microfiche review [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `--list`: Only list what `review` would ask about, with the classifier's best guess for each, and ask nothing. Works without a terminal.
 * `--use-ai`: Ask the AI named in the library's config for a best guess where the rules have none, as `sort` does, including the test question first (see `sort --help`).
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -135,6 +138,7 @@ $ microfiche reclassify [OPTIONS]
 * `--folder <path>`: Limit to this folder; defaults to the whole library.
 * `--apply`: Actually move files; without this it's a dry run.
 * `--use-ai`: Use the AI named in the library's config as `sort --use-ai` does: for what the rules can't place, and to check rules answers scoring below [ai] verify_below. A document the AI disagrees with is left where it is. Needs [ai] model set; one test question (no document text) checks the AI answers first.
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -152,6 +156,7 @@ $ microfiche audit [OPTIONS]
 **Options**:
 
 * `--library <directory>`: Path to the library root.  [required]
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -173,6 +178,7 @@ $ microfiche rollback [OPTIONS]
 * `--library <directory>`: Path to the library root.  [required]
 * `--job-id <str>`: The id `sort` printed. Give this or --last.
 * `--last`: Undo the newest job that has not been undone.
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.
@@ -195,6 +201,7 @@ $ microfiche config [OPTIONS]
 
 * `--library <directory>`: Path to the library root.  [required]
 * `--sync`: Instead of showing the configuration, add an entry to the library file for every folder that has none, and list entries whose folder is gone.
+* `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

@@ -241,7 +241,7 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
 - **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche. Requirement drafted, as a background
   check in the existing commands rather than a command: [drift-check-prd.md](drift-check-prd.md).
 - **Watch mode**, a daemon that sorts as files arrive. Requirement drafted: [watch-mode-prd.md](watch-mode-prd.md).
-- **`--json` output** for scripting. Requirement drafted: [scriptable-output-prd.md](scriptable-output-prd.md).
+- **`--json` output** for scripting. Built for `sort`, `reclassify`, `rollback`, `audit`, `config` and `review --list` ([ADR-010](../adr/ADR-010-scriptable-output.md)); the non-interactive `file` command is the second PR. Requirement: [scriptable-output-prd.md](scriptable-output-prd.md).
 - **Rotation or compaction** of the append-only ledger and `audit.log`.
 - **Structured (JSON) log output** and log shipping.
 - **Showing a failed move once.** A unit that can't be moved (a file open in Word) is reported twice on screen: as a

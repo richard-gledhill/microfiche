@@ -960,6 +960,39 @@ only read, so they need no lock and run beside anything.
 Try the command by hand first, with `--dry-run`, and check `.microfiche/microfiche.log` afterwards: it records every run
 that changes the library.
 
+### Reading the results from a script
+
+`sort`, `reclassify`, `rollback`, `audit`, `config` and `review --list` take `--json`. The command then writes **one JSON
+document to stdout and nothing else there**; messages, warnings and the progress bar go to stderr, and the exit code is
+what it always was. If the command cannot run (a bad config, another run in progress) stdout holds
+`{"version": 1, "command": "error", "error": "..."}` and the exit code is 1.
+
+=== "Bash"
+
+    ```bash
+    microfiche sort --library ~/Documents/Library --dry-run --json | jq '.needs_review[] | {path, reason}'
+    microfiche review --library ~/Documents/Library --list --json     # what `review` would ask about, no terminal needed
+    microfiche rollback --library ~/Documents/Library --last --json
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    microfiche sort --library "$HOME\Documents\Library" --dry-run --json | ConvertFrom-Json | Select-Object -ExpandProperty needs_review
+    microfiche review --library "$HOME\Documents\Library" --list --json
+    microfiche rollback --library "$HOME\Documents\Library" --last --json
+    ```
+
+What the document holds is what the human output shows: for `sort`, the units filed (with where each went), left for
+review, and held as duplicates, each with its group, category, confidence and reason, plus the job id to give
+`rollback`. Paths are relative to the library, with forward slashes, and **no document text is ever included**. Every
+document has a `version` (now `1`) that changes only when a field is removed or its meaning changes; new optional
+fields can appear without a bump. The shape of each is a JSON Schema in the repository's
+[`schemas/`](https://github.com/richard-gledhill/microfiche/tree/main/schemas) folder, one per command.
+
+`review` itself asks questions and has no JSON mode: use `review --list --json` to see the queue. `--json` with
+`--dry-run` previews as it always did; the exit code is `1` if a move failed.
+
 ## 4. Maintain the library
 
 Suggest new category names based on what's in the inbox (prints suggestions only — never creates
@@ -1244,7 +1277,8 @@ microfiche is pre-release. At the moment:
 - `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
   cannot go back to an item once you have moved on, and it learns from your choices only if you turn `[learning] enabled` on (see **Letting `review` teach hints**);
   otherwise add a keyword hint to `microfiche-library.json` if a kind of document keeps coming up.
-- `review` needs a terminal and cannot be scripted. To file without asking, use `sort`.
+- `review` needs a terminal. A script can read its queue (`review --list --json`) but cannot yet file a held document;
+  to file without asking, use `sort`.
 - `init` has no options to answer its questions in advance, and does not edit `[naming_rules]` (edit it in the file),
   hints or filename rules. A fresh install uses the one default config; there are no templates to choose from.
 - microfiche does not write Obsidian `index.md` folder notes or govern tags yet; that is planned as an optional
