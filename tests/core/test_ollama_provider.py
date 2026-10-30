@@ -25,7 +25,9 @@ class _Recorder:
     def __init__(self) -> None:
         self.client_kwargs: dict[str, Any] | None = None
         self.chat_call: dict[str, Any] | None = None
+        self.chat_calls: list[dict[str, Any]] = []
         self.error: Exception | None = None
+        self.refuse_think: bool = False
 
 
 @pytest.fixture
@@ -36,8 +38,12 @@ def fake_ollama(monkeypatch: pytest.MonkeyPatch) -> _Recorder:
         def __init__(self, **kwargs: Any) -> None:
             recorder.client_kwargs = kwargs
 
-        def chat(self, model: str, messages: list[dict[str, str]]) -> dict[str, Any]:
+        def chat(self, model: str, messages: list[dict[str, str]], **kwargs: Any) -> dict[str, Any]:
             recorder.chat_call = {"model": model, "messages": messages}
+            recorder.chat_calls.append({**recorder.chat_call, **kwargs})
+            if recorder.refuse_think and "think" in kwargs:
+                message = "model does not support thinking"
+                raise _StatusError(message, 400)
             if recorder.error is not None:
                 raise recorder.error
             return {"message": {"content": "Acme Ltd"}}
@@ -63,6 +69,21 @@ def test_ollama_provider_complete_sends_prompt_to_named_model(fake_ollama: _Reco
     OllamaProvider(model="mistral").complete("Which group?")
 
     assert fake_ollama.chat_call == {"model": "mistral", "messages": [{"role": "user", "content": "Which group?"}]}
+
+
+def test_ollama_provider_complete_turns_thinking_off(fake_ollama: _Recorder) -> None:
+    OllamaProvider(model="llama3").complete("Which group?")
+
+    assert fake_ollama.chat_calls[0]["think"] is False
+
+
+def test_ollama_provider_complete_retries_without_think_when_refused(fake_ollama: _Recorder) -> None:
+    fake_ollama.refuse_think = True
+
+    reply = OllamaProvider(model="old-model").complete("Which group?")
+
+    assert reply == "Acme Ltd"
+    assert ["think" in call for call in fake_ollama.chat_calls] == [True, False]
 
 
 def test_ollama_provider_complete_no_host_or_timeout_uses_client_defaults(fake_ollama: _Recorder) -> None:

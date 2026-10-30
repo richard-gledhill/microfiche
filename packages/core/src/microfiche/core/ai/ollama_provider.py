@@ -23,6 +23,9 @@ class OllamaProvider:
     def complete(self, prompt: str) -> str:
         """Send ``prompt`` to the model and return its reply.
 
+        Thinking is turned off (``think=False``), which a model without it ignores. If the server or client refuses
+        the option, the call is repeated without it.
+
         Args:
             prompt: The prompt to complete.
 
@@ -39,7 +42,14 @@ class OllamaProvider:
             if self.timeout is not None:
                 options["timeout"] = self.timeout
             client: Any = ollama.Client(**options)
-            response: Any = client.chat(model=self.model, messages=[{"role": "user", "content": prompt}])
+            messages = [{"role": "user", "content": prompt}]
+            try:
+                # A thinking model reasons at length before it answers; these are short either-or questions.
+                response: Any = client.chat(model=self.model, messages=messages, think=False)
+            except Exception as err:
+                if "think" not in str(err).lower():
+                    raise
+                response = client.chat(model=self.model, messages=messages)  # a client or model that cannot be told
             return str(response["message"]["content"])
         except Exception as err:
             wrapped = tip_error(err, self._tips())

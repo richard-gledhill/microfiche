@@ -56,6 +56,7 @@ class Case:
             and ``hint`` only in a flat library, where a group is also the destination.)
         category_signal: How the category was found: ``rule``, ``name``, ``hint`` or ``none``.
         flat: Whether the library is flat (``depth`` 1), so there is no category to resolve.
+        ai_overruled: Whether the AI was asked to check the rules' answer and chose differently, so it is held.
     """
 
     taxonomy: str
@@ -67,6 +68,7 @@ class Case:
     group_signal: str
     category_signal: str
     flat: bool = False
+    ai_overruled: bool = False
 
     @property
     def resolved(self) -> bool:
@@ -85,7 +87,7 @@ class Case:
     def is_filed(self, threshold: float) -> bool:
         """Whether a classifier with this threshold would file the document without asking."""
 
-        return self.resolved and self.confidence >= threshold
+        return self.resolved and not self.ai_overruled and self.confidence >= threshold
 
 
 @dataclass(frozen=True)
@@ -133,7 +135,11 @@ class Outcome:
 
 
 def load_corpus(
-    corpus_root: Path = CORPUS_ROOT, *, fallback: Resolver | None = None, threshold: float | None = None
+    corpus_root: Path = CORPUS_ROOT,
+    *,
+    fallback: Resolver | None = None,
+    threshold: float | None = None,
+    verify_below: float | None = None,
 ) -> list[Case]:
     """Classify every document of every library under ``corpus_root`` with the real pipeline.
 
@@ -142,6 +148,7 @@ def load_corpus(
         fallback: An optional fallback resolver (the AI). With one, the confidence depends on the
             threshold - the fallback is only asked about answers below it - so pass ``threshold`` too.
         threshold: Overrides each library's configured confidence threshold.
+        verify_below: Overrides each library's ``[ai] verify_below``; only has an effect with a ``fallback``.
     """
 
     cases: list[Case] = []
@@ -150,6 +157,8 @@ def load_corpus(
         taxonomy = library.taxonomy()
         if threshold is not None:
             library.config.classification.confidence_threshold = threshold
+        if verify_below is not None:
+            library.config.ai.verify_below = verify_below
         classifier = Classifier.from_library(library, fallback)
         kinds_file = library_dir / "kinds.json"
         kinds: dict[str, str] = json.loads(kinds_file.read_text(encoding="utf-8")) if kinds_file.exists() else {}
@@ -179,6 +188,7 @@ def load_corpus(
                     group_signal=_group_signal(result.group.reason),
                     category_signal=_category_signal(result.category.reason) if result.category else "none",
                     flat=taxonomy.is_flat,
+                    ai_overruled=result.ai_overruled,
                 )
             )
     return cases

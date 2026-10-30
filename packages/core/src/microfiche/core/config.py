@@ -183,6 +183,10 @@ class AIConfig(_ConfigSection):
             loads the model: raise it if that times out.
         api_key_env (str): The *name* of the environment variable holding the OpenAI key. The key
             itself never goes in the file.
+        verify_below (float): From 0 to 1. With ``--use-ai``, a rules answer that would file but scores below this is
+            checked by the AI: if it picks the same folder the unit files as it would have, otherwise it is left for
+            review with both answers. Keyword hints score 0.75, so 0.8 checks hints only; 0.95 would check names
+            and near-miss group names too. 0 (the default) checks nothing.
         ai_confidence (float): From 0 to 1. How sure any answer from the AI fallback is, whatever
             model gave it. Compared with ``[classification] confidence_threshold`` to decide whether
             an AI-only answer files or goes to review.
@@ -195,6 +199,7 @@ class AIConfig(_ConfigSection):
     host: str
     timeout: float = Field(gt=0)
     api_key_env: str
+    verify_below: float = Field(ge=0.0, le=1.0)
     ai_confidence: float = Field(ge=0.0, le=1.0)
     max_document_chars: int = Field(ge=0)
 

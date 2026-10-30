@@ -11,7 +11,8 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Callable, Sequence
-from typing import Protocol, TypeVar
+from dataclasses import dataclass
+from typing import Protocol, TypeVar, runtime_checkable
 
 from microfiche.core.library.library import Library
 from microfiche.core.models.category import Taxonomy
@@ -48,6 +49,29 @@ class Resolver(Protocol):
         ...
 
 
+@runtime_checkable
+class _CanFail(Protocol):
+    """A resolver that can stop answering part-way through a run (the AI), saying why."""
+
+    @property
+    def failure(self) -> str | None: ...
+
+
+@dataclass
+class VerificationStats:
+    """How many rules answers the fallback was asked to check (``[ai] verify_below``), and what it said.
+
+    Attributes:
+        checked: Answers the fallback gave an opinion on.
+        confirmed: Of those, the ones it agreed with.
+        overruled: Of those, the ones it disagreed with, so the unit is held for review.
+    """
+
+    checked: int = 0
+    confirmed: int = 0
+    overruled: int = 0
+
+
 # endregion
 
 
@@ -74,6 +98,11 @@ class Classifier:
         file_in_empty_groups: Whether a group with no category folders is itself the destination (see
             ``[sorting] file_in_empty_groups``). Its category is then not asked for and the result has none, as in a
             flat library.
+        verify_below: With a fallback, a primary answer that would file but scores below this is checked by the fallback
+            (``[ai] verify_below``). 0 checks nothing.
+
+    Attributes:
+        verification: How many answers were checked, confirmed and overruled so far.
     """
 
     def __init__(
@@ -83,11 +112,14 @@ class Classifier:
         *,
         threshold: float = DEFAULT_CONFIDENCE_THRESHOLD,
         file_in_empty_groups: bool = False,
+        verify_below: float = 0.0,
     ) -> None:
         self._rules = rules
         self._fallback = fallback
         self._threshold = threshold
         self._file_in_empty_groups = file_in_empty_groups
+        self._verify_below = verify_below
+        self.verification = VerificationStats()
 
     @classmethod
     def from_library(cls, library: Library, fallback: Resolver | None = None) -> Classifier:
@@ -110,6 +142,7 @@ class Classifier:
             fallback,
             threshold=config.classification.confidence_threshold,
             file_in_empty_groups=config.sorting.file_in_empty_groups,
+            verify_below=config.ai.verify_below,
         )
 
     def classify_document(self, document: Document, taxonomy: Taxonomy) -> ClassificationResult:
@@ -124,17 +157,21 @@ class Classifier:
             folders and the overall confidence reaches the threshold.
         """
 
-        group, group_source = self._resolve(lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy))
+        group, group_sources, group_overruled = self._resolve(
+            "group", lambda r: _known_group(r.resolve_group(document, taxonomy), taxonomy)
+        )
         category: CategoryMatch | None
+        category_overruled = None
         if taxonomy.is_flat or self._is_leaf(group, taxonomy):
-            category, category_source = None, group_source  # nothing below the group to choose
+            category, category_sources = None, group_sources  # nothing below the group to choose
         elif group.name is None:
             category = CategoryMatch(name=None, confidence=0.0, reason="Group unresolved")
-            category_source = self._rules
+            category_sources = [self._rules]
         else:
             group_name = group.name
-            category, category_source = self._resolve(
-                lambda r: _known_category(r.resolve_category(document, group_name, taxonomy), group_name, taxonomy)
+            category, category_sources, category_overruled = self._resolve(
+                "category",
+                lambda r: _known_category(r.resolve_category(document, group_name, taxonomy), group_name, taxonomy),
             )
 
         overall = group.confidence if category is None else combine_confidence(group.confidence, category.confidence)
@@ -142,9 +179,12 @@ class Classifier:
             group=group,
             category=category,
             overall_confidence=overall,
-            classified_by=self._label(group_source, category_source),
+            classified_by=self._label(*group_sources, *category_sources),
             confident=_resolved(group, category) and overall >= self._threshold,
         )
+        disagreements = [why for why in (group_overruled, category_overruled) if why]
+        if disagreements:
+            result = result.held("; ".join(disagreements)).model_copy(update={"ai_overruled": True})
 
         _logger.debug(
             "%s: group %s (%.2f, %s); category %s (%.2f, %s); by %s",
@@ -189,9 +229,13 @@ class Classifier:
         if len(per_document) == 1:
             return per_document[0]
 
-        pair_votes = Counter(_vote(result) for result in per_document if result.group.name and not result.ambiguous)
+        pair_votes = Counter(
+            _vote(result)
+            for result in per_document
+            if result.group.name and not result.ambiguous and not result.ai_overruled
+        )
         if not pair_votes:
-            # No document in the folder resolved a group, or all were ambiguous - surface the first result's
+            # No document in the folder resolved a group, or all were ambiguous or overruled - surface the first result's
             # reasoning so the review queue has something concrete to show the user.
             return per_document[0]
 
@@ -206,23 +250,49 @@ class Classifier:
             key=lambda result: result.overall_confidence,
         )
 
-    def _resolve(self, ask: Callable[[Resolver], Match]) -> tuple[Match, Resolver]:
-        """Ask the primary resolver; if it isn't confident, ask the fallback.
+    def _resolve(self, stage: str, ask: Callable[[Resolver], Match]) -> tuple[Match, list[Resolver], str | None]:
+        """Ask the primary resolver; if it isn't confident, ask the fallback, or if it is only just, have it check.
 
         Args:
+            stage: ``"group"`` or ``"category"``, for the reason a check gives.
             ask: Puts the stage's question to a resolver.
 
         Returns:
-            The answer used and the resolver it came from.
+            The answer used, the resolvers it came from, and, if the fallback was asked to check a primary answer and
+            picked something else, a sentence saying so (otherwise ``None``).
         """
 
         answer = ask(self._rules)
-        if self._is_confident(answer) or self._fallback is None:
-            return answer, self._rules
-        fallback_answer = ask(self._fallback)
-        if fallback_answer.name is not None:
-            return fallback_answer, self._fallback
-        return answer, self._rules
+        if self._fallback is None:
+            return answer, [self._rules], None
+        if not self._is_confident(answer):
+            fallback_answer = ask(self._fallback)
+            if fallback_answer.name is not None:
+                return fallback_answer, [self._fallback], None
+            return answer, [self._rules], None
+        if answer.confidence >= self._verify_below:
+            return answer, [self._rules], None
+        return self._verify(stage, answer, ask, self._fallback)
+
+    def _verify(
+        self, stage: str, answer: Match, ask: Callable[[Resolver], Match], fallback: Resolver
+    ) -> tuple[Match, list[Resolver], str | None]:
+        """Have ``fallback`` check ``answer``: the same folder confirms it, anything else holds the unit.
+
+        If the fallback has stopped answering, the answer stands as the primary gave it and is not counted.
+        """
+
+        second = ask(fallback)
+        if isinstance(fallback, _CanFail) and fallback.failure is not None:
+            return answer, [self._rules], None
+        self.verification.checked += 1
+        if second.name == answer.name:
+            self.verification.confirmed += 1
+            confirmed = answer.model_copy(update={"reason": f"{answer.reason}; confirmed by the AI"})
+            return confirmed, [self._rules, fallback], None
+        self.verification.overruled += 1
+        chose = f"it chose '{second.name}'" if second.name is not None else "it found no match"
+        return answer, [self._rules], f"the AI disagrees about the {stage}: {chose}"
 
     def _is_leaf(self, group: GroupMatch, taxonomy: Taxonomy) -> bool:
         """Whether the group resolved to a folder with no categories that this library files straight into."""

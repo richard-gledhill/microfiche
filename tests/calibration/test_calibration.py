@@ -668,6 +668,22 @@ def test_ai_arm_answers_below_default_threshold_never_file() -> None:
 
 
 @pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
+@pytest.mark.parametrize(("verify_below", "most_wrong"), [(0.0, 6), (0.8, 2), (0.95, 0)])
+def test_ai_second_opinion_verify_below_removes_misfiles_without_losing_filings(
+    verify_below: float, most_wrong: int
+) -> None:
+    recorded = RecordedAnswers(load(AI_RESULTS[0]))
+
+    outcome = evaluate(
+        load_corpus(fallback=recorded, threshold=DEFAULT_CONFIDENCE_THRESHOLD, verify_below=verify_below),
+        DEFAULT_CONFIDENCE_THRESHOLD,
+    )
+
+    assert outcome.filed_wrong <= most_wrong
+    assert outcome.filed_correct >= 89
+
+
+@pytest.mark.skipif(not AI_RESULTS, reason="no saved AI results")
 def test_ai_arm_lowering_threshold_lets_answers_file() -> None:
     recorded = RecordedAnswers(load(AI_RESULTS[0]))
 
