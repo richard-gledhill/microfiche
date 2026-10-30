@@ -225,6 +225,72 @@ class ReviewSession:
         planned = {folders[1] for folders in self._new_folders if len(folders) == 2 and folders[0] == group}
         return sorted({*self._taxonomy.categories_for(group), *planned}, key=str.casefold)
 
+    def item_named(self, name: str) -> ReviewItem:
+        """The unit in the queue that ``name`` means: its path inside the inbox, or an absolute path to it.
+
+        Args:
+            name: The unit's name or path relative to the inbox, with either kind of slash.
+
+        Returns:
+            The queue item.
+
+        Raises:
+            ReviewError: If no unit in the queue has that name; the message says why not where it can tell (a copy of a
+                document already in the library, or a unit ``sort`` would file).
+        """
+
+        wanted = self._inbox_relative(name)
+        for item in self.items:
+            if self._inbox_relative(item.unit.source_path) == wanted:
+                return item
+        for duplicate in self.duplicates:
+            if self._inbox_relative(duplicate.unit.source_path) == wanted:
+                message = f"'{name}' is a copy of a document already in the library: {duplicate.reason}"
+                raise ReviewError(message)
+        message = (
+            f"'{name}' is not waiting for a decision: it is not in the inbox, or `sort` would file it "
+            "(`review --list` shows what is waiting)"
+        )
+        raise ReviewError(message)
+
+    def place(self, text: str) -> tuple[str, ...]:
+        """The folders ``text`` names, as they are spelt on disk: ``Group/Category``, or ``Group`` where that is a place.
+
+        Matching ignores case. A folder that does not exist is refused: units are only filed into folders that are
+        there, and this never plans a new one.
+
+        Args:
+            text: The destination as a person or script wrote it, with either kind of slash.
+
+        Returns:
+            The group, and the category if the library has them, with their real names.
+
+        Raises:
+            ReviewError: If the destination is not a place a unit can be filed in this library.
+        """
+
+        parts = tuple(part for part in text.replace("\\", "/").strip("/").split("/") if part)
+        if not parts or len(parts) > self.depth:
+            message = f"'{text}' is not a destination: give a group" + (
+                " and a category (Group/Category)" if self.depth > 1 else ""
+            )
+            raise ReviewError(message)
+        group = _spelt(parts[0], self.groups())
+        if group is None:
+            message = f"there is no group called '{parts[0]}'"
+            raise ReviewError(message)
+        folders: tuple[str, ...] = (group,)
+        if len(parts) == 2:
+            category = _spelt(parts[1], self.categories(group))
+            if category is None:
+                message = f"there is no category called '{parts[1]}' in '{group}'"
+                raise ReviewError(message)
+            folders = (group, category)
+        if not self._is_place(folders):
+            message = f"'{text}' is not a place a unit can be filed: '{group}' also needs a category"
+            raise ReviewError(message)
+        return folders
+
     def can_file_in_group(self, group: str) -> bool:
         """Whether a unit can be filed straight into ``group``: it has no categories (existing or planned) and the
         library files into such groups (``[sorting] file_in_empty_groups``)."""
@@ -424,6 +490,17 @@ class ReviewSession:
             duplicates.add(item.unit.source_path, destination)
         return problem
 
+    def _inbox_relative(self, name: str | Path) -> str:
+        """``name`` as a path inside the inbox with forward slashes; an absolute path outside it is returned as given."""
+
+        path = Path(str(name).replace("\\", "/"))
+        if path.is_absolute():
+            try:
+                path = path.relative_to(self._library.inbox)
+            except ValueError:
+                return path.as_posix()
+        return path.as_posix().strip("/")
+
     def _is_place(self, folders: tuple[str, ...]) -> bool:
         """Whether ``folders`` is a complete place, existing or planned: a group and category for this library's depth,
         or just a group that has no categories when the library files into those."""
@@ -439,6 +516,12 @@ class ReviewSession:
 
 
 # region Helpers
+
+
+def _spelt(name: str, names: list[str]) -> str | None:
+    """The entry of ``names`` that is ``name`` ignoring case, as spelt there, or ``None``."""
+
+    return next((candidate for candidate in names if candidate.casefold() == name.casefold()), None)
 
 
 def _name_problem(name: str) -> str | None:

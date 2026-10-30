@@ -27,7 +27,7 @@ from microfiche.core.models.job import Job
 from microfiche.core.models.unit import SortableUnit
 from microfiche.core.organizer import SortReport
 from microfiche.core.reclassify import ReclassifyProposal
-from microfiche.core.review import ReviewSession
+from microfiche.core.review import ReviewOutcome, ReviewSession
 from pydantic import BaseModel, Field
 
 # region Constants and types
@@ -177,6 +177,30 @@ class ConfigOutput(_Output):
     sync: SyncEntry | None = Field(description="What --sync did; null without it.")
 
 
+class FiledUnit(BaseModel):
+    """An inbox unit `file` moved."""
+
+    path: str = Field(description="Where it was in the inbox, relative to the library.")
+    kind: Literal["file", "folder"]
+    destination: str | None = Field(description="Where it is now, relative to the library.")
+
+
+class FileOutput(_Output):
+    """The result of ``file``: nothing is filed unless every unit named could be."""
+
+    command: Literal["file"] = "file"
+    destination: list[str] | None = Field(
+        description="The group, and category, units were filed under; null if refused."
+    )
+    filed: list[FiledUnit]
+    refused: list[FailureEntry] = Field(
+        description="Units (or the destination, for every unit) that were refused, with why."
+    )
+    failed: list[FailureEntry] = Field(description="Units that passed the checks but could not be moved, with why.")
+    job_id: str | None = Field(description="The job that filed them, for `rollback`; null if nothing was filed.")
+    learned_hints: list[str] = Field(description="Hints learned from this filing, as group/category: word.")
+
+
 class ReviewQueueOutput(_Output):
     """``review --list``: what `review` would ask about, without asking."""
 
@@ -201,6 +225,7 @@ OUTPUTS: dict[str, type[_Output]] = {
     "audit": AuditOutput,
     "config": ConfigOutput,
     "review": ReviewQueueOutput,
+    "file": FileOutput,
     "error": ErrorOutput,
 }
 
@@ -319,6 +344,36 @@ def review_queue_output(session: ReviewSession, library: Library) -> ReviewQueue
         duplicates=[_duplicate(d.unit, d.classification, library, d.existing, d.reason) for d in session.duplicates],
         waiting=session.waiting,
         ai_unavailable=session.ai_unavailable,
+    )
+
+
+def file_output(
+    library: Library,
+    folders: tuple[str, ...] | None,
+    decided: Sequence[SortableUnit],
+    outcome: ReviewOutcome | None,
+    refused: Sequence[tuple[str, str]],
+) -> FileOutput:
+    """The JSON for a ``file`` run: what was filed, what was refused before anything moved, what could not be moved."""
+
+    destinations = _destinations(outcome.job if outcome else None, library)
+    failed = outcome.failed if outcome else []
+    stuck = {f.unit.source_path for f in failed}
+    return FileOutput(
+        destination=list(folders) if folders and not refused else None,
+        filed=[
+            FiledUnit(
+                path=library.relative(unit.source_path),
+                kind=unit.kind,
+                destination=destinations.get(library.relative(unit.source_path)),
+            )
+            for unit in decided
+            if outcome is not None and unit.source_path not in stuck
+        ],
+        refused=[FailureEntry(path=name, reason=why) for name, why in refused],
+        failed=[FailureEntry(path=library.relative(f.unit.source_path), reason=f.reason) for f in failed],
+        job_id=outcome.job.job_id if outcome and outcome.job else None,
+        learned_hints=[f"{h.group}/{h.category}: {h.hint}" for h in outcome.learned] if outcome else [],
     )
 
 
