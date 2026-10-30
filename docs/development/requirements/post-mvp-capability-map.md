@@ -21,7 +21,7 @@ feature.
 | 3 | 2 | `matching-precision` | [Word-boundary matching and an ambiguity margin](matching-precision-prd.md), starting with [RFC-010: folder-name normalisation](../rfcs/RFC-010-folder-name-matching.md) | Trust, bug fix | — | Done ([ADR-005](../adr/ADR-005-folder-name-matching.md), [ADR-006](../adr/ADR-006-ambiguity-margin.md)) |
 | 4 | — | `empty-group-filing` | [RFC-011: groups with no category folders](../rfcs/RFC-011-groups-without-categories.md) | Bug fix | `matching-precision` (same classifier code) | Done ([ADR-007](../adr/ADR-007-leaf-groups.md)) |
 | 5 | 3 | `hint-learning` | [Learn keyword hints from review choices](hint-learning-prd.md) | Less review work | `matching-precision` | Done ([ADR-008](../adr/ADR-008-hint-learning.md)) |
-| 6 | 4 | `ai-second-opinion` | [Ask the AI about hint-level matches](ai-second-opinion-prd.md) | Less review work | `matching-precision`, `ai-provider-setup` | Draft |
+| 6 | 4 | `ai-second-opinion` | [Ask the AI about hint-level matches](ai-second-opinion-prd.md) | Less review work | `matching-precision`, `ai-provider-setup` | Accepted ([ADR-009](../adr/ADR-009-ai-second-opinion.md)) |
 | 7 | 5 | `scriptable-output` | [`--json` output and filing without the prompts](scriptable-output-prd.md) | Automation groundwork | — | Draft |
 | 8 | 6 | `drift-check` | [Background drift check](drift-check-prd.md) | Integrity | — | Draft |
 | 9 | 7 | `watch-mode` | [Sort as files arrive](watch-mode-prd.md) | Zero-touch filing | `matching-precision`, `hint-learning`, `scriptable-output`, `drift-check` | Draft |
