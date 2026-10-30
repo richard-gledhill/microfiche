@@ -47,6 +47,8 @@ class ClassificationResult(BaseModel):
             ``rules_engine+ai_fallback`` when each decided a different stage.
         confident: Whether the unit may be filed without review: every level the library has was resolved
             and ``overall_confidence`` reached the classifier's threshold.
+        ai_overruled: Whether the AI was asked to check a rules answer and picked something else, so the unit is held
+            for review with both answers in the reason (``[ai] verify_below``).
     """
 
     group: GroupMatch
@@ -54,6 +56,7 @@ class ClassificationResult(BaseModel):
     overall_confidence: float
     classified_by: str
     confident: bool
+    ai_overruled: bool = False
 
     @property
     def by_learned_hint(self) -> bool:

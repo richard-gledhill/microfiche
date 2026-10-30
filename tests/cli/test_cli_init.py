@@ -458,7 +458,7 @@ def test_init_ai_test_empty_model_says_so_instead_of_failing(tmp_path: Path, mon
 
     # Change only the timeout, so the model stays empty: six common settings kept, the other sections:
     # [classification] no, [ai] yes (host kept, timeout 30, three kept), the five after it no; write yes; test yes.
-    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 3 + "n\n" * 6 + "y\ny\n"
+    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 4 + "n\n" * 6 + "y\ny\n"
     result = _init(library, answers, monkeypatch=monkeypatch)
 
     assert result.exit_code == 0, result.output

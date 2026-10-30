@@ -205,6 +205,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   `report.py` at a library you trust) and re-check the default. The bundled corpus is synthetic,
   short, and written knowing the rules, so its absolute error rates are not predictive.
 - **Ambiguity check.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice B): `[classification] ambiguity_margin` (default 0.1) holds a document when the runner-up group or category is within it; an exactly named group settles the group stage against fuzzy lookalikes. Misfires 24 → 6 with word boundaries, correct filings unchanged; see [calibration.md](../testing/calibration.md#ambiguity-margin). Still unmeasured on long documents.
+- **AI second opinion.** Built for `sort` and `review` ([ADR-009](../adr/ADR-009-ai-second-opinion.md)): `[ai] verify_below` (default 0, off) has the AI check rules answers below it; replayed on the corpus, 0.95 removed all six remaining misfiles without losing a correct filing ([calibration.md](../testing/calibration.md#ai-second-opinion)). `reclassify --use-ai` is the second PR.
 - **Hint learning.** Built ([ADR-008](../adr/ADR-008-hint-learning.md)): `[learning] enabled` (default off) adds `learned_hints` to the library file after a `review` commit, from the documents the user filed; a deleted hint is not learned again (ledger `hint_learned` events). The calibration corpus is too small to tune the thresholds (see [calibration.md](../testing/calibration.md#learning-from-review-choices)).
 - **Empty-group filing.** Built ([ADR-007](../adr/ADR-007-leaf-groups.md)): `[sorting] file_in_empty_groups` (default off) files a document that names a depth-2 group with no category folders straight into that group; `review` can choose it and `reclassify` keeps it. `attachments` joins the default `[exclusions]`. Not yet in the calibration corpus (the harness skips two-part paths at depth 2).
 - **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration covers it in a separate `corpus_styles` corpus ([calibration.md](../testing/calibration.md#folder-name-styles)).
@@ -212,7 +213,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   names file with full confidence on a substring (0 of 2 right on the corpus). The exact check needs a
   regular expression with `\b`; once Stage 4.1 switches to `rapidfuzz`, its `partial_ratio_alignment` can apply
   the same boundary test to fuzzy matches (see [ADR-002](../adr/ADR-002-switch-to-rapidfuzz.md)).
-- **Use the AI where the rules are ambiguous or hint-level.** Requirement drafted:
+- **Use the AI where the rules are ambiguous or hint-level.** Partly built (see *AI second opinion* above; `reclassify --use-ai` remains). Requirement drafted:
   [ai-second-opinion-prd.md](ai-second-opinion-prd.md). Today it is asked only when the rules are unsure,
   never about their confident mistakes, and its score is one value (`[ai] ai_confidence`, 0.70) whatever model is
   behind it. Also: `OllamaProvider` doesn't disable the model's "thinking", so a call

@@ -44,6 +44,9 @@ timeout = 120
 # The NAME of the environment variable holding the OpenAI key. The key itself never goes in this file.
 api_key_env = "OPENAI_API_KEY"
 # How sure any AI answer is (0 to 1). Below the confidence_threshold above, an AI-only answer goes to review.
+# With --use-ai, a rules answer that would file but scores below this (0 to 1) is checked by the AI; it files only if the AI
+# agrees, otherwise it goes to review with both answers. Hints score 0.75, so 0.8 checks hints only. 0 checks nothing.
+verify_below = 0
 ai_confidence = 0.70
 # How much of a document's text is sent to the AI. 0 sends all of it, which costs more tokens and time.
 max_document_chars = 4000

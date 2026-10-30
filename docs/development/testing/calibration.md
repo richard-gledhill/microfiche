@@ -182,14 +182,33 @@ confident mistakes, which is where the misfires are. And a fixed 0.70 cannot sui
 is far better than that, a weaker one might not be. **This is one model on short synthetic documents**;
 measure yours with `ai_arm.py`.
 
+## AI second opinion
+
+`[ai] verify_below` ([ADR-009](../adr/ADR-009-ai-second-opinion.md)) has the AI check rules answers that would file but
+score below it; the unit files only if the AI picks the same folder. Replaying the saved `gemma4:26b` answers through the
+pipeline at the default threshold, with word boundaries and the ambiguity margin in place:
+
+| `verify_below` | Checks | Filed | Right | Wrong | Ordinary wrong | Tricky wrong | AI calls |
+|---|---|---|---|---|---|---|---|
+| 0 (off) | nothing | 95 | 89 | 6 | 1 | 5 | 41 |
+| 0.8 | keyword hints | 91 | 89 | 2 | 0 | 2 | 105 |
+| 0.95 | hints, names, fuzzy groups | 89 | 89 | 0 | 0 | 0 | 147 |
+
+(AI calls include the 41 the fallback makes anyway for documents the rules could not place; 136 documents.) Checking
+hints alone removes four of the six remaining misfiles, checking names too removes all six, and no correct filing is lost,
+because the model agreed with every correct rules answer. The cost is calls: about 0.5 extra per document at 0.8 and 0.8
+at 0.95. This is one model (98% accurate on this corpus), short synthetic documents, and a corpus in which the remaining
+misfiles are the kind a second reader catches; a weaker model would overrule more correct answers. Measure yours with
+`ai_arm.py` before turning it on. The suggested value is `0.8` for a cheap start and `0.95` for the most protection.
+
 ## Follow-ups
 
 Recorded on the [roadmap](../requirements/mvp-roadmap.md); none is implemented. Word-boundary matching and
 the ambiguity check, formerly the first two, are built: see [Word boundaries](#word-boundaries) and
 [Ambiguity margin](#ambiguity-margin).
 
-1. **Use the AI where the rules are ambiguous or only hint-level**, not just where they're silent, and
-   let a library set the score its AI answers get.
+1. **Let a library set the score its AI answers get.** Using the AI where the rules are only hint-level is built: see
+   [AI second opinion](#ai-second-opinion).
 2. **Calibrate on real, longer documents.** Add them to the corpus (below) or run the harness on a
    library you already trust, and re-check the default.
 
