@@ -1,6 +1,9 @@
 # Ask the AI about hint-level matches
 
-Status: Draft
+Status: Accepted
+
+Settled on 2026-10-30 ([ADR-009](../adr/ADR-009-ai-second-opinion.md)). Built in two PRs: verification in `sort` and
+`review` first, then `reclassify --use-ai`.
 
 - **Id:** `ai-second-opinion` ([capability map](post-mvp-capability-map.md), #4)
 - **Depends on:** `matching-precision` (measured against the corrected rules); `ai-provider-setup` (done: the
@@ -23,11 +26,11 @@ where the rules are weakest, for users who already turned it on.
 ## Requirements
 
 **Must**
-- A setting (`[ai] verify_below`, name to confirm) gives the confidence below which a rules answer is checked by the AI.
-  Off by default; the shipped value when on is chosen by calibration.
+- A setting, `[ai] verify_below`, gives the confidence below which a rules answer is checked by the AI. 0 means off, and
+  is the default; the value to suggest when on is chosen by calibration.
 - When the AI agrees with a checked answer, the unit files as it would have. When it disagrees, or answers "none", the
   unit goes to review with both answers in the reason. The AI never moves a unit somewhere the rules did not propose.
-- `reclassify` gains `--use-ai`, with the same fallback and verification as `sort`.
+- `reclassify` gains `--use-ai`, with the same fallback and verification as `sort` (the second PR).
 - `OllamaProvider` turns off the model's "thinking" where the model supports it.
 - Nothing changes without `--use-ai`. The privacy notice for OpenAI still applies.
 
@@ -65,7 +68,11 @@ Guidance for the spec, not binding.
   thinking and default-model notes), which this absorbs.
 - [mvp-roadmap.md](mvp-roadmap.md#cli-command-status): "No AI fallback in `reclassify` yet".
 
-## Open questions
+## Decisions
 
-- Should a confirmed answer's confidence rise (to the threshold, or above), or stay as the rules scored it?
-- Is the cost acceptable: one extra call per hint-level document, about 2 to 5 seconds each on a local model?
+- **Setting:** `[ai] verify_below`, a confidence; 0 is off. Each stage's answer is checked if it scores below it.
+- **A confirmed answer keeps the rules' score.** Agreement is what lets it file; the confidence does not rise.
+- **Cost:** one extra call per checked document (2 to 5 seconds locally) is acceptable because it is opt-in twice
+  (`--use-ai` and a non-zero `verify_below`).
+- **Both Should items are in:** the reason says an answer was verified, and `sort` counts checked, confirmed and overruled.
+- **Two PRs:** `sort`/`review` verification, then `reclassify --use-ai`.
