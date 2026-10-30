@@ -51,6 +51,9 @@ max_document_chars = 4000
 # File a folder dropped in the inbox whole, under its dominant group or category. Off files the documents inside
 # it one by one, and removes the folder once it is empty.
 keep_folders = true
+# At depth 2, file a document that names a group with no category folders straight into the group. Off leaves it for
+# review, so a group made as a placeholder for categories to be added later gets nothing.
+file_in_empty_groups = false
 # File and folder names (globs) the inbox scan skips without comment: Office lock files and OS clutter.
 ignore = ["~$*", ".DS_Store", "Thumbs.db", "*.tmp"]
 
@@ -71,8 +74,8 @@ backup_count = 3
 
 [exclusions]
 # Folder names (globs) never treated as a group or category and never looked inside: by default anything starting
-# with . or _ (such as .obsidian) and inbox-like names. The inbox and .microfiche/ always are. A list replaces this one.
-exclude = ["sorting*", "_sorting*", ".*", "_*"]
+# with . or _ (such as .obsidian), inbox-like names and Obsidian's attachments folder. The inbox and .microfiche/ always are. A list replaces this one.
+exclude = ["sorting*", "_sorting*", ".*", "_*", "attachments"]
 
 [naming_rules]
 # Regex renames applied to a file's name before it is filed, as { 'pattern' = "replacement" }, in order.

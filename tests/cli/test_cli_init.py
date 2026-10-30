@@ -173,9 +173,9 @@ def test_init_valid_bad_value_asked_again(tmp_path: Path, monkeypatch: pytest.Mo
 
 def test_init_valid_other_settings_section_skippable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     library = _library(tmp_path)
-    # all others: yes; [classification] no, [ai] no, [sorting] yes (ignore), [parsing], [logging],
-    # [exclusions], [naming_rules] no; then write: yes.
-    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n*.bak, ~$*\n" + "n\n" * 4 + "y\n"
+    # all others: yes; [classification] no, [ai] no, [sorting] yes (file_in_empty_groups kept, ignore), [parsing],
+    # [logging], [exclusions], [naming_rules] no; then write: yes.
+    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n\n*.bak, ~$*\n" + "n\n" * 4 + "y\n"
 
     result = _init(library, answers, monkeypatch=monkeypatch)
 

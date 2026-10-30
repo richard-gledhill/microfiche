@@ -260,9 +260,9 @@ def _configure(library: Path, *, exclude: Sequence[str]) -> None:
     """Lower the size limit and add the folders to keep out, in the copied config."""
 
     config = library / ".microfiche" / "microfiche-config.toml"
-    kept = ", ".join(json.dumps(name) for name in ["sorting*", "_sorting*", ".*", "_*", *exclude])
+    kept = ", ".join(json.dumps(name) for name in ["sorting*", "_sorting*", ".*", "_*", "attachments", *exclude])
     text = _replaced(config.read_text(encoding="utf-8"), "max_file_mb = 50", f"max_file_mb = {OVERSIZE_LIMIT_MB}")
-    text = _replaced(text, 'exclude = ["sorting*", "_sorting*", ".*", "_*"]', f"exclude = [{kept}]")
+    text = _replaced(text, 'exclude = ["sorting*", "_sorting*", ".*", "_*", "attachments"]', f"exclude = [{kept}]")
     config.write_text(text, encoding="utf-8", newline="\n")
 
 

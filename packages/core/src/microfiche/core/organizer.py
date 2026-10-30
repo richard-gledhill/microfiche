@@ -40,6 +40,7 @@ class SortReport:
         folders_removed: Inbox folders whose files were all filed and which were then removed (the job records
             them, so ``rollback`` recreates them).
         folders_kept: Inbox folders that files were taken from but which still hold something, each with why.
+        into_empty_groups: How many of ``filed`` go straight into a group because it has no category folders.
         dry_run: Whether this was a preview. Nothing was moved or recorded: ``filed`` is what would be filed,
             ``folders_removed`` the folders that would be removed once emptied, and ``job`` is ``None``.
         library_sync: What the run found out about the library file: folders it added an entry for, and entries
@@ -54,6 +55,7 @@ class SortReport:
     ai_unavailable: str | None = None
     folders_removed: list[Path] = field(default_factory=list)
     folders_kept: list[tuple[Path, str]] = field(default_factory=list)
+    into_empty_groups: int = 0
     dry_run: bool = False
     library_sync: LibrarySync | None = None
 
@@ -134,6 +136,7 @@ def run_sort(
     if not dry_run:
         _file_confident_units(library, report)
     _report_inbox_folders(report)
+    report.into_empty_groups = sum(1 for _, c in report.filed if len(c.folders or ()) < taxonomy.depth)
     if ai_classifier is not None:
         report.ai_unavailable = ai_classifier.failure
 

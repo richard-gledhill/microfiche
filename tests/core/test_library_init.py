@@ -360,7 +360,7 @@ def test_config_editor_revert_invalid_list_item(tmp_path: Path) -> None:
 
     editor.revert_invalid(_invalid(state_dir))
 
-    assert editor.text == '[exclusions]\nexclude = ["sorting*", "_sorting*", ".*", "_*"]\n'
+    assert editor.text == '[exclusions]\nexclude = ["sorting*", "_sorting*", ".*", "_*", "attachments"]\n'
 
 
 def test_config_editor_revert_invalid_section_not_table_removed(tmp_path: Path) -> None:

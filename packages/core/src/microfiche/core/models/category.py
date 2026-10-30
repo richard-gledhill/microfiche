@@ -35,6 +35,14 @@ class Taxonomy(BaseModel):
 
         return list(self.groups.keys())
 
+    def is_leaf(self, group: str) -> bool:
+        """Whether ``group`` has no category folders, so at depth 2 it is the only place a unit could be filed.
+
+        Always false in a flat library, where every group is the destination and no group "lacks" categories.
+        """
+
+        return not self.is_flat and group in self.groups and not self.groups[group]
+
     def categories_for(self, group: str) -> list[str]:
         """The existing category names of ``group``, empty if there is no such group."""
 

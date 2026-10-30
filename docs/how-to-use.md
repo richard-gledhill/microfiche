@@ -208,7 +208,7 @@ deletes your own folders or documents.
 tell you to run `init`.
 
 The default config leaves out of the library any folder whose name starts with `.` or `_` (such as Obsidian's
-`.obsidian`), and folders named like an inbox (`sorting*`, `_sorting*`), as well as the inbox and `.microfiche/`. To
+`.obsidian`), folders named like an inbox (`sorting*`, `_sorting*`) and `attachments`, as well as the inbox and `.microfiche/`. To
 leave out other folders, add them to `[exclusions] exclude` (see **Keeping a folder out** in
 [section 4](#4-maintain-the-library)). The `microfiche/` folder of the
 [repository](https://github.com/richard-gledhill/microfiche/tree/main/microfiche) has an example library file with
@@ -423,8 +423,8 @@ carries on, and `config --sync` exits with an error.
   it to order folders; a date such as `2024-03 Invoices` is not. Your folders are never renamed. If two sibling
   folders read the same (`meeting-notes` and `meeting_notes`), or a name has no letters or digits, `config --sync` says so.
 - A folder is left out of the library, and so cannot be a group or category, if its name matches a pattern in
-  `[exclusions] exclude`. The default excludes `sorting*`, `_sorting*`, `.*` and `_*`: anything starting with a dot or an
-  underscore, and anything named like an inbox. A group called `_Archive` or `.notes` is therefore invisible, which is
+  `[exclusions] exclude`. The default excludes `sorting*`, `_sorting*`, `.*`, `_*` and `attachments`: anything starting with a dot
+  or an underscore, anything named like an inbox, and Obsidian's attachments folder. A group called `_Archive` or `.notes` is therefore invisible, which is
   usually what you want for such folders and a surprise if it isn't. See **Keeping a folder out** in [section 4](#4-maintain-the-library).
 - One or two levels are supported: group and category, or groups alone (see
   [a flat library](#a-flat-library-groups-only)). Folders deeper than that aren't part of the taxonomy.
@@ -1207,12 +1207,17 @@ microfiche is pre-release. At the moment:
   ledger names its old path), and `reclassify` reads a bundle's folder through the ledger, so a corrupt ledger stops it.
 - There is no command to bring items up to the new depth after you reduce it; they stay where they are. An opt-in way
   is recorded as an idea, to be reviewed.
-- In a two-level library, a folder you make directly inside a group (such as `attachments/`) is read as a category,
-  listed in `microfiche-library.json` and used for filing, unless `[exclusions]` names it. Loose files saved directly in
-  a group folder are never listed there. `reclassify` treats such a file as out of place and proposes moving it into
-  a category when one matches. A group with no category folders cannot be filed into either: a document that names it
-  goes to review. See the
-  [request for change](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/rfcs/RFC-011-groups-without-categories.md).
+- In a two-level library, a folder you make directly inside a group is read as a category, listed in
+  `microfiche-library.json` and used for filing, unless `[exclusions]` names it. The default `[exclusions]` list leaves
+  out `attachments` (Obsidian's folder for pasted files), but a list you wrote replaces the default, so add it there
+  yourself if your config predates that. Loose files saved directly in a group folder are never listed. `reclassify`
+  treats such a file as out of place and proposes moving it into a category when one matches, unless the group has no
+  category folders and `[sorting] file_in_empty_groups` is on (see below).
+- A group with no category folders is not filed into by default: a document that names it goes to review, so a group you
+  made as a placeholder gets nothing. Set `file_in_empty_groups = true` under `[sorting]` to file such documents
+  straight into the group; `sort` and `review` then say how many went there. Once the group gains its first
+  category folder, files already at group level are one level too high, and `reclassify` proposes moving them. Such a
+  group is chosen by its name only (hints and filename rules apply to categories).
 - A flat library (`depth = 1`) is matched on group names, filename rules and group hints only. A short group name
   that is also a passing mention (`car park`) can still beat the real group; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).
