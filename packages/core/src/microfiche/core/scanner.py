@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Collection
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,6 +17,11 @@ from microfiche.core.parsers import is_supported, read_documents
 from microfiche.core.utils.filesystem import is_link, name_matches
 
 _logger = logging.getLogger(__name__)
+
+# What a stat says about the files an inbox entry holds: (path inside the entry, size, modification time in ns), sorted.
+Signature = tuple[tuple[str, int, int], ...]
+# Every inbox entry that would become unit(s), by its path in the inbox, with its signature.
+InboxSnapshot = dict[Path, Signature]
 
 
 @dataclass
@@ -32,7 +38,9 @@ class InboxScan:
     skipped_links: list[Path] = field(default_factory=list)
 
 
-def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) -> InboxScan:
+def scan_sorting_inbox(
+    library: Library, *, keep_folders: bool | None = None, only: Collection[Path] | None = None
+) -> InboxScan:
     """Scan the library's inbox and return the units ready for classification.
 
     The inbox is ``library.inbox`` (``_sorting`` unless the config's
@@ -60,6 +68,8 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
         library: The library whose inbox to scan.
         keep_folders: Whether to keep each folder with supported files whole as one unit. ``None``
             (the default) uses the library's ``[sorting] keep_folders`` setting.
+        only: Scan just these entries of the inbox (files or folders, by their path in the inbox, as
+            ``snapshot_inbox`` keys them). The others are not opened or read. ``None`` scans everything.
 
     Returns:
         The units, and the links that were skipped. Both are empty if the inbox doesn't exist.
@@ -79,6 +89,8 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
     ignore, max_bytes = config.sorting.ignore, config.parsing.max_file_bytes
 
     for entry in sorted(inbox.iterdir()):
+        if only is not None and entry not in only:
+            continue
         if not _admitted(entry, ignore, scan.skipped_links):
             continue
         if entry.is_file():
@@ -92,6 +104,58 @@ def scan_sorting_inbox(library: Library, *, keep_folders: bool | None = None) ->
         "scanned %s: %d unit(s) to classify, %d link(s) skipped", inbox.name, len(scan.units), len(scan.skipped_links)
     )
     return scan
+
+
+def snapshot_inbox(library: Library) -> InboxSnapshot:
+    """What the inbox looks like from stat calls alone: each entry that would become a unit, with a signature.
+
+    Nothing is opened or read, so a cloud-synced placeholder is not downloaded by being looked at. The same names are
+    skipped as in ``scan_sorting_inbox`` (ignored names, links, files with no parser). A folder's signature covers
+    every file in it, so it changes when anything inside is added, removed, resized or touched.
+
+    Args:
+        library: The library whose inbox to look at.
+
+    Returns:
+        The inbox entries by path, empty if the inbox doesn't exist. An entry can be passed to ``scan_sorting_inbox``
+        as ``only``.
+    """
+
+    snapshot: InboxSnapshot = {}
+    inbox = library.inbox
+    if not inbox.exists():
+        return snapshot
+    ignore = library.config.sorting.ignore
+    skipped_links: list[Path] = []  # the scan reports these; a snapshot has no use for them
+    for entry in sorted(inbox.iterdir()):
+        if not _admitted(entry, ignore, skipped_links):
+            continue
+        if entry.is_file():
+            files = [entry] if is_supported(entry) else []
+        elif entry.is_dir():
+            files = _files_under(entry, ignore, skipped_links)
+            if not any(is_supported(path) for path in files):
+                files = []
+        else:
+            files = []
+        signature = _signature(entry, files)
+        if signature:
+            snapshot[entry] = signature
+    return snapshot
+
+
+def _signature(entry: Path, files: list[Path]) -> Signature:
+    """The ``Signature`` of ``files``, named relative to ``entry``. A file that cannot be stat'ed is left out."""
+
+    found: list[tuple[str, int, int]] = []
+    for path in files:
+        try:
+            info = path.stat()
+        except OSError:  # gone since it was listed
+            continue
+        name = path.name if path == entry else path.relative_to(entry).as_posix()
+        found.append((name, info.st_size, info.st_mtime_ns))
+    return tuple(found)
 
 
 def _file_unit(path: Path, max_bytes: int, origin_folder: Path | None = None) -> SortableUnit:

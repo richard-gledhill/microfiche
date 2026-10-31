@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import functools
 import logging
+import signal
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
+from datetime import datetime
 from pathlib import Path
+from types import FrameType
 from typing import Any, NoReturn, ParamSpec, TypeVar
 
 import typer
@@ -17,6 +20,7 @@ from microfiche.cli.display import (
     render_reclassify_result,
     render_reclassify_table,
     render_sort_report,
+    render_watch_batch,
 )
 from microfiche.cli.init_prompts import ask_revert, render_changes, walk_through
 from microfiche.cli.json_output import (
@@ -65,11 +69,12 @@ from microfiche.core.library_init import (
     rebuild_library_file,
 )
 from microfiche.core.models.unit import SortableUnit
-from microfiche.core.organizer import run_sort
+from microfiche.core.organizer import SortReport, run_sort
 from microfiche.core.reclassify import ReclassifyProposal, apply_reclassification, items_below_depth, run_reclassify
 from microfiche.core.review import ReviewError, ReviewOutcome, ReviewSession
 from microfiche.core.runlock import LockHolder, RunLockError, run_lock
 from microfiche.core.scanner import scan_sorting_inbox
+from microfiche.core.watcher import WatchBatch, Watcher
 from rich.console import Console
 from rich.markup import escape
 
@@ -203,6 +208,72 @@ def sort(
         _emit(sort_output(report, opened, drift))
     else:
         render_sort_report(console, report)
+
+
+@_json_command
+def watch(
+    library: Path = _LIBRARY_OPTION,
+    interval: float | None = typer.Option(
+        None,
+        "--interval",
+        help="Seconds between scans of the inbox, for this run. Defaults to [watch] interval_seconds (3600).",
+    ),
+    use_ai: bool = typer.Option(
+        False,
+        "--use-ai",
+        help="Fall back to the AI named in the library's config, as `sort --use-ai` does. The test question is asked "
+        "once, at the start; if the AI later fails, the rest of the run uses the rules only.",
+    ),
+    as_json: bool = typer.Option(
+        False,
+        "--json",
+        help="Print one compact JSON line on stdout for each batch: the same document as `sort --json`, or "
+        "an `error` line if the batch failed. Messages go to stderr.",
+    ),
+    verbose: bool = _VERBOSE_OPTION,
+    quiet: bool = _QUIET_OPTION,
+) -> None:
+    """Keep the inbox filed: scan it on a timer and file what has stopped changing.
+
+    Each scan only looks at file sizes and times, never at content. A document is filed once it is unchanged between two
+    scans (so between one and two intervals after it arrives) and nothing else arrived or changed in the latest scan,
+    so a folder copied in is filed as one job. Each batch is a normal `sort` of those documents: the same checks, and
+    one job that `rollback` can undo. A document left for review is looked at again only when it changes or when the
+    config or the library file does. Press Ctrl-C to stop: the batch in progress finishes first.
+    """
+
+    opened = _open_library(library, uses_hints=True, needs_config=True)
+    seconds = interval if interval is not None else opened.config.watch.interval_seconds
+    if seconds <= 0:
+        _fail("--interval must be greater than 0.")
+    provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None
+    ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
+
+    def reopen() -> Library:
+        fresh = Library(library)
+        _ = fresh.config  # a config or library file that has gone bad is a failed scan, not the end of the run
+        _ = fresh.library_file
+        return fresh
+
+    def run_batch(fresh: Library, entries: tuple[Path, ...]) -> tuple[SortReport, DriftReport]:
+        return _watch_batch(fresh, entries, ai_classifier=ai_classifier, verbose=verbose, quiet=quiet)
+
+    def on_batch(batch: WatchBatch) -> None:
+        _report_watch_batch(batch, as_json=as_json, quiet=quiet)
+
+    watcher = Watcher(reopen, run_batch, on_batch, interval=seconds)
+    configure_logging(verbose=verbose, quiet=quiet)
+    try:
+        if not quiet:
+            console.print(
+                f"Watching {escape(str(opened.inbox))} every {seconds:g} s. Press Ctrl-C to stop.", soft_wrap=True
+            )
+        with _stop_on_interrupt(watcher):
+            watcher.run()
+    finally:
+        reset_logging()
+    if not quiet:
+        console.print("Stopped watching.")
 
 
 @_json_command
@@ -898,6 +969,66 @@ def _file_chosen(library: Library, session: ReviewSession, *, verbose: bool, qui
                 raise
 
 
+def _watch_batch(
+    library: Library, entries: tuple[Path, ...], *, ai_classifier: LLMClassifier | None, verbose: bool, quiet: bool
+) -> tuple[SortReport, DriftReport]:
+    """File ``entries`` of the inbox as one job, holding the run lock only for as long as that takes.
+
+    Waits up to ``[watch] lock_timeout_seconds`` for the lock; past that, ``RunLockedError`` ends the batch and
+    ``watch`` tries again at the next scan. The log file is written only while the lock is held, then logging goes
+    back to the screen alone.
+    """
+
+    try:
+        with (
+            run_lock(library, "watch", timeout=library.config.watch.lock_timeout_seconds) as cleared_lock,
+            _logging("watch", library, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
+        ):
+            drift = _check_drift(library, record=True)
+            report = run_sort(library, ai_classifier=ai_classifier, only=entries)
+    finally:
+        configure_logging(verbose=verbose, quiet=quiet)  # _logging reset it; between batches only the screen is used
+    return report, drift
+
+
+def _report_watch_batch(batch: WatchBatch, *, as_json: bool, quiet: bool) -> None:
+    """Say how a batch went: a line on screen (a failure only, with ``-q``), and with ``--json`` one line on stdout."""
+
+    when = datetime.now().strftime("%H:%M:%S")
+    if batch.error is not None:
+        console.print(f"[red]{when} Batch failed: {escape(batch.error)}[/red]", soft_wrap=True)
+        if as_json:
+            _emit_line(ErrorOutput(error=batch.error))
+    elif batch.skipped is not None:
+        if not quiet:
+            console.print(
+                f"[yellow]{when} Batch skipped; trying again at the next scan. {escape(batch.skipped)}[/yellow]",
+                soft_wrap=True,
+            )
+    elif batch.report is not None and batch.library is not None:
+        if not quiet:
+            render_watch_batch(console, batch.report, when)
+        if as_json:
+            _emit_line(sort_output(batch.report, batch.library, batch.drift))
+
+
+@contextmanager
+def _stop_on_interrupt(watcher: Watcher) -> Iterator[None]:
+    """Make the first Ctrl-C ask ``watcher`` to stop after its current batch; a second one interrupts as usual."""
+
+    def handler(signum: int, frame: FrameType | None) -> None:
+        if watcher.stopping:
+            signal.default_int_handler(signum, frame)  # raises KeyboardInterrupt
+        watcher.stop()
+        console.print("Stopping after the current batch. Press Ctrl-C again to stop at once.")
+
+    previous = signal.signal(signal.SIGINT, handler)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
+
+
 def _keep_folders_override(keep_folders: bool, keep_folders_off: bool) -> bool | None:
     """What the keep-folders options say for this run: on, off, or ``None`` to use the library's setting."""
 
@@ -917,6 +1048,12 @@ def _fail(message: str) -> NoReturn:
     if _json_active:
         _emit(ErrorOutput(error=message))
     raise typer.Exit(code=1)
+
+
+def _emit_line(output: Any) -> None:
+    """Write ``output`` to stdout as one compact JSON line, for a command that prints a stream of them."""
+
+    typer.echo(output.model_dump_json())
 
 
 def _emit(output: Any) -> None:

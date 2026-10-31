@@ -174,8 +174,8 @@ def test_init_valid_bad_value_asked_again(tmp_path: Path, monkeypatch: pytest.Mo
 def test_init_valid_other_settings_section_skippable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     library = _library(tmp_path)
     # all others: yes; [classification] no, [ai] no, [sorting] yes (file_in_empty_groups kept, ignore), [parsing],
-    # [logging], [exclusions], [naming_rules] no; then write: yes.
-    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n\n*.bak, ~$*\n" + "n\n" * 5 + "y\n"
+    # [learning], [watch], [logging], [exclusions], [naming_rules] no; then write: yes.
+    answers = "y\n" + _KEEP_COMMON + "y\n" + "n\nn\ny\n\n*.bak, ~$*\n" + "n\n" * 6 + "y\n"
 
     result = _init(library, answers, monkeypatch=monkeypatch)
 
@@ -457,8 +457,8 @@ def test_init_ai_test_empty_model_says_so_instead_of_failing(tmp_path: Path, mon
     library = _library(tmp_path)
 
     # Change only the timeout, so the model stays empty: six common settings kept, the other sections:
-    # [classification] no, [ai] yes (host kept, timeout 30, three kept), the five after it no; write yes; test yes.
-    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 4 + "n\n" * 6 + "y\ny\n"
+    # [classification] no, [ai] yes (host kept, timeout 30, three kept), the six after it no; write yes; test yes.
+    answers = "y\n" + "\n" * 6 + "y\n" + "n\ny\n" + "\n" + "30\n" + "\n" * 4 + "n\n" * 7 + "y\ny\n"
     result = _init(library, answers, monkeypatch=monkeypatch)
 
     assert result.exit_code == 0, result.output

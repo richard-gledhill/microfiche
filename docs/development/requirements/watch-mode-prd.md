@@ -1,8 +1,8 @@
 # Sort as files arrive
 
-Status: Accepted
+Status: Done
 
-Settled on 2026-10-31 ([ADR-012](../adr/ADR-012-watch-mode.md)).
+Settled on 2026-10-31 ([ADR-012](../adr/ADR-012-watch-mode.md)); built the same day.
 
 - **Id:** `watch-mode` ([capability map](post-mvp-capability-map.md), #7)
 - **Depends on:** `matching-precision`, `hint-learning`, `scriptable-output`, `drift-check`

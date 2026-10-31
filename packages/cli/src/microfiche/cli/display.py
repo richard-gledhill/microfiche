@@ -109,6 +109,29 @@ def render_sort_report(console: Console, report: SortReport) -> None:
         render_job(console, report.job)
 
 
+def render_watch_batch(console: Console, report: SortReport, when: str) -> None:
+    """Print one line for a batch `watch` filed: the counts, and the job that undoes it.
+
+    Args:
+        console: Where to print.
+        report: The sort report of the batch.
+        when: The time to show at the start of the line.
+    """
+
+    line = (
+        f"{when} [green]Filed {len(report.filed)}[/green], [yellow]{len(report.needs_review)} for review[/yellow], "
+        f"[cyan]{len(report.duplicates)} duplicate(s)[/cyan]"
+    )
+    if report.job is not None:
+        line += f"; undo with `rollback --job-id {report.job.job_id}`"
+    console.print(line, soft_wrap=True)
+    if report.ai_unavailable is not None:
+        console.print(
+            f"[yellow]The AI fallback was unavailable ({escape(report.ai_unavailable)}); using the rules only.[/yellow]",
+            soft_wrap=True,
+        )
+
+
 def render_library_sync(console: Console, sync: LibrarySync) -> None:
     """Print what a library file sync did: the file created or the folders added, and the entries with no folder.
 

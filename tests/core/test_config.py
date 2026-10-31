@@ -24,6 +24,7 @@ from microfiche.core.config import (
     SortingConfig,
     TomlConfigParseError,
     UnsupportedDepthError,
+    WatchConfig,
     load_config,
     packaged_defaults_text,
 )
@@ -56,6 +57,7 @@ _SECTIONS: list[tuple[str, type[BaseModel]]] = [
     ("sorting", SortingConfig),
     ("parsing", ParsingConfig),
     ("learning", LearningConfig),
+    ("watch", WatchConfig),
     ("logging", LoggingConfig),
 ]
 

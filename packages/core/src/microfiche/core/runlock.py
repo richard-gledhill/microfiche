@@ -16,6 +16,7 @@ import contextlib
 import json
 import os
 import sys
+import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -28,6 +29,8 @@ from microfiche.core.utils.errors import describe_error
 # region Constants and types
 
 LOCK_FILENAME = "lock"
+
+_POLL_SECONDS = 0.1  # how often a run waiting for the lock looks again
 
 # Windows: ask to query a process without any right to change it; it fails with this code if access is denied.
 _PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
@@ -100,7 +103,7 @@ class LockUnavailableError(RunLockError):
 
 
 @contextmanager
-def run_lock(library: Library, command: str) -> Iterator[LockHolder | None]:
+def run_lock(library: Library, command: str, *, timeout: float = 0.0) -> Iterator[LockHolder | None]:
     """Hold the library's run lock for the duration of the ``with`` block.
 
     The lock file is created atomically, so of two runs starting together exactly one gets it. It is
@@ -113,18 +116,28 @@ def run_lock(library: Library, command: str) -> Iterator[LockHolder | None]:
     Args:
         library: The library the run is changing. Its state folder is created if it does not exist yet.
         command: The command taking the lock, recorded so a refused run can say what is in progress.
+        timeout: Seconds to keep trying while another run holds the lock. 0 (the default) refuses at once.
 
     Yields:
         Who held the stale lock that was cleared to take this one (the run that died), or ``None`` if there
         was none. The lock is held until the block ends.
 
     Raises:
-        RunLockedError: if another run holds the lock, or the lock file exists but cannot be read.
+        RunLockedError: if another run still holds the lock after ``timeout`` seconds, or the lock file exists but
+            cannot be read.
         LockUnavailableError: if the lock file cannot be created.
     """
 
     path = library.state_dir / LOCK_FILENAME
-    cleared = _acquire(path, command)
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            cleared = _acquire(path, command)
+            break
+        except RunLockedError:
+            if time.monotonic() >= deadline:
+                raise
+            time.sleep(_POLL_SECONDS)
     try:
         yield cleared
     finally:

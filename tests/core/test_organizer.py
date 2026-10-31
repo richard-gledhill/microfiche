@@ -275,6 +275,17 @@ def test_run_sort_only_unreadable_file_writes_no_job(tmp_path: Path) -> None:
     assert not (library / MICROFICHE_DIRNAME / "rollback").exists()
 
 
+def test_run_sort_only_sorts_the_named_entries(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    chosen = library / "_sorting" / _PHOENIX_NOTE
+
+    report = run_sort(Library(library), only=[chosen])
+
+    assert [unit.source_path.name for unit, _ in report.filed] == [_PHOENIX_NOTE]
+    assert report.needs_review == []
+    assert (library / "_sorting" / _SOLAR_NOTE).exists()  # not looked at, so not held either
+
+
 # region Inbox folders (keep_folders on and off)
 
 
