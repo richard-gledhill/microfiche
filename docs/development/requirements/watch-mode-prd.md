@@ -1,6 +1,8 @@
 # Sort as files arrive
 
-Status: Draft
+Status: Accepted
+
+Settled on 2026-10-31 ([ADR-012](../adr/ADR-012-watch-mode.md)).
 
 - **Id:** `watch-mode` ([capability map](post-mvp-capability-map.md), #7)
 - **Depends on:** `matching-precision`, `hint-learning`, `scriptable-output`, `drift-check`
@@ -24,18 +26,22 @@ the outcome can be reported to other tools (`scriptable-output`) and drift is no
   the threshold, the collision and duplicate checks, the drift check, and one rollback-able job per batch.
 - New units are found by **rescanning the inbox** with the existing scanner at a short interval. A missed or late file
   event can only delay a file, never lose it.
-- A unit is processed only once it has stopped changing (size and modification time unchanged across two scans), and
-  the move stays a plain rename, which fails cleanly on a file that is still open. A file still being written or synced
-  is never moved.
-- Batching: wait for a quiet period, then sort what arrived, so a folder copied in is one job.
+- A unit is processed only once it has stopped changing (size and modification time unchanged across two scans, taken
+  without reading content), and the move stays a plain rename, which fails cleanly on a file that is still open. A file
+  still being written or synced is never moved.
+- Batching: a batch runs when some unit is stable and the scan itself was quiet, so a folder copied in is one job. One
+  interval is the quiet period.
 - The run lock is held only while a batch is filed, so `review` and `rollback` can run between batches. A lock timeout
-  replaces "refuse at once" for watch mode.
-- Units held for review are not re-classified every batch; they are retried only when they change.
-- Stops cleanly on Ctrl-C, finishing or abandoning the current batch without a half-filed job.
+  (`[watch] lock_timeout_seconds`, default 30) replaces "refuse at once" for watch mode; on a timeout the batch is retried
+  on the next scan.
+- `[watch] interval_seconds` (default 3600) and `--interval`; `--use-ai` is opt-in.
+- Units held for review are not re-classified every batch; they are retried only when they change or when the config or
+  library file changes.
+- Stops cleanly on Ctrl-C, finishing the current batch so no job is half-filed.
 - Works the same on a local disk, a network share and a OneDrive-synced folder.
 
 **Should**
-- A summary line per batch, and `--json` lines for scripts.
+- A summary line per batch, and `--json`: one compact JSON line per batch (the `sort` document).
 
 **Won't (this time)**
 - File-system event libraries (`watchdog`). Polling the inbox is enough and adds no dependency; see the review below.
@@ -73,9 +79,12 @@ Guidance for the spec, not binding.
 - [mvp-followups-prd.md](mvp-followups-prd.md) D9 (lock timeout).
 - [watchdog-review.md](../architecture/watchdog-review.md): the `watchdog` research, with sources.
 
-## Open questions
+## Decisions
 
-- The scan interval and the quiet period: fixed, or settings (changed through `init`)?
-- Should watch mode use the AI fallback, given its per-document cost?
-- Does scanning a OneDrive inbox every few seconds cost anything noticeable? Test on a real machine before choosing the
-  interval.
+- **Settings:** `[watch] interval_seconds` (default 3600) and `lock_timeout_seconds` (30), with `--interval`. No separate
+  quiet period: a batch needs a quiet scan.
+- **AI:** `--use-ai`, off by default.
+- **Busy lock:** wait up to the timeout, then retry next cycle.
+- **`--json`:** one line per batch.
+- **Ctrl-C:** finish the current batch.
+- **OneDrive:** the scan is stat-only; the by-hand check on a synced inbox is left for the user.
