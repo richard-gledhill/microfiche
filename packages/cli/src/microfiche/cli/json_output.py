@@ -19,6 +19,7 @@ from typing import Any, Literal
 
 from microfiche.core.classifier import VerificationStats
 from microfiche.core.config import MicroficheConfig
+from microfiche.core.drift import DriftReport
 from microfiche.core.filer import FailedFiling
 from microfiche.core.library.library import Library
 from microfiche.core.library.library_sync import LibrarySync
@@ -90,6 +91,22 @@ class SyncEntry(BaseModel):
     write_error: str | None
 
 
+class DriftEntry(BaseModel):
+    """A filed unit that is not where the ledger says."""
+
+    path: str = Field(description="Where the ledger has it, relative to the library.")
+    state: Literal["moved", "missing", "modified"]
+    new_path: str | None = Field(default=None, description="Where a moved unit is now.")
+
+
+class DriftSummary(BaseModel):
+    """What the drift check found: units moved, edited or removed by hand since microfiche filed them."""
+
+    items: list[DriftEntry]
+    recorded: bool = Field(description="Whether the moved units were written to the ledger.")
+    summary: str | None
+
+
 class SortOutput(_Output):
     """The result of ``sort`` (and ``sort --dry-run``)."""
 
@@ -109,6 +126,7 @@ class SortOutput(_Output):
     folders_removed: list[str]
     folders_kept: list[FolderKept]
     library_sync: SyncEntry | None
+    drift: DriftSummary | None = Field(default=None, description="Filed units found out of place; null if none.")
 
 
 class ProposalEntry(BaseModel):
@@ -140,6 +158,7 @@ class ReclassifyOutput(_Output):
     items_below_depth: int
     ai_unavailable: str | None
     ai_verification: Verification
+    drift: DriftSummary | None = Field(default=None, description="Filed units found out of place; null if none.")
 
 
 class RollbackOutput(_Output):
@@ -149,6 +168,10 @@ class RollbackOutput(_Output):
     job_id: str
     moves_reverted: int
     folders_recreated: int
+    edited: list[str] = Field(
+        default_factory=list, description="Units moved back whose content had changed since filing."
+    )
+    drift: DriftSummary | None = Field(default=None, description="Filed units found out of place; null if none.")
 
 
 class AuditEntry(BaseModel):
@@ -209,6 +232,7 @@ class ReviewQueueOutput(_Output):
     duplicates: list[DuplicateEntry]
     waiting: int = Field(description="Units confident enough for `sort` to file, which are not in the queue.")
     ai_unavailable: str | None
+    drift: DriftSummary | None = Field(default=None, description="Filed units found out of place; null if none.")
 
 
 class ErrorOutput(_Output):
@@ -235,7 +259,7 @@ OUTPUTS: dict[str, type[_Output]] = {
 # region Public API
 
 
-def sort_output(report: SortReport, library: Library) -> SortOutput:
+def sort_output(report: SortReport, library: Library, drift: DriftReport | None = None) -> SortOutput:
     """The JSON for a ``sort`` run."""
 
     destinations = _destinations(report.job, library)
@@ -254,6 +278,7 @@ def sort_output(report: SortReport, library: Library) -> SortOutput:
         folders_removed=[library.relative(p) for p in report.folders_removed],
         folders_kept=[FolderKept(path=library.relative(p), reason=why) for p, why in report.folders_kept],
         library_sync=_sync(sync) if sync is not None else None,
+        drift=_drift(drift),
     )
 
 
@@ -266,6 +291,7 @@ def reclassify_output(
     failed: Iterable[FailedFiling],
     below_depth: int,
     ai_unavailable: str | None,
+    drift: DriftReport | None = None,
 ) -> ReclassifyOutput:
     """The JSON for a ``reclassify`` run."""
 
@@ -289,16 +315,19 @@ def reclassify_output(
         items_below_depth=below_depth,
         ai_unavailable=ai_unavailable,
         ai_verification=Verification(checked=confirmed + overruled, confirmed=confirmed, overruled=overruled),
+        drift=_drift(drift),
     )
 
 
-def rollback_output(job: Job) -> RollbackOutput:
+def rollback_output(job: Job, edited: Sequence[str] = (), drift: DriftReport | None = None) -> RollbackOutput:
     """The JSON for a ``rollback``."""
 
     return RollbackOutput(
         job_id=job.job_id,
         moves_reverted=sum(1 for event in job.moves if event.action == "move"),
         folders_recreated=sum(1 for event in job.moves if event.action == "remove_folder"),
+        edited=list(edited),
+        drift=_drift(drift),
     )
 
 
@@ -336,7 +365,9 @@ def config_output(config: MicroficheConfig | None, sync: LibrarySync | None) -> 
     )
 
 
-def review_queue_output(session: ReviewSession, library: Library) -> ReviewQueueOutput:
+def review_queue_output(
+    session: ReviewSession, library: Library, drift: DriftReport | None = None
+) -> ReviewQueueOutput:
     """The JSON for ``review --list``."""
 
     return ReviewQueueOutput(
@@ -344,6 +375,7 @@ def review_queue_output(session: ReviewSession, library: Library) -> ReviewQueue
         duplicates=[_duplicate(d.unit, d.classification, library, d.existing, d.reason) for d in session.duplicates],
         waiting=session.waiting,
         ai_unavailable=session.ai_unavailable,
+        drift=_drift(drift),
     )
 
 
@@ -437,6 +469,16 @@ def _destinations(job: Job | None, library: Library) -> dict[str, str]:
         for event in job.moves
         if event.action == "move" and event.new_path is not None
     }
+
+
+def _drift(report: DriftReport | None) -> DriftSummary | None:
+    if report is None or not report.items:
+        return None
+    return DriftSummary(
+        items=[DriftEntry(path=i.path, state=i.state.value, new_path=i.new_path) for i in report.items],
+        recorded=report.recorded,
+        summary=report.summary,
+    )
 
 
 def _verification(stats: VerificationStats) -> Verification:

@@ -392,3 +392,97 @@ def test_file_refusal_without_json_says_why_and_exits_non_zero(tmp_path: Path) -
 
 
 # endregion
+
+# region drift
+
+
+_FILED_NOTE = "Project Phoenix/02 Architecture/PhoenixArchitectureNotes.md"
+_MOVED_NOTE = "Project Phoenix/03 Research/PhoenixArchitectureNotes.md"
+
+
+def _library_with_a_note_moved_by_hand(tmp_path: Path) -> Path:
+    library = _library(tmp_path)
+    assert runner.invoke(app, ["sort", "--library", str(library)]).exit_code == 0
+    shutil.move(library / _FILED_NOTE, library / _MOVED_NOTE)
+    return library
+
+
+def _filed_events(library: Path) -> list[str]:
+    return [json.loads(line)["event"] for line in (library / ".microfiche" / "ledger.jsonl").read_text().splitlines()]
+
+
+def test_sort_json_reports_and_records_a_file_moved_by_hand(tmp_path: Path) -> None:
+    library = _library_with_a_note_moved_by_hand(tmp_path)
+
+    output = SortOutput.model_validate(_json(["sort", "--library", str(library)]))
+
+    assert output.drift is not None
+    assert output.drift.recorded is True
+    assert [(i.path, i.state, i.new_path) for i in output.drift.items] == [(_FILED_NOTE, "moved", _MOVED_NOTE)]
+    assert "relocated" in _filed_events(library)
+    second = SortOutput.model_validate(_json(["sort", "--library", str(library)]))
+    assert second.drift is None
+
+
+def test_sort_dry_run_json_reports_the_drift_but_writes_nothing(tmp_path: Path) -> None:
+    library = _library_with_a_note_moved_by_hand(tmp_path)
+    before = _filed_events(library)
+
+    output = SortOutput.model_validate(_json(["sort", "--library", str(library), "--dry-run"]))
+
+    assert output.drift is not None
+    assert output.drift.recorded is False
+    assert _filed_events(library) == before
+
+
+def test_sort_json_with_nothing_drifted_has_no_drift_object(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _json(["sort", "--library", str(library)])
+
+    assert SortOutput.model_validate(_json(["sort", "--library", str(library)])).drift is None
+
+
+def test_reclassify_json_reports_an_edited_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _json(["sort", "--library", str(library)])
+    (library / _FILED_NOTE).write_text("Project Phoenix architecture, edited since.", encoding="utf-8")
+
+    output = ReclassifyOutput.model_validate(_json(["reclassify", "--library", str(library)]))
+
+    assert output.drift is not None
+    assert [(i.path, i.state) for i in output.drift.items] == [(_FILED_NOTE, "modified")]
+
+
+def test_rollback_json_after_a_move_by_hand_restores_the_file(tmp_path: Path) -> None:
+    library = _library_with_a_note_moved_by_hand(tmp_path)
+
+    output = RollbackOutput.model_validate(_json(["rollback", "--library", str(library), "--last"]))
+
+    assert (library / "_sorting" / "PhoenixArchitectureNotes.md").is_file()
+    assert output.drift is not None
+    assert output.drift.recorded is True
+
+
+def test_rollback_json_lists_an_edited_file(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _json(["sort", "--library", str(library)])
+    (library / _FILED_NOTE).write_text("Edited since.", encoding="utf-8")
+
+    output = RollbackOutput.model_validate(_json(["rollback", "--library", str(library), "--last"]))
+
+    assert output.edited == [_FILED_NOTE]
+
+
+def test_rollback_missing_file_says_nothing_was_moved(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    _json(["sort", "--library", str(library)])
+    (library / _FILED_NOTE).unlink()
+
+    result = runner.invoke(app, ["rollback", "--library", str(library), "--last"])
+
+    assert result.exit_code == 1
+    assert "Nothing was moved" in result.stdout
+    assert "PhoenixArchitectureNotes.md" in result.stdout
+
+
+# endregion

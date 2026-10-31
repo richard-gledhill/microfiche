@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-LedgerEvent = Literal["filed", "rolled_back", "hint_learned"]
+LedgerEvent = Literal["filed", "rolled_back", "hint_learned", "relocated"]
 
 
 class LedgerRecord(BaseModel):
@@ -37,6 +37,9 @@ class LedgerRecord(BaseModel):
         category_reason: Why the classifier chose that category.
         confidence: Overall classification confidence.
         classified_by: Which classifier produced the result (e.g. ``"rules_engine"``).
+        original_path (for ``"relocated"``): the place the unit was recorded at before it was found somewhere else. A
+            ``"relocated"`` record is a ``"filed"`` one for the new ``path``, with the same job, content and
+            classification; it is written when a unit filed by microfiche was moved by hand.
         hint: For a ``"hint_learned"`` record, the keyword that was learned for ``group``/``category``. Such a record
             has no file: its ``path`` is ``group/category`` and its hashes and ``original_path`` are empty.
     """

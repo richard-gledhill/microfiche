@@ -81,7 +81,8 @@ class Ledger:
         Replays the history: a ``"rolled_back"`` record cancels the ``"filed"`` record it names
         (same job, same path), and a ``"filed"`` record for a unit that was *moved* (its
         ``original_path`` is an earlier record's ``path``) supersedes that earlier record - so
-        rolling the move back brings the earlier record back.
+        rolling the move back brings the earlier record back. A ``"relocated"`` record, written when a unit was
+        found moved by hand, works the same way as the ``"filed"`` record of its new place.
         """
 
         records = self.read_all()
@@ -89,12 +90,31 @@ class Ledger:
 
         by_path: dict[str, LedgerRecord] = {}
         for record in records:
-            if record.event != "filed" or (record.job_id, record.path) in rolled_back:
+            if record.event not in ("filed", "relocated") or (record.job_id, record.path) in rolled_back:
                 continue
             by_path.pop(record.original_path, None)
             by_path.pop(record.path, None)  # re-insert so dict order follows recency
             by_path[record.path] = record
         return list(by_path.values())
+
+    def relocations(self) -> dict[str, list[str]]:
+        """Where each unit that was moved by hand is now, as the places it was recorded at, oldest first.
+
+        The key is the place a job filed the unit at; the value lists that place, then each place a ``relocated``
+        record moved it to, so the last is where it is now. Units never moved by hand are not in the result.
+        """
+
+        hops: dict[str, list[str]] = {}
+        chains: dict[str, list[str]] = {}
+        for record in self.read_all():
+            if record.event != "relocated":
+                continue
+            chain = chains.pop(record.original_path, None) or [record.original_path]
+            chain.append(record.path)
+            chains[record.path] = chain
+        for chain in chains.values():
+            hops[chain[0]] = chain
+        return hops
 
     def learned_hints(self) -> set[tuple[str, str, str]]:
         """Every ``(group, category, hint)`` microfiche has ever learned, as recorded by ``hint_learned`` events."""

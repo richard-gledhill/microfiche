@@ -38,6 +38,7 @@ from microfiche.core.ai.factory import build_provider
 from microfiche.core.ai.llm_classifier import LLMClassifier
 from microfiche.core.classifier import VerificationStats
 from microfiche.core.config import CONFIG_FILENAME, AIConfig, ConfigError, ConfigProblem
+from microfiche.core.drift import DriftItem, DriftReport, check_drift, find_modified, record_moves
 from microfiche.core.filer import (
     AUDIT_LOG_FILENAME,
     JobAlreadyRolledBackError,
@@ -189,6 +190,7 @@ def sort(
         ),
         progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
+        drift = _check_drift(opened, record=not dry_run)  # first: a bundle moved by hand changes the taxonomy
         ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
         report = run_sort(
             opened,
@@ -198,7 +200,7 @@ def sort(
             progress=on_progress,
         )
     if as_json:
-        _emit(sort_output(report, opened))
+        _emit(sort_output(report, opened, drift))
     else:
         render_sort_report(console, report)
 
@@ -240,6 +242,7 @@ def review(
         _fail("review asks questions, so it needs a terminal. Use `sort`, or file the documents by hand.")
     provider = _checked_ai_provider(opened.config.ai, quiet=quiet) if use_ai else None
     with _logging("review", opened, verbose=verbose, quiet=quiet, writes=False):
+        _check_drift(opened, record=False)
         with progress_bar(quiet=quiet, ai=use_ai) as on_progress:
             ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
             session = ReviewSession.start(opened, ai_classifier=ai_classifier, progress=on_progress)
@@ -285,6 +288,7 @@ def file_units(
         _logging("file", opened, verbose=verbose, quiet=quiet, writes=False),
         progress_bar(quiet=quiet, ai=False) as on_progress,
     ):
+        _check_drift(opened, record=False)
         session = ReviewSession.start(opened, progress=on_progress)
     folders, decided, refused = _choose(session, units, to)
     if refused:
@@ -396,6 +400,7 @@ def config(
         _locked(opened, "config", needed=sync) as cleared_lock,
         _logging("config", opened, verbose=verbose, quiet=quiet, writes=sync, cleared_lock=cleared_lock),
     ):
+        _check_drift(opened, record=sync)
         if sync:
             result = sync_library_file(opened)
         elif as_json:
@@ -448,6 +453,7 @@ def reclassify(
         _logging("reclassify", lib, verbose=verbose, quiet=quiet, writes=apply, cleared_lock=cleared_lock),
         progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
+        drift = _check_drift(lib, record=apply)
         ai_classifier = _build_ai_classifier(lib.config.ai, provider) if provider is not None else None
         try:
             proposals = run_reclassify(lib, scope=folder, ai_classifier=ai_classifier, progress=on_progress)
@@ -455,6 +461,7 @@ def reclassify(
             _fail(str(err))
         except LedgerCorruptError as err:
             _fail(f"The ledger can't be read, so filed folders can't be told apart: {err}")
+        _report_edits(drift, find_modified(lib, [proposal.current_path for proposal in proposals]))
         if not as_json:
             render_reclassify_table(console, proposals, root=lib.root, dry_run=not apply)
         if ai_classifier is not None:
@@ -472,6 +479,7 @@ def reclassify(
                 failed=result.failed if result else (),
                 below_depth=below_depth,
                 ai_unavailable=ai_classifier.failure if ai_classifier is not None else None,
+                drift=drift,
             )
         )
         if result is not None and result.failed:
@@ -531,23 +539,34 @@ def rollback(
     if last == (job_id is not None):
         _fail("Give exactly one of --job-id and --last.")
     lib = Library(library)
+    edited: list[str] = []
+    drift = DriftReport()
     try:
         with (
             _locked(lib, "rollback") as cleared_lock,
             _logging("rollback", lib, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
         ):
+            drift = _check_drift(lib, record=True)  # so a unit moved by hand is taken from where it is now
             # Resolved under the lock, so the job --last names is the one that is undone.
-            job = rollback_job(lib, latest_job(lib.state_dir).job_id if last else str(job_id))
+            job = rollback_job(lib, latest_job(lib.state_dir).job_id if last else str(job_id), edited=edited)
     except (JobNotFoundError, JobAlreadyRolledBackError, NoJobToRollBackError) as err:
         _fail(str(err))
-    except (JobMoveMissingError, FileExistsError) as err:
+    except JobMoveMissingError as err:
+        _fail(
+            f"{err}\nNothing was moved. Put the file(s) back where the message says, or restore them, and run it again."
+        )
+    except FileExistsError as err:
         _fail(
             f"{err}\nRollback stopped part-way; the moves already reversed are recorded. "
             "Fix the problem above and re-run the same command to finish."
         )
     if as_json:
-        _emit(rollback_output(job))
+        _emit(rollback_output(job, edited, drift))
         return
+    for path in edited:
+        console.print(
+            f"[yellow]{escape(path)}[/yellow] had been edited since it was filed; moved back as it is.", soft_wrap=True
+        )
     moves = sum(1 for event in job.moves if event.action == "move")
     restored = sum(1 for event in job.moves if event.action == "remove_folder")
     folders = f" and recreated {restored} emptied folder(s)" if restored else ""
@@ -872,6 +891,7 @@ def _file_chosen(library: Library, session: ReviewSession, *, verbose: bool, qui
                 _locked(library, "review") as cleared_lock,
                 _logging("review", library, verbose=verbose, quiet=quiet, writes=True, cleared_lock=cleared_lock),
             ):
+                _check_drift(library, record=True)
                 return session.commit()
         except typer.Exit:
             if not typer.confirm("Try again?", default=False):
@@ -903,6 +923,41 @@ def _emit(output: Any) -> None:
     """Write ``output`` (a ``json_output`` model) to stdout as the command's one JSON document."""
 
     typer.echo(output.model_dump_json(indent=2))
+
+
+def _check_drift(library: Library, *, record: bool) -> DriftReport:
+    """Compare the ledger with the library and say, once, if filed units were moved, edited or removed by hand.
+
+    With ``record`` (the command holds the run lock) the moved ones are written to the ledger so it points at their new
+    places. Nothing is moved because of drift. The summary is a warning, so ``-q`` hides it; each item is logged.
+    """
+
+    try:
+        report = check_drift(library)
+    except LedgerCorruptError as err:  # the command that needs the ledger says so itself
+        _logger.warning("drift check skipped: %s", err)
+        return DriftReport()
+    if record:
+        record_moves(library, report)
+    _announce(report)
+    return report
+
+
+def _report_edits(report: DriftReport, modified: list[DriftItem]) -> None:
+    """Add the units found edited (by a command that read them anyway) to ``report`` and say so."""
+
+    if modified:
+        report.items.extend(modified)
+        _announce(DriftReport(items=modified))
+
+
+def _announce(report: DriftReport) -> None:
+    if report.summary is None:
+        return
+    _logger.warning(report.summary)
+    for item in report.items:
+        place = f" -> {item.new_path}" if item.new_path else ""
+        _logger.info("drift: %s %s%s", item.path, item.state.value, place)
 
 
 def _choose(
@@ -943,10 +998,11 @@ def _list_queue(opened: Library, *, use_ai: bool, as_json: bool, verbose: bool, 
         _logging("review", opened, verbose=verbose, quiet=quiet, writes=False),
         progress_bar(quiet=quiet, ai=use_ai) as on_progress,
     ):
+        drift = _check_drift(opened, record=False)
         ai_classifier = _build_ai_classifier(opened.config.ai, provider) if provider is not None else None
         session = ReviewSession.start(opened, ai_classifier=ai_classifier, progress=on_progress)
     if as_json:
-        _emit(review_queue_output(session, opened))
+        _emit(review_queue_output(session, opened, drift))
         return
     _describe_queue(session)
     if not session.items:

@@ -19,7 +19,10 @@ drift should be noticed before it breaks it, without a separate command to remem
 - **No new command.** The check is a core function over `Ledger.current()` and the filesystem; the CLI decides whether to
   record and what to print, as it does for the lock and logging.
 - **Cheap by construction.** A stat per recorded path says whether it is in place. Only when something is missing is the
-  library walked for its new place, sizes first, hashing only same-size files, as the duplicate check does.
+  library walked for its new place. The ledger records a content hash but no size, so sizes cannot narrow the search as in
+  the duplicate check; instead the candidates are files the ledger does not account for that have the same extension (for a
+  folder filed whole, unaccounted folders of the same name), each hashed at most once. A unit is moved only if exactly one
+  candidate matches. A folder both moved and renamed is therefore missing.
 - **States:** in place; moved (same content found at one other place in the library); modified; missing. A folder filed
   whole is one item, matched by its members' recorded hashes.
 - **Modified is found on demand only.** The ledger keeps a content hash, not a size or modification time, and hashing every
@@ -57,3 +60,5 @@ drift should be noticed before it breaks it, without a separate command to remem
   `reclassify` and `rollback`.
 - The ledger gains an event type; every reader that replays it (`current`, `folder_units`, `lookup`) must apply it.
 - A library of thousands of items pays one stat each per command, and a walk of the library only when something is missing.
+  When something is missing, every unaccounted file with its extension is hashed: not measured on the 31 GB walkthrough
+  library. Recording each file's size at filing would let the search skip most of them (a follow-up).

@@ -35,6 +35,13 @@ classified as, and why. Append-only JSON lines — one `LedgerRecord`
   It is not a filing: `path` is `group/category`, `original_path` and `content_hash` are empty, `unit_type` is `folder`,
   `hint` holds the word and `classified_by` is `learning`. `Ledger.current()` ignores it; `Ledger.learned_hints()` reads
   it, so a hint later missing from the library file counts as one the person deleted and is not learned again.
+- **`relocated`** (drift check, [ADR-011](../adr/ADR-011-drift-check.md)): written by a command that holds the run lock when a
+  unit microfiche filed is no longer at its recorded place but exactly one other place in the library has its content.
+  It is a copy of the unit's `filed` record (same `job_id`, content, group, category and reasons) with `path` set to the
+  new place, `original_path` to the place it was recorded at and a new `timestamp`. `Ledger.current()` treats it like a
+  re-filing: it supersedes the earlier record. `Ledger.relocations()` lists each unit's places, so `rollback` takes it
+  from where it is now, and writes a `rolled_back` record for every place so the replay cancels all of them. Nothing is
+  moved on disk, and a unit that cannot be found is never recorded.
 - **Events.** `"filed"` is written when a unit is moved into the library. `"rolled_back"` is
   written when a rollback moves it out again; it carries only the identifying fields
   (`job_id`, `path`, `original_path`, `content_hash`, `unit_type`) and leaves the classification

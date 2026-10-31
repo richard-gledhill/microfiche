@@ -144,8 +144,8 @@ unit and proposes it whole (`keep`, `move`, `review` or `conflict`) instead of s
 below a category is read file by file, as before; to keep one out, exclude it by name or glob (`attachments`,
 `[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_*`). When the depth is reduced, nothing moves; `reclassify` says how many filed
 items now sit below it (`items_below_depth`). `Library.structure()` also skips filed bundles, so one never becomes a
-category when the depth is raised. `name_pattern` was dropped in favour of the existing exclusions. Still open: a
-bundle moved by hand drops out of the unit set and is split by `reclassify`. The opt-in way to flatten those items is in
+category when the depth is raised. `name_pattern` was dropped in favour of the existing exclusions. A
+bundle moved by hand was split by `reclassify` until the drift check ([ADR-011](../adr/ADR-011-drift-check.md)) began following it. The opt-in way to flatten those items is in
 [feature-backlog.md](../rfcs/RFC-003-opt-in-flatten.md), to be reviewed.
 
 Two ideas about the library's shape (see [library-depth.md](../architecture/library-depth.md)) are in the feature backlog, under review:
@@ -206,6 +206,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   short, and written knowing the rules, so its absolute error rates are not predictive.
 - **Ambiguity check.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice B): `[classification] ambiguity_margin` (default 0.1) holds a document when the runner-up group or category is within it; an exactly named group settles the group stage against fuzzy lookalikes. Misfires 24 → 6 with word boundaries, correct filings unchanged; see [calibration.md](../testing/calibration.md#ambiguity-margin). Still unmeasured on long documents.
 - **AI second opinion.** Built for `sort` and `review` ([ADR-009](../adr/ADR-009-ai-second-opinion.md)): `[ai] verify_below` (default 0, off) has the AI check rules answers below it; replayed on the corpus, 0.95 removed all six remaining misfiles without losing a correct filing ([calibration.md](../testing/calibration.md#ai-second-opinion)). `reclassify --use-ai` shares it.
+- **Drift check.** Built ([ADR-011](../adr/ADR-011-drift-check.md)): the commands that read the library notice filed documents moved, edited or removed by hand; a moved one is recorded (`relocated`) by commands that hold the lock, so `rollback` and `reclassify` follow it, and a bundle moved by hand is no longer split. Not measured on the 31 GB library; recording each file's size at filing would narrow the search.
 - **Hint learning.** Built ([ADR-008](../adr/ADR-008-hint-learning.md)): `[learning] enabled` (default off) adds `learned_hints` to the library file after a `review` commit, from the documents the user filed; a deleted hint is not learned again (ledger `hint_learned` events). The calibration corpus is too small to tune the thresholds (see [calibration.md](../testing/calibration.md#learning-from-review-choices)).
 - **Empty-group filing.** Built ([ADR-007](../adr/ADR-007-leaf-groups.md)): `[sorting] file_in_empty_groups` (default off) files a document that names a depth-2 group with no category folders straight into that group; `review` can choose it and `reclassify` keeps it. `attachments` joins the default `[exclusions]`. Not yet in the calibration corpus (the harness skips two-part paths at depth 2).
 - **Folder-name normalisation.** Built ([ADR-005](../adr/ADR-005-folder-name-matching.md)): `[classification] normalise_names` (on by default) compares folder names, hints and text in one spelling. Calibration covers it in a separate `corpus_styles` corpus ([calibration.md](../testing/calibration.md#folder-name-styles)).

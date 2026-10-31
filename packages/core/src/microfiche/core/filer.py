@@ -128,9 +128,11 @@ class NoJobToRollBackError(LookupError):
 class JobMoveMissingError(FileNotFoundError):
     """Raised when a move can't be reversed because the file is at neither its old nor new location."""
 
-    def __init__(self, event: AuditEvent) -> None:
+    def __init__(self, event: AuditEvent, all_missing: Sequence[AuditEvent] = ()) -> None:
         self.event = event
-        super().__init__(f"Cannot roll back: '{event.new_path}' is gone and '{event.original_path}' does not exist")
+        self.all_missing = tuple(all_missing) or (event,)
+        gone = "; ".join(f"'{e.new_path}' is gone and '{e.original_path}' does not exist" for e in self.all_missing)
+        super().__init__(f"Cannot roll back: {gone}")
 
 
 # endregion
@@ -201,10 +203,14 @@ def file_batch(library: Library, items: list[tuple[SortableUnit, ClassificationR
     return result
 
 
-def rollback_job(library: Library, job_id: str) -> Job:
+def rollback_job(library: Library, job_id: str, *, edited: list[str] | None = None) -> Job:
     """Reverse every move of a job, newest first, and mark the job as rolled back.
 
     A folder the job removed once it was empty is recreated first, so the units that were in it can go back.
+
+    A unit that was moved by hand since the job (the ledger has a ``relocated`` record for it) is taken from where it is
+    now. One that is gone from both its filed and its original place stops the rollback before anything is moved, naming
+    every such unit. One whose content differs from what was filed is moved back like any other; ``edited`` lists it.
 
     Safe to retry: if an earlier attempt stopped part-way, moves that were already reversed are
     recognised (the unit is back at its original location) and skipped.
@@ -212,6 +218,7 @@ def rollback_job(library: Library, job_id: str) -> Job:
     Args:
         library: The library the job was run on.
         job_id: The id printed by ``sort`` (the ``job_<id>.json`` file name without its decoration).
+        edited: If given, receives the library-relative filed path of each unit moved back whose content had changed.
 
     Returns:
         The job, with ``rolled_back_at`` set.
@@ -229,6 +236,14 @@ def rollback_job(library: Library, job_id: str) -> Job:
         raise JobAlreadyRolledBackError(job.job_id, job.rolled_back_at)
     _logger.info("rolling back job %s: %d recorded step(s)", job.job_id, len(job.moves))
 
+    ledger = Ledger(state_dir)
+    relocations = ledger.relocations()
+    filed_hashes = {r.path: r.content_hash for r in ledger.read_all() if r.event == "filed" and r.job_id == job.job_id}
+
+    gone = _unreachable(library, job, relocations)
+    if gone:
+        raise JobMoveMissingError(gone[0], gone)
+
     reversed_events: list[AuditEvent] = []
     records: list[LedgerRecord] = []
     try:
@@ -241,29 +256,29 @@ def rollback_job(library: Library, job_id: str) -> Job:
                 continue
             if event.action != "move" or event.new_path is None:
                 continue
-            if not event.new_path.exists():
+            hops = _places(library, event, relocations)
+            source = library.root / hops[-1]
+            if not source.exists():
                 if event.original_path.exists():
                     _logger.debug("already back: %s", library.relative(event.original_path))
                     continue  # already put back by an earlier, interrupted rollback
                 raise JobMoveMissingError(event)
-            content_hash = unit_hash(event.new_path)
-            unit_type: Literal["file", "folder"] = "folder" if event.new_path.is_dir() else "file"
-            safe_move(event.new_path, event.original_path)
-            _logger.debug(
-                "moved back %s -> %s", library.relative(event.new_path), library.relative(event.original_path)
-            )
-            reversed_events.append(
-                AuditEvent(original_path=event.new_path, new_path=event.original_path, action="rollback")
-            )
-            records.append(
+            content_hash = unit_hash(source)
+            unit_type: Literal["file", "folder"] = "folder" if source.is_dir() else "file"
+            _note_if_edited(filed_hashes.get(hops[0]), content_hash, hops, edited)
+            safe_move(source, event.original_path)
+            _logger.debug("moved back %s -> %s", hops[-1], library.relative(event.original_path))
+            reversed_events.append(AuditEvent(original_path=source, new_path=event.original_path, action="rollback"))
+            records.extend(
                 LedgerRecord(
                     event="rolled_back",
                     job_id=job.job_id,
-                    path=library.relative(event.new_path),
+                    path=hop,
                     original_path=library.relative(event.original_path),
                     content_hash=content_hash,
                     unit_type=unit_type,
                 )
+                for hop in hops
             )
     finally:
         Ledger(state_dir).append(records)
@@ -518,6 +533,36 @@ def _holds_anything(folder: Path) -> bool:
     """
 
     return any(is_link(entry) or not entry.is_dir() or _holds_anything(entry) for entry in folder.iterdir())
+
+
+def _places(library: Library, event: AuditEvent, relocations: dict[str, list[str]]) -> list[str]:
+    """Where the ledger has had ``event``'s unit: as filed first, then each place it was moved to by hand."""
+
+    filed_at = library.relative(event.new_path) if event.new_path is not None else ""
+    return relocations.get(filed_at, [filed_at])
+
+
+def _note_if_edited(filed_hash: str | None, content_hash: str, hops: list[str], edited: list[str] | None) -> None:
+    """Warn, and tell ``edited`` if given, when a unit about to be moved back no longer holds what was filed."""
+
+    if filed_hash is None or filed_hash == content_hash:
+        return
+    _logger.warning("%s was edited since it was filed; moved back as it is", hops[-1])
+    if edited is not None:
+        edited.append(hops[0])
+
+
+def _unreachable(library: Library, job: Job, relocations: dict[str, list[str]]) -> list[AuditEvent]:
+    """The moves of ``job`` whose unit is at neither its current place nor its original one, so cannot be reversed."""
+
+    return [
+        event
+        for event in job.moves
+        if event.action == "move"
+        and event.new_path is not None
+        and not (library.root / _places(library, event, relocations)[-1]).exists()
+        and not event.original_path.exists()
+    ]
 
 
 def _append_audit_lines(library: Library, job_id: str, events: list[AuditEvent]) -> None:
