@@ -5,7 +5,7 @@
 - **Decision:** Group names, category names and keyword hints are matched against document text through one shared
   `normalise_for_matching()`, behind `[classification] normalise_names` (default on). Folders and files on disk are
   never renamed. A normalised match is not discounted. See [Decisions](#decisions).
-- **Source:** [RFC-010](../rfcs/RFC-010-folder-name-matching.md)
+- **Source:** [RFC-010](../rfcs/archive/RFC-010-folder-name-matching.md)
 
 ## Context
 

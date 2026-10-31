@@ -17,9 +17,9 @@ feature.
 | Step | # | Id | Requirement | Theme | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | 1 | `library-init` | [`init`: set up, check and edit a library's configuration](library-init-prd.md) | Adoption | — | Done |
-| 2 | — | `ai-provider-setup` | [RFC-009: Ollama model setting, failure tips and a pre-run AI check](../rfcs/RFC-009-ollama-model-setting.md) | Bug fix | — | Done ([ADR-004](../adr/ADR-004-ai-provider-setup.md), PR #95) |
-| 3 | 2 | `matching-precision` | [Word-boundary matching and an ambiguity margin](matching-precision-prd.md), starting with [RFC-010: folder-name normalisation](../rfcs/RFC-010-folder-name-matching.md) | Trust, bug fix | — | Done ([ADR-005](../adr/ADR-005-folder-name-matching.md), [ADR-006](../adr/ADR-006-ambiguity-margin.md)) |
-| 4 | — | `empty-group-filing` | [RFC-011: groups with no category folders](../rfcs/RFC-011-groups-without-categories.md) | Bug fix | `matching-precision` (same classifier code) | Done ([ADR-007](../adr/ADR-007-leaf-groups.md)) |
+| 2 | — | `ai-provider-setup` | [RFC-009: Ollama model setting, failure tips and a pre-run AI check](../rfcs/archive/RFC-009-ollama-model-setting.md) | Bug fix | — | Done ([ADR-004](../adr/ADR-004-ai-provider-setup.md), PR #95) |
+| 3 | 2 | `matching-precision` | [Word-boundary matching and an ambiguity margin](matching-precision-prd.md), starting with [RFC-010: folder-name normalisation](../rfcs/archive/RFC-010-folder-name-matching.md) | Trust, bug fix | — | Done ([ADR-005](../adr/ADR-005-folder-name-matching.md), [ADR-006](../adr/ADR-006-ambiguity-margin.md)) |
+| 4 | — | `empty-group-filing` | [RFC-011: groups with no category folders](../rfcs/archive/RFC-011-groups-without-categories.md) | Bug fix | `matching-precision` (same classifier code) | Done ([ADR-007](../adr/ADR-007-leaf-groups.md)) |
 | 5 | 3 | `hint-learning` | [Learn keyword hints from review choices](hint-learning-prd.md) | Less review work | `matching-precision` | Done ([ADR-008](../adr/ADR-008-hint-learning.md)) |
 | 6 | 4 | `ai-second-opinion` | [Ask the AI about hint-level matches](ai-second-opinion-prd.md) | Less review work | `matching-precision`, `ai-provider-setup` | Done ([ADR-009](../adr/ADR-009-ai-second-opinion.md)) |
 | 7 | 5 | `scriptable-output` | [`--json` output and filing without the prompts](scriptable-output-prd.md) | Automation groundwork | — | Done ([ADR-010](../adr/ADR-010-scriptable-output.md)) |
@@ -76,7 +76,7 @@ These stay in the backlog, under review, because none has a measured need and th
 problems more cheaply:
 
 - [Subcategories (depth 3)](../rfcs/RFC-006-subcategories-depth-3.md)
-- [Filing target mode (`file_at`)](../rfcs/RFC-004-filing-target-mode.md); [RFC-011](../rfcs/RFC-011-groups-without-categories.md)
+- [Filing target mode (`file_at`)](../rfcs/RFC-004-filing-target-mode.md); [RFC-011](../rfcs/archive/RFC-011-groups-without-categories.md)
   is its narrow special case and is planned above.
 - [Decision-model classifier](../rfcs/RFC-005-decision-model-classifier.md)
 - Renaming on collision ([mvp-roadmap.md](mvp-roadmap.md#deferred-beyond-mvp)): sending a collision to review is the

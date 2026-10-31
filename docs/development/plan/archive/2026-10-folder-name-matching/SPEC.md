@@ -1,7 +1,7 @@
 # SPEC: folder-name matching (`matching-precision`, first slice)
 
-Source: [RFC-010](../rfcs/RFC-010-folder-name-matching.md), decided in [ADR-005](../adr/ADR-005-folder-name-matching.md).
-Style and bar: [conventions.md](../conventions.md), [constraints.md](../constraints.md).
+Source: [RFC-010](../../../rfcs/archive/RFC-010-folder-name-matching.md), decided in [ADR-005](../../../adr/ADR-005-folder-name-matching.md).
+Style and bar: [conventions.md](../../../conventions.md), [constraints.md](../../../constraints.md).
 
 ## Scope
 

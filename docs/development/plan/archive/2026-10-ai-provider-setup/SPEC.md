@@ -1,10 +1,10 @@
 # SPEC: `ai-provider-setup`
 
-Source: [RFC-009](../rfcs/RFC-009-ollama-model-setting.md), decided in [ADR-004](../adr/ADR-004-ai-provider-setup.md);
-step 2 of the [capability map](../requirements/post-mvp-capability-map.md). Branch: `fix/ai-provider-setup`.
+Source: [RFC-009](../../../rfcs/archive/RFC-009-ollama-model-setting.md), decided in [ADR-004](../../../adr/ADR-004-ai-provider-setup.md);
+step 2 of the [capability map](../../../requirements/post-mvp-capability-map.md). Branch: `fix/ai-provider-setup`.
 
-Style, the quality bar and test layout follow [conventions.md](../conventions.md), [constraints.md](../constraints.md)
-and [testing/](../testing/README.md); they are not restated here. Only what is specific to this work follows.
+Style, the quality bar and test layout follow [conventions.md](../../../conventions.md), [constraints.md](../../../constraints.md)
+and [testing/](../../../testing/README.md); they are not restated here. Only what is specific to this work follows.
 
 ## Objective
 
