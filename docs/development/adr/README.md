@@ -20,5 +20,6 @@ considered and why they lost, and the consequences. The `.adr-dir` file at the r
 | [ADR-009](ADR-009-ai-second-opinion.md) | Let the AI check low-confidence rules answers (opt-in) | Accepted |
 | [ADR-010](ADR-010-scriptable-output.md) | A JSON output contract and a non-interactive `file` command | Accepted |
 | [ADR-011](ADR-011-drift-check.md) | Notice files moved by hand, in the commands that already read the library | Accepted |
+| [ADR-012](ADR-012-watch-mode.md) | Watch mode polls the inbox and files what has stopped changing | Accepted |
 
 ADR-001 to ADR-003 were written as reviews before this folder existed; each keeps the review below its decision.

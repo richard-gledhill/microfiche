@@ -24,7 +24,7 @@ feature.
 | 6 | 4 | `ai-second-opinion` | [Ask the AI about hint-level matches](ai-second-opinion-prd.md) | Less review work | `matching-precision`, `ai-provider-setup` | Done ([ADR-009](../adr/ADR-009-ai-second-opinion.md)) |
 | 7 | 5 | `scriptable-output` | [`--json` output and filing without the prompts](scriptable-output-prd.md) | Automation groundwork | — | Done ([ADR-010](../adr/ADR-010-scriptable-output.md)) |
 | 8 | 6 | `drift-check` | [Background drift check](drift-check-prd.md) | Integrity | — | Done ([ADR-011](../adr/ADR-011-drift-check.md)) |
-| 9 | 7 | `watch-mode` | [Sort as files arrive](watch-mode-prd.md) | Zero-touch filing | `matching-precision`, `hint-learning`, `scriptable-output`, `drift-check` | Draft |
+| 9 | 7 | `watch-mode` | [Sort as files arrive](watch-mode-prd.md) | Zero-touch filing | `matching-precision`, `hint-learning`, `scriptable-output`, `drift-check` | Accepted ([ADR-012](../adr/ADR-012-watch-mode.md)) |
 
 **Build order:** `library-init` (done) → `ai-provider-setup` → `matching-precision` (RFC-010 first) →
 `empty-group-filing` → `hint-learning`, `ai-second-opinion` (either order) → `scriptable-output` → `drift-check` →
