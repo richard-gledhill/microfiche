@@ -3,7 +3,7 @@
 Status: Done
 
 Settled on 2026-10-28. The first slice, folder-name normalisation, shipped under
-[RFC-010](../rfcs/RFC-010-folder-name-matching.md) / [ADR-005](../adr/ADR-005-folder-name-matching.md), so names and
+[RFC-010](../rfcs/archive/RFC-010-folder-name-matching.md) / [ADR-005](../adr/ADR-005-folder-name-matching.md), so names and
 text are already plain words separated by single spaces. The rest is built in two PRs, each with its own calibration
 run: **(A) word boundaries**, then **(B) the ambiguity margin**.
 
