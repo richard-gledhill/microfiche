@@ -272,6 +272,28 @@ def test_run_lock_process_that_dies_holding_it_leaves_a_lock_that_is_cleared(tmp
         assert json.loads(_lock_path(library).read_text(encoding="utf-8"))["pid"] == os.getpid()
 
 
+def test_run_lock_timeout_waits_for_the_holder_to_let_go(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _write_lock(library)
+    timer = threading.Timer(0.3, path.unlink)
+    timer.start()
+    try:
+        with run_lock(library, "watch", timeout=10):
+            assert json.loads(_lock_path(library).read_text(encoding="utf-8"))["command"] == "watch"
+    finally:
+        timer.join()
+
+
+def test_run_lock_timeout_expires_while_still_held(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    path = _write_lock(library)
+
+    with pytest.raises(RunLockedError), run_lock(library, "watch", timeout=0.2):
+        pass
+
+    assert path.exists()
+
+
 # endregion
 
 

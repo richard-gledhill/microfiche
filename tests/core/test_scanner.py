@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from conftest import LinkMaker
 from microfiche.core.library.library import Library
-from microfiche.core.scanner import scan_sorting_inbox
+from microfiche.core.scanner import scan_sorting_inbox, snapshot_inbox
 
 # region Test helpers
 
@@ -429,6 +429,96 @@ def test_scan_sorting_inbox_missing_inbox_logs_it(tmp_path: Path, caplog: pytest
     scan_sorting_inbox(Library(tmp_path))
 
     assert "inbox _sorting does not exist; nothing to scan" in caplog.messages
+
+
+# endregion
+
+
+# region Scanning only some entries
+
+
+def test_scan_sorting_inbox_only_scans_the_named_entries(tmp_path: Path) -> None:
+    wanted = _write(tmp_path / "_sorting" / "a.md")
+    _write(tmp_path / "_sorting" / "b.md")
+    _write(tmp_path / "_sorting" / "pack" / "c.md")
+
+    units = scan_sorting_inbox(Library(tmp_path), only=[wanted]).units
+
+    assert [unit.source_path.name for unit in units] == ["a.md"]
+
+
+def test_scan_sorting_inbox_only_leaves_other_entries_unread(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    wanted = _write(tmp_path / "_sorting" / "a.md")
+    _write(tmp_path / "_sorting" / "b.md")
+    read: list[str] = []
+    original = Path.read_text
+
+    def spy(self: Path, *args: object, **kwargs: object) -> str:
+        read.append(self.name)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", spy)
+
+    scan_sorting_inbox(Library(tmp_path), only=[wanted])
+
+    assert "b.md" not in read
+
+
+# endregion
+
+
+# region snapshot_inbox
+
+
+def test_snapshot_inbox_lists_files_and_folders_with_signatures(tmp_path: Path) -> None:
+    note = _write(tmp_path / "_sorting" / "a.md", "hello")
+    inside = _write(tmp_path / "_sorting" / "pack" / "deep" / "b.txt", "x")
+
+    snapshot = snapshot_inbox(Library(tmp_path))
+
+    assert list(snapshot) == [note, tmp_path / "_sorting" / "pack"]
+    assert snapshot[note] == (("a.md", 5, note.stat().st_mtime_ns),)
+    assert snapshot[tmp_path / "_sorting" / "pack"] == (("deep/b.txt", 1, inside.stat().st_mtime_ns),)
+
+
+def test_snapshot_inbox_skips_what_the_scan_skips(tmp_path: Path, make_symlink: LinkMaker) -> None:
+    kept = _write(tmp_path / "_sorting" / "kept.md")
+    _write(tmp_path / "_sorting" / "photo.png")  # no parser
+    _write(tmp_path / "_sorting" / "~$lock.docx")  # ignored name
+    _write(tmp_path / "_sorting" / "empty-ish" / "photo.png")  # a folder with no supported file
+    target = _write(tmp_path / "elsewhere" / "linked.md")
+    make_symlink(tmp_path / "_sorting" / "link.md", target)
+
+    assert list(snapshot_inbox(Library(tmp_path))) == [kept]
+
+
+def test_snapshot_inbox_signature_changes_when_a_file_inside_a_folder_changes(tmp_path: Path) -> None:
+    folder = tmp_path / "_sorting" / "pack"
+    note = _write(folder / "a.md", "one")
+    before = snapshot_inbox(Library(tmp_path))[folder]
+
+    note.write_text("longer text", encoding="utf-8")
+
+    assert snapshot_inbox(Library(tmp_path))[folder] != before
+
+
+def test_snapshot_inbox_never_reads_content(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _write(tmp_path / "_sorting" / "a.md")
+    library = Library(tmp_path)
+    _ = library.config  # loaded lazily, by reading the packaged defaults: not what is being tested
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("the snapshot must not open files")
+
+    monkeypatch.setattr(Path, "open", refuse)
+    monkeypatch.setattr(Path, "read_text", refuse)
+    monkeypatch.setattr(Path, "read_bytes", refuse)
+
+    assert len(snapshot_inbox(library)) == 1
+
+
+def test_snapshot_inbox_missing_inbox_empty(tmp_path: Path) -> None:
+    assert snapshot_inbox(Library(tmp_path)) == {}
 
 
 # endregion

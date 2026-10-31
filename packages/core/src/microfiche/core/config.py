@@ -257,6 +257,21 @@ class LearningConfig(_ConfigSection):
     min_word_length: int = Field(ge=2)
 
 
+class WatchConfig(_ConfigSection):
+    """How ``microfiche watch`` polls the inbox.
+
+    Attributes:
+        interval_seconds (float): Greater than 0. How long to wait between scans of the inbox. A document is filed
+            once it is unchanged between two scans, so between one and two intervals after it arrives. ``watch
+            --interval`` overrides it for one run.
+        lock_timeout_seconds (float): At least 0. How long a batch waits for the run lock when another run holds it,
+            before it is skipped and tried again on the next scan.
+    """
+
+    interval_seconds: float = Field(gt=0)
+    lock_timeout_seconds: float = Field(ge=0)
+
+
 class ParsingConfig(_ConfigSection):
     """How documents are read.
 
@@ -341,6 +356,7 @@ class MicroficheConfig(_ConfigSection):
         sorting (SortingConfig): Configuration for how the inbox is sorted.
         parsing (ParsingConfig): Configuration for how documents are read.
         learning (LearningConfig): Configuration for learning keyword hints from review choices.
+        watch (WatchConfig): Configuration for ``microfiche watch``.
         logging (LoggingConfig): Configuration for the diagnostic log file.
     """
 
@@ -352,6 +368,7 @@ class MicroficheConfig(_ConfigSection):
     sorting: SortingConfig
     parsing: ParsingConfig
     learning: LearningConfig
+    watch: WatchConfig
     logging: LoggingConfig
 
 

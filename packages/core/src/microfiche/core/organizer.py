@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -71,6 +71,7 @@ def run_sort(
     ai_classifier: LLMClassifier | None = None,
     dry_run: bool = False,
     progress: Callable[[int, int], None] | None = None,
+    only: Collection[Path] | None = None,
 ) -> SortReport:
     """Scan the library's inbox, classify each unit, and file the confident ones as one job.
 
@@ -97,6 +98,8 @@ def run_sort(
             ``progress(done, total)``: first ``progress(0, total)`` before any unit is classified, then with the
             running count as each unit finishes, ending on ``progress(total, total)``. Core knows nothing about
             how it is shown.
+        only: Sort just these inbox entries (files or folders, by their path in the inbox); the rest are not
+            opened. ``None`` (the default) sorts the whole inbox. ``watch`` uses this to file only what has settled.
 
     Returns:
         The report of what was filed and what needs review. ``SortReport.job`` is ``None`` if
@@ -111,7 +114,7 @@ def run_sort(
 
     claims = DestinationClaims(library)
     duplicates = DuplicateIndex(library)
-    scan = scan_sorting_inbox(library, keep_folders=keep_folders)
+    scan = scan_sorting_inbox(library, keep_folders=keep_folders, only=only)
     report.skipped_links = scan.skipped_links
     label = " (dry run)" if dry_run else ""
     total = len(scan.units)

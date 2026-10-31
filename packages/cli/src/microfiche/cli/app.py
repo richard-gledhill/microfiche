@@ -38,6 +38,7 @@ def main_options(
 
 app.command(name="init")(commands.init)
 app.command(name="sort")(commands.sort)
+app.command(name="watch")(commands.watch)
 app.command(name="review")(commands.review)
 app.command(name="file")(commands.file_units)
 app.command(name="propose-categories")(commands.propose_categories)

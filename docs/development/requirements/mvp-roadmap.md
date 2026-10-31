@@ -206,6 +206,7 @@ for an unplanned gap. Features with a design to keep, or code removed from the M
   short, and written knowing the rules, so its absolute error rates are not predictive.
 - **Ambiguity check.** Built ([matching-precision-prd.md](matching-precision-prd.md), slice B): `[classification] ambiguity_margin` (default 0.1) holds a document when the runner-up group or category is within it; an exactly named group settles the group stage against fuzzy lookalikes. Misfires 24 → 6 with word boundaries, correct filings unchanged; see [calibration.md](../testing/calibration.md#ambiguity-margin). Still unmeasured on long documents.
 - **AI second opinion.** Built for `sort` and `review` ([ADR-009](../adr/ADR-009-ai-second-opinion.md)): `[ai] verify_below` (default 0, off) has the AI check rules answers below it; replayed on the corpus, 0.95 removed all six remaining misfiles without losing a correct filing ([calibration.md](../testing/calibration.md#ai-second-opinion)). `reclassify --use-ai` shares it.
+- **Watch mode.** Built ([ADR-012](../adr/ADR-012-watch-mode.md)): `microfiche watch` rescans the inbox with stat calls only, files documents unchanged between two scans in one rollback-able batch each (`[watch] interval_seconds`, default 3600; `--interval`), waits `lock_timeout_seconds` for the run lock, and stops on Ctrl-C after the batch in progress. Tested with a fake clock and inbox; **not yet checked by hand on a OneDrive-synced inbox** (no placeholder downloaded by a scan, nothing moved mid-sync).
 - **Drift check.** Built ([ADR-011](../adr/ADR-011-drift-check.md)): the commands that read the library notice filed documents moved, edited or removed by hand; a moved one is recorded (`relocated`) by commands that hold the lock, so `rollback` and `reclassify` follow it, and a bundle moved by hand is no longer split. Not measured on the 31 GB library; recording each file's size at filing would narrow the search.
 - **Hint learning.** Built ([ADR-008](../adr/ADR-008-hint-learning.md)): `[learning] enabled` (default off) adds `learned_hints` to the library file after a `review` commit, from the documents the user filed; a deleted hint is not learned again (ledger `hint_learned` events). The calibration corpus is too small to tune the thresholds (see [calibration.md](../testing/calibration.md#learning-from-review-choices)).
 - **Empty-group filing.** Built ([ADR-007](../adr/ADR-007-leaf-groups.md)): `[sorting] file_in_empty_groups` (default off) files a document that names a depth-2 group with no category folders straight into that group; `review` can choose it and `reclassify` keeps it. `attachments` joins the default `[exclusions]`. Not yet in the calibration corpus (the harness skips two-part paths at depth 2).
@@ -235,13 +236,12 @@ No database, vector store or semantic search, and `ai/` stays a fallback rather 
 
 - **OCR** for scanned (image-only) PDFs, which read as empty text and go to review today. Now a future feature update:
   [feature-backlog.md](../rfcs/RFC-008-ocr-scanned-pdfs.md).
-- **A lock timeout or `--force` override** for the run lock, and nested-library detection. The lock timeout is part of
-  [watch-mode-prd.md](watch-mode-prd.md).
+- **A `--force` override** for the run lock, and nested-library detection. The lock timeout is built, for `watch` (`run_lock(timeout=)`).
 - **Moving duplicates** to a `_sorting/duplicates/` folder to leave the inbox tidier, checking folders kept whole for duplicates, and a persistent hash cache. Content-duplicate detection itself is built (Stage 4.2).
 - **Renaming on collision** (a suffix setting). Collisions go to review instead.
 - **`doctor` / `verify` command** to detect drift between the ledger and the filesystem after files are moved outside microfiche. Requirement drafted, as a background
   check in the existing commands rather than a command: [drift-check-prd.md](drift-check-prd.md).
-- **Watch mode**, a daemon that sorts as files arrive. Requirement drafted: [watch-mode-prd.md](watch-mode-prd.md).
+- **Watch mode as a service or startup item.** `watch` is built ([watch-mode-prd.md](watch-mode-prd.md)) but the user starts it; running it as a Windows service is out of scope.
 - **`--json` output** for scripting. Built for `sort`, `reclassify`, `rollback`, `audit`, `config` and `review --list` ([ADR-010](../adr/ADR-010-scriptable-output.md)); `file` files held inbox documents without prompts. Requirement: [scriptable-output-prd.md](scriptable-output-prd.md).
 - **Rotation or compaction** of the append-only ledger and `audit.log`.
 - **Structured (JSON) log output** and log shipping.

@@ -76,6 +76,11 @@ min_decisions = 3       # documents you filed into a category before anything is
 max_hints_per_run = 3   # the most hints one `review` commit adds to a category
 min_word_length = 4     # shorter words are never learned
 
+# `microfiche watch` rescans the inbox on a timer and files what has stopped changing.
+[watch]
+interval_seconds = 3600     # seconds between scans; a document is filed one to two intervals after it arrives
+lock_timeout_seconds = 30   # seconds a batch waits for the run lock before it is skipped until the next scan
+
 # The diagnostic log microfiche writes under .microfiche/ (separate from the audit log).
 # level: how much it records (DEBUG, INFO, WARNING, ERROR or CRITICAL). file: its name, a plain file
 # name, not a path, and not the name of one of microfiche's own files there (audit.log, ledger.jsonl and

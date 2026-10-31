@@ -77,6 +77,14 @@ max_hints_per_run = 3
 # Shorter words are never learned.
 min_word_length = 4
 
+# `microfiche watch` rescans the inbox on a timer and files what has stopped changing.
+[watch]
+# Seconds between scans. A document is filed once it is unchanged between two scans, so between one and two intervals
+# after it arrives. `watch --interval` overrides this for one run.
+interval_seconds = 3600
+# Seconds a batch waits for the run lock when another run holds it, before it is skipped until the next scan.
+lock_timeout_seconds = 30
+
 [logging]
 # How much the log file (.microfiche/<file>) records: DEBUG, INFO, WARNING, ERROR or CRITICAL.
 level = "INFO"

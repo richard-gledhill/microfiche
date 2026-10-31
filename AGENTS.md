@@ -206,6 +206,10 @@ paths — this works because both are installed editable into the shared workspa
   classification drift gets reconciled after rule changes. A folder the ledger records as filed whole
   (`Ledger.folder_units()`) is one unit, proposed whole and never split; other folders are read file by file,
   and `[exclusions]` keeps a folder out.
+- **`watcher.py`** (the `watch` command) polls the inbox with `scanner.py::snapshot_inbox` (stat calls only, never content)
+  and calls a `run_batch` function for the entries unchanged between two scans, when the latest scan was quiet. Each batch
+  is `run_sort(only=...)` under `run_lock(timeout=...)` in `cli/commands.py`; the loop takes a `Clock` and a snapshot
+  function so tests never sleep. A unit left for review is retried only when it, the config or the library file changes.
 - **`review.py`** (the `review` command) is a `ReviewSession` over what a preview sort leaves in the inbox:
   `decide` checks a choice as it is made (a place that exists or is planned, the name free, not a duplicate),
   `commit` re-checks and files the chosen units as one `file_batch` job with `classified_by = "user"`. Nothing is

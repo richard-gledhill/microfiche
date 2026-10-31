@@ -19,6 +19,7 @@ $ microfiche [OPTIONS] COMMAND [ARGS]...
 
 * `init`: Set up the library's configuration, or...
 * `sort`: Classify and file what is in the inbox.
+* `watch`: Keep the inbox filed: scan it on a timer...
 * `review`: Decide where the leftover documents go.
 * `file`: File held inbox documents into a folder,...
 * `propose-categories`: Suggest new category folder names.
@@ -71,6 +72,32 @@ $ microfiche sort [OPTIONS]
 * `--use-ai`: Fall back to the AI named in the library's config (Ollama unless it says otherwise) for classifications the rules engine can't resolve. Needs [ai] model set. Before any document is read, one test question (no document text) checks the AI answers; if it does not, nothing is moved and the command stops with the reason.
 * `--dry-run`: Preview what would be filed and what would need review, without moving or recording anything. Classification, including any --use-ai calls, runs as usual.
 * `--json`: Print the result as one JSON document on stdout and nothing else there (messages and progress go to stderr). The shape is versioned and documented in schemas/.
+* `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
+* `-q, --quiet`: Show errors only on screen. Wins over --verbose.
+* `--help`: Show this message and exit.
+
+## `microfiche watch`
+
+Keep the inbox filed: scan it on a timer and file what has stopped changing.
+
+Each scan only looks at file sizes and times, never at content. A document is filed once it is unchanged between two
+scans (so between one and two intervals after it arrives) and nothing else arrived or changed in the latest scan,
+so a folder copied in is filed as one job. Each batch is a normal `sort` of those documents: the same checks, and
+one job that `rollback` can undo. A document left for review is looked at again only when it changes or when the
+config or the library file does. Press Ctrl-C to stop: the batch in progress finishes first.
+
+**Usage**:
+
+```console
+$ microfiche watch [OPTIONS]
+```
+
+**Options**:
+
+* `--library <directory>`: Path to the library root.  [required]
+* `--interval <float>`: Seconds between scans of the inbox, for this run. Defaults to [watch] interval_seconds (3600).
+* `--use-ai`: Fall back to the AI named in the library's config, as `sort --use-ai` does. The test question is asked once, at the start; if the AI later fails, the rest of the run uses the rules only.
+* `--json`: Print one compact JSON line on stdout for each batch: the same document as `sort --json`, or an `error` line if the batch failed. Messages go to stderr.
 * `-v, --verbose`: Also show progress messages on screen, and record debugging detail in the log file.
 * `-q, --quiet`: Show errors only on screen. Wins over --verbose.
 * `--help`: Show this message and exit.

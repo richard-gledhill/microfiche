@@ -933,9 +933,56 @@ One awkward file never stops a run. It stays where it is, and the summary says w
   lead `sort` out of the library. `sort` lists it as `Skipped <name>: links and junctions are never followed`.
   Files that OneDrive keeps online only are ordinary files and are sorted as usual.
 
+### Keeping the inbox filed with `watch`
+
+`watch` runs until you stop it and files documents without you running `sort`. It looks at the inbox on a timer and files
+a document once it has **stopped changing**, so a file that is still being saved, downloaded or synced is left alone.
+
+=== "Bash"
+
+    ```bash
+    microfiche watch --library ~/Documents/Library             # one scan an hour (the default); Ctrl-C to stop
+    microfiche watch --library ~/Documents/Library --interval 60   # one scan a minute
+    microfiche watch --library ~/Documents/Library --use-ai -q     # with the AI fallback, errors only
+    ```
+
+=== "PowerShell"
+
+    ```powershell
+    microfiche watch --library "$HOME\Documents\Library"                 # one scan an hour (the default); Ctrl-C to stop
+    microfiche watch --library "$HOME\Documents\Library" --interval 60   # one scan a minute
+    microfiche watch --library "$HOME\Documents\Library" --use-ai -q     # with the AI fallback, errors only
+    ```
+
+- **When a document is filed.** Each scan only reads file sizes and times, never content, so a cloud-synced placeholder
+  is not downloaded by being looked at. A document is *stable* when its size and time are the same in two scans in a
+  row, and a batch runs when something is stable **and** the latest scan found nothing new or changed. So a folder you
+  copy in is filed as one job after it has finished arriving, and a document lands in its folder between one and two
+  intervals after it appears. A shorter `--interval` (or `[watch] interval_seconds`) files sooner.
+- **What a batch is.** A normal `sort` of those documents: the same confidence threshold, collision and duplicate checks
+  and drift check, and **one job** per batch that `rollback` undoes. It prints one line, for example
+  `09:14:02 Filed 3, 1 for review, 0 duplicate(s); undo with rollback --job-id ...`. Idle scans print nothing (`-v` shows
+  them); `-q` shows errors only.
+- **Documents left for review** are not looked at again every scan. `watch` tries one again only when the document
+  changes, or when the config or the library file changes (new hints, including learned ones). Work through them with
+  `review`, which you can run whenever `watch` is between batches.
+- **The run lock** is held only while a batch is filed. If another run (a `review` that is filing, a `rollback`) holds it,
+  the batch waits up to `[watch] lock_timeout_seconds` (30), then is skipped and tried again at the next scan; `watch`
+  never exits because the lock is busy.
+- **The AI** is used only with `--use-ai`. It is checked once, when `watch` starts, and the OpenAI notice (if that is your
+  provider) is shown once. If the AI fails later, the rest of the run uses the rules only.
+- **Stopping.** Press Ctrl-C once: `watch` finishes the batch in progress, so no job is left half-filed, then stops. A
+  second Ctrl-C stops at once.
+- **A failure** (an unreadable config, a disk error) is shown and `watch` tries again at the next scan.
+- **`--json`** prints one compact JSON line on stdout for each batch that filed or left something: the same document as
+  `sort --json`. A failed batch is a line of `{"version": 1, "command": "error", "error": "..."}`; messages go to stderr.
+- `watch` is started by you and runs in your terminal; it is not a Windows service. Pointing it at a OneDrive-synced
+  inbox has not been tested by hand yet: check that no placeholder is downloaded just by being scanned, and that nothing is
+  moved mid-sync, before relying on it.
+
 ### Two runs at once
 
-`init`, `sort`, `reclassify --apply`, `rollback`, `config --sync` and `review` (when it files, at the end) change the library,
+`init`, `sort`, `reclassify --apply`, `rollback`, `config --sync`, `watch` (while it files a batch) and `review` (when it files, at the end) change the library,
 so only one can run at a time. Each takes a lock (a small `lock` file in `.microfiche/`, removed when the run ends), and a
 second one refuses to start:
 
@@ -962,6 +1009,7 @@ only read, so they need no lock and run beside anything.
   leaving some documents for review), `1` means it could not (a bad config, another run in progress). See
   [Exit codes](#exit-codes).
 - **Overlapping runs are refused**, not queued (see above), so a slow run and the next scheduled one cannot collide.
+  To keep the inbox filed continuously instead of on a schedule, see [Keeping the inbox filed with `watch`](#keeping-the-inbox-filed-with-watch).
 - **`review` is never part of it.** Whatever `sort` leaves is waiting under **Needs review** until you run `review`.
 
 === "Bash"
@@ -1319,7 +1367,9 @@ microfiche is pre-release. At the moment:
   out of date if another run is changing the library at the same time.
 - The inbox setting `[sorting] ignore` applies to `sort`, not to `reclassify`, which honours `[parsing] max_file_mb`.
   Links are skipped by both: `reclassify` never lists a symbolic link or junction, or anything behind one.
-- A file open in another program is not retried: close it and run `sort` again.
+- A file open in another program is not retried: close it and run `sort` again. (`watch` leaves it held until it changes.)
+- `watch` is a command you start and leave running, not a service or a startup item. It has not been tested on a
+  OneDrive-synced inbox.
 - `review` offers only the classifier's best guess (and the AI's, with `--use-ai`); it does not rank alternatives. You
   cannot go back to an item once you have moved on, and it learns from your choices only if you turn `[learning] enabled` on (see **Letting `review` teach hints**);
   otherwise add a keyword hint to `microfiche-library.json` if a kind of document keeps coming up.
