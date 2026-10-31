@@ -29,3 +29,4 @@ linked from here.
 | [RFC-010-folder-name-matching.md](RFC-010-folder-name-matching.md) | Folder-name matching: separators, case styles and special characters. |
 | [RFC-011-groups-without-categories.md](RFC-011-groups-without-categories.md) | Groups with no category folders: file straight into the group. |
 | [RFC-012-openai-compatible-hosts.md](RFC-012-openai-compatible-hosts.md) | OpenAI-compatible AI hosts: a `base_url` so any service or local server with that API works. |
+| [RFC-013-manual-review-findings.md](RFC-013-manual-review-findings.md) | Findings from a manual review (`init` exclusions, `propose-categories`, depth-2 group filing, HTML, ambiguity), and a test plan for a real library. |
