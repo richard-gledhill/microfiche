@@ -16,7 +16,7 @@ from microfiche.core.library.library_sync import LibrarySync, sync_library_file
 from microfiche.core.models.classification import ClassificationResult
 from microfiche.core.models.job import Job
 from microfiche.core.models.unit import SortableUnit
-from microfiche.core.scanner import scan_sorting_inbox
+from microfiche.core.scanner import SkippedEntry, scan_sorting_inbox
 from microfiche.core.utils.filesystem import is_link
 
 _logger = logging.getLogger(__name__)
@@ -35,6 +35,8 @@ class SortReport:
             another inbox file with the same content is being filed this run), with the reason.
         job: The rollback job for the run, or ``None`` if nothing was filed.
         skipped_links: Symbolic links and junctions in the inbox that were passed over, never followed.
+        skipped_unsupported: Inbox files with no parser and folders with no supported file, each with why. They were
+            left in the inbox untouched.
         ai_unavailable: Why the AI fallback stopped being asked part-way through the run (a connection
             failure or a timeout), or ``None``. The rest of the run used the rules only.
         folders_removed: Inbox folders whose files were all filed and which were then removed (the job records
@@ -54,6 +56,7 @@ class SortReport:
     duplicates: list[Duplicate] = field(default_factory=list)
     job: Job | None = None
     skipped_links: list[Path] = field(default_factory=list)
+    skipped_unsupported: list[SkippedEntry] = field(default_factory=list)
     ai_unavailable: str | None = None
     folders_removed: list[Path] = field(default_factory=list)
     folders_kept: list[tuple[Path, str]] = field(default_factory=list)
@@ -116,6 +119,7 @@ def run_sort(
     duplicates = DuplicateIndex(library)
     scan = scan_sorting_inbox(library, keep_folders=keep_folders, only=only)
     report.skipped_links = scan.skipped_links
+    report.skipped_unsupported = scan.skipped_unsupported
     label = " (dry run)" if dry_run else ""
     total = len(scan.units)
     _logger.info("sort%s: %d unit(s) to classify", label, total)

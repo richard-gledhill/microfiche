@@ -105,7 +105,8 @@ cleared. A move is now a plain rename, so a file another program has open fails 
 per-unit failure, goes to review with the reason while the rest of the batch is filed (`file_batch` returns a
 `FilingResult`). A failing AI provider switches the AI off for the rest of the run, with one warning. The inbox
 scan skips `[sorting] ignore` names, symlinks and junctions, and a file over `[parsing] max_file_mb` is left for
-review unread. Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
+review unread. A loose file with no parser and a folder with no supported file are left in the inbox and listed as
+skipped, with the reason (RFC-013 finding 7(a)). Still open: a lock timeout or `--force`, nested-library detection, and `reclassify` does not apply
 the inbox's `ignore` rule. (It skips links: `Library.files` was made to in Stage 6, after a review found it followed a junction.)
 
 [Stage 4.4](../plan/archive/2026-10-mvp/plan.md#stage-44--logging--diagnostics) is built. `core` emits records through module loggers
@@ -157,7 +158,8 @@ Two ideas about the library's shape (see [library-depth.md](../architecture/libr
 exclusion-aware, link-skipping walk of the folders to `depth`, and `taxonomy()` is a view of it. `sync_library_file`
 (`core/library/library_sync.py`) diffs it against the library file: the first real `sort` creates the file, later
 ones append an entry (no hints) for each new folder and report it once, and `config --sync` does the same without
-sorting. Entries with no folder are reported every run and kept; one gone and one new in the same place is flagged as
+sorting. Entries with no folder are reported every run and kept, as are entries whose folder is now excluded by `[exclusions]`
+(RFC-013 finding 1(a)); one gone and one new in the same place is flagged as
 a possible rename. Nothing the user wrote is changed, a `*` entry covers the folders at its level, and the file is
 written through a temporary file and a rename, only when something was added. A preview and plain `config` write
 nothing; a file that can't be written is a warning for `sort` and exit 1 for `config --sync`. Still open: a preview

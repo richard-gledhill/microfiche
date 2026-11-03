@@ -24,6 +24,19 @@ Signature = tuple[tuple[str, int, int], ...]
 InboxSnapshot = dict[Path, Signature]
 
 
+@dataclass(frozen=True)
+class SkippedEntry:
+    """An inbox entry the scan left alone because there is nothing in it microfiche can read.
+
+    Attributes:
+        path: The entry in the inbox.
+        reason: Why, in words for the user (``unsupported format``, ``no supported file inside``).
+    """
+
+    path: Path
+    reason: str
+
+
 @dataclass
 class InboxScan:
     """What a scan of the inbox found.
@@ -32,10 +45,13 @@ class InboxScan:
         units: The units ready for classification.
         skipped_links: Symbolic links and junctions that were passed over. They are never followed,
             read or filed, so the user is told about them.
+        skipped_unsupported: Loose files with no parser, and folders holding no file with one. They stay in the
+            inbox untouched, and the user is told why.
     """
 
     units: list[SortableUnit] = field(default_factory=list)
     skipped_links: list[Path] = field(default_factory=list)
+    skipped_unsupported: list[SkippedEntry] = field(default_factory=list)
 
 
 def scan_sorting_inbox(
@@ -62,7 +78,9 @@ def scan_sorting_inbox(
       single-document unit of its own, with ``origin_folder`` set to the folder so that it can be removed
       once it is empty.
 
-    A folder with no supported file is left alone for the user to handle manually.
+    A folder with no supported file, and a loose file with no parser, are left alone for the user to handle
+    manually; each is listed in ``skipped_unsupported`` with the reason. A hidden file (a name starting with a dot) is not listed. Under ``only`` (as ``watch`` uses it) an
+    entry that was not asked for is not looked at, so it is not listed.
 
     Args:
         library: The library whose inbox to scan.
@@ -72,7 +90,7 @@ def scan_sorting_inbox(
             ``snapshot_inbox`` keys them). The others are not opened or read. ``None`` scans everything.
 
     Returns:
-        The units, and the links that were skipped. Both are empty if the inbox doesn't exist.
+        The units, the links that were skipped and the unsupported entries. All are empty if the inbox doesn't exist.
 
     Todo:
         - Raise warning for handle empty sorting inbox directory.
@@ -96,12 +114,21 @@ def scan_sorting_inbox(
         if entry.is_file():
             if is_supported(entry):
                 scan.units.append(_file_unit(entry, max_bytes))
+            else:
+                _note_unsupported(scan, entry, "unsupported format")
         elif entry.is_dir():
             inside = _files_under(entry, ignore, scan.skipped_links)
-            scan.units.extend(_folder_units(entry, inside, keep_folders, max_bytes))
+            units = _folder_units(entry, inside, keep_folders, max_bytes)
+            scan.units.extend(units)
+            if not units:
+                _note_unsupported(scan, entry, "no supported file inside")
 
     _logger.info(
-        "scanned %s: %d unit(s) to classify, %d link(s) skipped", inbox.name, len(scan.units), len(scan.skipped_links)
+        "scanned %s: %d unit(s) to classify, %d link(s) and %d unsupported entrie(s) skipped",
+        inbox.name,
+        len(scan.units),
+        len(scan.skipped_links),
+        len(scan.skipped_unsupported),
     )
     return scan
 
@@ -142,6 +169,13 @@ def snapshot_inbox(library: Library) -> InboxSnapshot:
         if signature:
             snapshot[entry] = signature
     return snapshot
+
+
+def _note_unsupported(scan: InboxScan, entry: Path, reason: str) -> None:
+    """List ``entry`` as skipped, unless it is hidden (``.gitkeep``): that is not a document the user dropped in."""
+
+    if not entry.name.startswith("."):
+        scan.skipped_unsupported.append(SkippedEntry(entry, reason))
 
 
 def _signature(entry: Path, files: list[Path]) -> Signature:

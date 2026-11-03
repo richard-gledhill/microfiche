@@ -76,6 +76,17 @@ def test_sort_json_real_run_gives_job_id_and_destinations(tmp_path: Path) -> Non
     assert all((library / entry.destination).is_file() for entry in output.filed if entry.destination)
 
 
+def test_sort_json_lists_skipped_unsupported_entries(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "page.html").write_text("<p>saved page</p>", encoding="utf-8")
+
+    output = SortOutput.model_validate(_json(["sort", "--library", str(library), "--dry-run"]))
+
+    assert ("_sorting/page.html", "unsupported format") in [
+        (entry.path, entry.reason) for entry in output.skipped_unsupported
+    ]
+
+
 def test_sort_json_holds_no_document_text(tmp_path: Path) -> None:
     library = _library(tmp_path)
     (library / "_sorting" / "extra.md").write_text(_TEXT, encoding="utf-8")

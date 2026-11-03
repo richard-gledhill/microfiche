@@ -22,6 +22,12 @@ category with no hint that the exclusion change caused it.
 What is not known: whether a stale entry has any effect. `Library.taxonomy()` is built from the folders, so probably
 none on filing; it may still carry hints into matching, and it misleads anyone reading the file.
 
+**Status: (a) done.** Tested (`test_sync_library_file_excluded_entry_has_no_effect_on_taxonomy_or_filing`): a stale
+entry with hints for an excluded folder does not enter the taxonomy and the classifier does not choose it, so it has no
+effect on filing; it only misleads a reader. `LibrarySync.excluded` now lists such entries, shown by `init`,
+`config --sync` and a real `sort` (and in `--json` as `library_sync.excluded`). Nothing is changed in the file. Not
+done: saying that an exclusion change caused a newly added folder (the added list already shows it, not why).
+
 Options: (a) report entries whose folder is now excluded, as `missing` does, and change nothing; (b) offer to remove
 them; (c) leave as is and document. (a) matches "never changes an entry the user wrote". Also settle whether `init`
 should print what an exclusion change added or orphaned.
@@ -91,6 +97,11 @@ Not handled, and not reported. There is no HTML parser (`parsers/` has docx, eml
 - A browser "Save page as" makes `page.html` plus `page_files/`. With `keep_folders` on, the folder is one unit if it
   holds any supported file (a `.txt` or `.pdf` asset), is dropped silently if it holds none, and the `.html` is never
   filed with it. With `keep_folders` off, the supported assets are filed alone and the page is left behind.
+
+**Status: (a) done.** `scan_sorting_inbox` records `InboxScan.skipped_unsupported` (a loose file with no parser:
+`unsupported format`; a folder with no supported file: `no supported file inside`); `sort` and `sort --dry-run` print
+them and `--json` carries them as `skipped_unsupported`. Hidden files (`.gitkeep`) are not listed. `watch` does not
+repeat them: its snapshot and `only` scan never include an unsupported entry. (b) and (c) are still open.
 
 Options: (a) report unsupported files as skipped, with the reason, so nothing is silent (cheap, and wanted whichever
 other option is chosen); (b) an HTML parser that extracts visible text, and treat `name.html` + `name_files/` (also

@@ -21,6 +21,14 @@
           "title": "Missing",
           "type": "array"
         },
+        "excluded": {
+          "description": "Entries whose folder is there but is excluded by [exclusions].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded",
+          "type": "array"
+        },
         "possible_renames": {
           "items": {
             "maxItems": 2,
@@ -61,6 +69,7 @@
         "created",
         "added",
         "missing",
+        "excluded",
         "possible_renames",
         "name_warnings",
         "write_error"
