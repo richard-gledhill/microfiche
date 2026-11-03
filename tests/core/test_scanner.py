@@ -454,6 +454,18 @@ def test_scan_sorting_inbox_oversize_file_inside_folder_listed_unreadable(tmp_pa
 # region Logging
 
 
+def test_scan_sorting_inbox_logs_unsupported_count_only_when_non_zero(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _write(tmp_path / "_sorting" / "a.md")
+    _write(tmp_path / "_sorting" / "page.html")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "scanned _sorting: 1 unit(s) to classify, 0 link(s) skipped, 1 unsupported" in caplog.messages
+
+
 def test_scan_sorting_inbox_logs_counts(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     _write(tmp_path / "_sorting" / "a.md")
     _write(tmp_path / "_sorting" / "b.md")
@@ -461,7 +473,7 @@ def test_scan_sorting_inbox_logs_counts(tmp_path: Path, caplog: pytest.LogCaptur
 
     scan_sorting_inbox(Library(tmp_path))
 
-    assert "scanned _sorting: 2 unit(s) to classify, 0 link(s) and 0 unsupported entrie(s) skipped" in caplog.messages
+    assert "scanned _sorting: 2 unit(s) to classify, 0 link(s) skipped" in caplog.messages
 
 
 def test_scan_sorting_inbox_logs_skipped_link(

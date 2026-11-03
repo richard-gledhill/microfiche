@@ -123,12 +123,13 @@ def scan_sorting_inbox(
             if not units:
                 _note_unsupported(scan, entry, "no supported file inside")
 
+    unsupported = f", {len(scan.skipped_unsupported)} unsupported" if scan.skipped_unsupported else ""
     _logger.info(
-        "scanned %s: %d unit(s) to classify, %d link(s) and %d unsupported entrie(s) skipped",
+        "scanned %s: %d unit(s) to classify, %d link(s) skipped%s",
         inbox.name,
         len(scan.units),
         len(scan.skipped_links),
-        len(scan.skipped_unsupported),
+        unsupported,
     )
     return scan
 
