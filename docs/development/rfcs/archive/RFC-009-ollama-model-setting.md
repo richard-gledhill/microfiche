@@ -2,7 +2,7 @@
 
 Status: Accepted
 
-Decided on 2026-10-27 and recorded in [ADR-004](../adr/ADR-004-ai-provider-setup.md); the open questions below were settled there.
+Decided on 2026-10-27 and recorded in [ADR-004](../../adr/ADR-004-ai-provider-setup.md); the open questions below were settled there.
 
 **Background:** raised on 2026-10-21 from a review of how `[ai] model = ""` behaves with `provider = "ollama"`. Nothing
 built.

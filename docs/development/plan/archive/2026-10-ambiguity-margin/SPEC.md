@@ -1,8 +1,8 @@
 # SPEC: ambiguity margin (`matching-precision`, slice B)
 
-Source: [matching-precision-prd.md](../requirements/matching-precision-prd.md) (Accepted); slice B of two. Builds on
-[ADR-005](../adr/ADR-005-folder-name-matching.md) and the archived word-boundary plan. Style and bar:
-[conventions.md](../conventions.md), [constraints.md](../constraints.md).
+Source: [matching-precision-prd.md](../../../requirements/matching-precision-prd.md) (Accepted); slice B of two. Builds on
+[ADR-005](../../../adr/ADR-005-folder-name-matching.md) and the archived word-boundary plan. Style and bar:
+[conventions.md](../../../conventions.md), [constraints.md](../../../constraints.md).
 
 ## Scope
 

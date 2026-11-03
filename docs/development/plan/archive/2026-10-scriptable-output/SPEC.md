@@ -1,8 +1,8 @@
 # SPEC: scriptable output (`scriptable-output`)
 
-Source: [scriptable-output-prd.md](../requirements/scriptable-output-prd.md), decided in
-[ADR-010](../adr/ADR-010-scriptable-output.md). Style and bar: [conventions.md](../conventions.md),
-[constraints.md](../constraints.md). Two PRs: **A, `--json`** (this one), then **B, the `file` command**.
+Source: [scriptable-output-prd.md](../../../requirements/scriptable-output-prd.md), decided in
+[ADR-010](../../../adr/ADR-010-scriptable-output.md). Style and bar: [conventions.md](../../../conventions.md),
+[constraints.md](../../../constraints.md). Two PRs: **A, `--json`** (this one), then **B, the `file` command**.
 
 ## Scope of A
 

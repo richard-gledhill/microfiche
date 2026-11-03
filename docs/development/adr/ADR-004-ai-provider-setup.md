@@ -6,7 +6,7 @@
   `[ai] model` is refused by `build_provider`. Provider failures carry a one-line fix-it tip, supplied by the provider.
   `--use-ai` runs of `sort` and `review` make one hello-world call before any document is classified, outside the run
   lock, and a failed check stops the command with exit 1. See [Decisions](#decisions).
-- **Source:** [RFC-009](../rfcs/RFC-009-ollama-model-setting.md)
+- **Source:** [RFC-009](../rfcs/archive/RFC-009-ollama-model-setting.md)
 
 ## Context
 

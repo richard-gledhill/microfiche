@@ -2,7 +2,7 @@
 
 Status: Accepted
 
-Decided on 2026-10-30 and recorded in [ADR-007](../adr/ADR-007-leaf-groups.md); the questions below were settled there.
+Decided on 2026-10-30 and recorded in [ADR-007](../../adr/ADR-007-leaf-groups.md); the questions below were settled there.
 
 **Background:** raised on 2026-10-25 from a question about what `sort` does at depth 2 when a group has no category
 folders yet, and a very confident group match. Nothing built. Found by reading the code; not run.
@@ -21,7 +21,7 @@ folders yet, and a very confident group match. Nothing built. Found by reading t
 It is probably worse with `--use-ai`: the category stage falls back to the AI because the rules had no answer, for a
 list of categories that is empty. Not verified in `ai/llm_classifier.py`.
 
-Depth 3 does not exist yet ([RFC-006](RFC-006-subcategories-depth-3.md)); the same gap applies to a category with no
+Depth 3 does not exist yet ([RFC-006](../RFC-006-subcategories-depth-3.md)); the same gap applies to a category with no
 subcategory folders when it is built. Depth 1 is unaffected: the group is the destination.
 
 This is documented behaviour, not a defect in the sense of a crash: `docs/development/architecture/overview.md` says
@@ -30,7 +30,7 @@ written down is the case where the leaf is above the configured depth.
 
 ## Relation to RFC-004
 
-[RFC-004 (`file_at = best_level`)](RFC-004-filing-target-mode.md) is the general form: file into the deepest level that
+[RFC-004 (`file_at = best_level`)](../RFC-004-filing-target-mode.md) is the general form: file into the deepest level that
 is confident. It is under review because of a real concern, that a category name repeated across groups (`01
 Requirements`) makes a "confident" category a weak basis for parking a document one level up.
 

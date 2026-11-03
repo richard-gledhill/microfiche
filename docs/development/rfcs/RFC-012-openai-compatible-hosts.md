@@ -2,7 +2,7 @@
 
 Status: Draft
 
-**Background:** raised on 2026-10-27, after the manual `--use-ai` checks for [RFC-009](RFC-009-ollama-model-setting.md)
+**Background:** raised on 2026-10-27, after the manual `--use-ai` checks for [RFC-009](archive/RFC-009-ollama-model-setting.md)
 ([ADR-004](../adr/ADR-004-ai-provider-setup.md)) could not exercise the OpenAI provider without an OpenAI key. Nothing
 built.
 

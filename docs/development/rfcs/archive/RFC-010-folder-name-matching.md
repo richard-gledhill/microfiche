@@ -2,7 +2,7 @@
 
 Status: Accepted
 
-Decided on 2026-10-27 and recorded in [ADR-005](../adr/ADR-005-folder-name-matching.md); the open questions below were settled there.
+Decided on 2026-10-27 and recorded in [ADR-005](../../adr/ADR-005-folder-name-matching.md); the open questions below were settled there.
 
 **Background:** raised on 2026-10-25 from a review of how folder names are matched against document text. Nothing built.
 Found by reading the code and tests; the examples below were not run.
@@ -77,7 +77,7 @@ different spelling is the same evidence. Whether to discount it is a question be
 
 ## Order with the word-boundary work
 
-[matching-precision-prd.md](../requirements/matching-precision-prd.md) replaces the substring test with `\b`-anchored
+[matching-precision-prd.md](../../requirements/matching-precision-prd.md) replaces the substring test with `\b`-anchored
 matching and an ambiguity margin, and its outline already warns that `\b` misbehaves next to `C++` and `R&D`. This RFC
 should land first, or together: after normalisation every name and the text are plain words separated by single
 spaces, so a boundary test is `f" {name} " in f" {text} "` and the `\b` problem with special characters goes away.

@@ -8,7 +8,8 @@ questions to settle.
 - One file per RFC, named `RFC-NNN-title.md` (for example `RFC-001-plugin-architecture.md`), numbered in sequence.
 - Start each file with a status line: `Status: Draft`, `Discussion`, `Accepted`, `Rejected` or `Superseded`.
 - When an RFC is decided, record the outcome as an ADR in [`../adr/`](../adr/README.md), link the ADR and the RFC to
-  each other, and set the RFC's status. Never delete an RFC; a rejected one keeps its reasoning.
+  each other, and set the RFC's status. Never delete an RFC; a rejected one keeps its reasoning. Once an accepted RFC's work has shipped, move it to
+  [`archive/`](archive/) and fix the links to it; the index below keeps its row, pointing there.
 
 When a GitHub Project is set up, the tracker becomes the single source of truth: new RFCs are GitHub issues labelled
 `rfc`, local files are no longer added, and each open local RFC is moved to an issue and
@@ -25,8 +26,8 @@ linked from here.
 | [RFC-006-subcategories-depth-3.md](RFC-006-subcategories-depth-3.md) | Subcategories (depth 3). |
 | [RFC-007-group-templates.md](RFC-007-group-templates.md) | Library creation and group templates, with the removed code and where to restore it from. |
 | [RFC-008-ocr-scanned-pdfs.md](RFC-008-ocr-scanned-pdfs.md) | OCR for scanned PDFs. |
-| [RFC-009-ollama-model-setting.md](RFC-009-ollama-model-setting.md) | Ollama model setting, fix-it tips for AI provider failures, and a pre-run AI check. |
-| [RFC-010-folder-name-matching.md](RFC-010-folder-name-matching.md) | Folder-name matching: separators, case styles and special characters. |
-| [RFC-011-groups-without-categories.md](RFC-011-groups-without-categories.md) | Groups with no category folders: file straight into the group. |
+| [RFC-009-ollama-model-setting.md](archive/RFC-009-ollama-model-setting.md) | Ollama model setting, fix-it tips for AI provider failures, and a pre-run AI check. |
+| [RFC-010-folder-name-matching.md](archive/RFC-010-folder-name-matching.md) | Folder-name matching: separators, case styles and special characters. |
+| [RFC-011-groups-without-categories.md](archive/RFC-011-groups-without-categories.md) | Groups with no category folders: file straight into the group. |
 | [RFC-012-openai-compatible-hosts.md](RFC-012-openai-compatible-hosts.md) | OpenAI-compatible AI hosts: a `base_url` so any service or local server with that API works. |
 | [RFC-013-manual-review-findings.md](RFC-013-manual-review-findings.md) | Findings from a manual review (`init` exclusions, `propose-categories`, depth-2 group filing, HTML, ambiguity), and a test plan for a real library. |

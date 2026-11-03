@@ -70,7 +70,7 @@ The `score` field could then be a count and a total.
 Reported: a document that fits a group but no category is not filed into the group. A proposed category name should
 accompany it.
 
-Partly built. [RFC-011](RFC-011-groups-without-categories.md) / [ADR-007](../adr/ADR-007-leaf-groups.md) added
+Partly built. [RFC-011](archive/RFC-011-groups-without-categories.md) / [ADR-007](../adr/ADR-007-leaf-groups.md) added
 `[sorting] file_in_empty_groups` (default **off**), which files into a group that has **no** category folders at all.
 So a reviewer on defaults sees the old behaviour. Two cases are open:
 

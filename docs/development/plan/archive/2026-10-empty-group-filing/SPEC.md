@@ -1,7 +1,7 @@
 # SPEC: empty-group filing (`empty-group-filing`)
 
-Source: [RFC-011](../rfcs/RFC-011-groups-without-categories.md), decided in [ADR-007](../adr/ADR-007-leaf-groups.md).
-Style and bar: [conventions.md](../conventions.md), [constraints.md](../constraints.md).
+Source: [RFC-011](../../../rfcs/archive/RFC-011-groups-without-categories.md), decided in [ADR-007](../../../adr/ADR-007-leaf-groups.md).
+Style and bar: [conventions.md](../../../conventions.md), [constraints.md](../../../constraints.md).
 
 ## Scope
 

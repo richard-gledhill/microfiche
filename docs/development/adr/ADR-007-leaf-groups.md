@@ -5,7 +5,7 @@
 - **Decision:** A folder with no child folders is a leaf at whatever level it is. With the opt-in setting
   `[sorting] file_in_empty_groups` (default off), a unit whose group has no category folders is filed into the group
   itself instead of going to review. See [Decisions](#decisions).
-- **Source:** [RFC-011](../rfcs/RFC-011-groups-without-categories.md)
+- **Source:** [RFC-011](../rfcs/archive/RFC-011-groups-without-categories.md)
 
 ## Context
 
