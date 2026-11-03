@@ -159,8 +159,10 @@ $ microfiche file [OPTIONS] {units}...
 
 Suggest new category folder names.
 
-Looks at common terms across the documents in the inbox. Never creates folders - this only prints suggestions. Scoping to an existing library folder
-instead of the inbox isn't implemented yet.
+Looks at common terms across the documents in the inbox, leaving out common English words and any name an existing
+group or category folder already has. Each suggestion says how many of the inbox documents contain the word.
+Never creates folders - this only prints suggestions. Scoping to an existing library folder instead of the inbox
+isn't implemented yet.
 
 **Usage**:
 

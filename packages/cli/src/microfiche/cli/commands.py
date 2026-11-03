@@ -388,8 +388,10 @@ def propose_categories(
 ) -> None:
     """Suggest new category folder names.
 
-    Looks at common terms across the documents in the inbox. Never creates folders - this only prints suggestions. Scoping to an existing library folder
-    instead of the inbox isn't implemented yet.
+    Looks at common terms across the documents in the inbox, leaving out common English words and any name an existing
+    group or category folder already has. Each suggestion says how many of the inbox documents contain the word.
+    Never creates folders - this only prints suggestions. Scoping to an existing library folder instead of the inbox
+    isn't implemented yet.
     """
     opened = _open_library(library, needs_config=True)
     if opened.config.library_structure.depth == 1:
@@ -398,14 +400,22 @@ def propose_categories(
     with _logging("propose-categories", opened, verbose=verbose, quiet=quiet, writes=False):
         units = scan_sorting_inbox(opened).units
         documents = [document for unit in units for document in unit.documents]
-        suggestions = suggest_categories(documents)
+        taxonomy = opened.taxonomy()
+        existing = [*taxonomy.groups, *(name for names in taxonomy.groups.values() for name in names)]
+        suggestions = suggest_categories(documents, existing_names=existing)
     if not suggestions:
         console.print("[yellow]No suggestions - the sorting inbox is empty or has no supported documents.[/yellow]")
         return
     for suggestion in suggestions:
         console.print(
-            f"[bold]{suggestion.name}[/bold] (score={suggestion.score}) — e.g. {', '.join(suggestion.example_documents)}"
+            f"[bold]{escape(suggestion.name)}[/bold] - in {suggestion.count} of {suggestion.total} documents"
+            f" - e.g. {escape(', '.join(suggestion.example_documents))}",
+            soft_wrap=True,
         )
+    console.print(
+        "[dim]To use one, create a folder with that name in the group it belongs to, then run `sort`.[/dim]",
+        soft_wrap=True,
+    )
 
 
 def init(library: Path = _LIBRARY_OPTION, verbose: bool = _VERBOSE_OPTION, quiet: bool = _QUIET_OPTION) -> None:

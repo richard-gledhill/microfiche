@@ -1090,7 +1090,10 @@ program) is listed under `failed`, also with exit code `1`.
 ## 4. Maintain the library
 
 Suggest new category names based on what's in the inbox (prints suggestions only — never creates
-folders):
+folders). Each line says how many of the inbox documents contain the word, for example
+`Invoice - in 7 of 12 documents - e.g. a.md, b.md`. Common English words and names that an existing group or
+category folder already has are left out. To use a suggestion, create a folder with that name in the group it belongs
+to, then run `sort`:
 
 === "Bash"
 
@@ -1398,6 +1401,9 @@ microfiche is pre-release. At the moment:
   that is also a passing mention (`car park`) can still beat the real group; see the
   [calibration notes](https://github.com/richard-gledhill/microfiche/blob/main/docs/development/testing/calibration.md#flat-libraries-depth-1).
   `propose-categories` has nothing to propose in a flat library and says so.
+- `propose-categories` proposes single words from the inbox only. It does not look at the filed documents, so a word
+  every document in the library contains (but that is not in the stopword list) can still be proposed, and it does not
+  say which group a proposal belongs in.
 - The library file is synced by `init`, on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).
   A folder that is a link or junction is not a group or category.

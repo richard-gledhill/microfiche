@@ -35,6 +35,11 @@ pronouns, modals, question words or adverbs, so any ordinary English word that a
 is document frequency, so the most common word in English prose ranks first. Words are also single tokens, so a
 category such as `Home Insurance` can never be proposed.
 
+**Status: stopwords done.** `STOPWORDS` in `category_suggester.py` is now a module constant of about 280 words
+(pronouns, modals, question words, prepositions, common adverbs, verbs and nouns). Rarity weighting (tf-idf) is not
+built: it needs the filed documents as background, which is library-wide scanning and so finding 3's decision; the
+count ("in N of M documents") is now visible so a user can judge it. Not measured on the calibration corpus.
+
 Options: a fuller stopword list; weight by how rare the word is across the library (tf-idf, so a word every document
 has scores low); keep only nouns (needs a part-of-speech tagger, a new dependency, against the lean install);
 propose from capitalised or repeated phrases and filenames. The measurable fix is tf-idf against the library's own
@@ -46,6 +51,9 @@ No. `propose_categories` takes the units from `scan_sorting_inbox` only, and `su
 documents. It builds no keyword list from filed documents, and does not look at existing category names, so it can
 propose a name that already exists. This is the "scoping to an existing library folder isn't implemented" gap in
 `mvp-roadmap.md`.
+
+**Status: part done.** A proposal that matches an existing group or category folder under
+`normalise_for_matching(folder_name=True)` is now dropped. The filed-documents decision below is still open.
 
 Decision needed: should the filed documents be the *background* (so a term is distinctive if the inbox has it and the
 library does not), the *scope* (propose subfolders for one crowded category), or both? And it should drop any proposal
@@ -64,6 +72,10 @@ Confirmed: it prints `Word (score=7) — e.g. a.md, b.md`. The score is the numb
 which the output does not say, and with no total the number cannot be judged (7 of 8 or 7 of 400?). Change to
 `Word: in 7 of 12 documents`, show the group it would go in, and say what to do next (create the folder, run `sort`).
 The `score` field could then be a count and a total.
+
+**Status: done, except the group.** Output is now `Word - in 7 of 12 documents - e.g. a.md, b.md`, then a one-line hint
+(create the folder, then run `sort`). `CategorySuggestion.score` became `count`, with `total`. Showing the group a
+proposal would go in is not done: the suggester has no group for a word.
 
 ### 6. `sort` at depth 2 and a group with no suitable category
 

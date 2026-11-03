@@ -424,6 +424,31 @@ def test_propose_categories_reads_folder_documents_either_way(tmp_path: Path, ke
     assert "PhoenixArchitectureNotes" in result.stdout  # the folder's document is read whether or not it is kept whole
 
 
+def test_propose_categories_output_says_count_total_and_next_step(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    for name in ("a.md", "b.md", "c.md"):
+        (library / "_sorting" / name).write_text("zanzibar kumquat", encoding="utf-8")
+
+    result = runner.invoke(app, ["propose-categories", "--library", str(library)])
+
+    text = " ".join(result.stdout.split())
+    assert "Zanzibar - in 3 of" in text
+    assert "documents" in text
+    assert "score=" not in text
+    assert "create a folder" in text and "sort" in text
+
+
+def test_propose_categories_existing_folder_name_not_proposed(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    for name in ("a.md", "b.md"):
+        (library / "_sorting" / name).write_text("architecture kumquat", encoding="utf-8")
+
+    result = runner.invoke(app, ["propose-categories", "--library", str(library)])
+
+    assert "Kumquat" in result.stdout
+    assert "Architecture - in" not in result.stdout  # "02 Architecture" is already a category folder
+
+
 # endregion
 
 

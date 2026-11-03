@@ -290,8 +290,10 @@ User-extendable for anything not covered by those three families.
 ```
 core/library/category_suggester.py
 ```
-Extracts common terms across the documents in the inbox (keyword frequency) and prints candidate new category names with
-supporting evidence. It only ever suggests: it never creates a folder, and a person makes one themselves (or plans one in
+Extracts common terms across the documents in the inbox (document frequency) and prints candidate new category names
+with supporting evidence: "in 7 of 12 documents" and example files. Common English words (`STOPWORDS`) and any name an
+existing group or category folder already has (compared with `normalise_for_matching`) are never proposed. Weighting by
+rarity across the filed documents is not built; it needs a library-wide scan (RFC-013 finding 3). It only ever suggests: it never creates a folder, and a person makes one themselves (or plans one in
 `review`). Built: the inbox scope, and print-only. Designed but not built: a scope of one group or the whole library, a
 `--use-ai` pass for better names, and an `--apply` that creates the chosen folders.
 
