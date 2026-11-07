@@ -31,3 +31,6 @@ linked from here.
 | [RFC-011-groups-without-categories.md](archive/RFC-011-groups-without-categories.md) | Groups with no category folders: file straight into the group. |
 | [RFC-012-openai-compatible-hosts.md](RFC-012-openai-compatible-hosts.md) | OpenAI-compatible AI hosts: a `base_url` so any service or local server with that API works. |
 | [RFC-013-manual-review-findings.md](RFC-013-manual-review-findings.md) | Findings from a manual review (`init` exclusions, `propose-categories`, depth-2 group filing, HTML, ambiguity), and a test plan for a real library. |
+| [RFC-014-filing-overhaul.md](RFC-014-filing-overhaul.md) | Automatic filing overhaul: parsing check, title/filename priority, learned keywords, ML, with a research step and a comparison to today's algorithm. |
+| [RFC-015-init-prune-library-file.md](RFC-015-init-prune-library-file.md) | `init` prunes stale folder entries from the library file by default, with an opt-out. |
+| [RFC-016-multi-level-filing.md](RFC-016-multi-level-filing.md) | Multi-level filing: file at the deepest confident level instead of sending the document to review; overlaps RFC-004. |
