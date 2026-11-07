@@ -172,6 +172,25 @@
       "title": "FolderKept",
       "type": "object"
     },
+    "SkippedEntry": {
+      "description": "An inbox file or folder left alone because microfiche cannot read anything in it.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "title": "SkippedEntry",
+      "type": "object"
+    },
     "SyncEntry": {
       "description": "What a library file sync found.",
       "properties": {
@@ -191,6 +210,14 @@
             "type": "string"
           },
           "title": "Missing",
+          "type": "array"
+        },
+        "excluded": {
+          "description": "Entries whose folder is there but is excluded by [exclusions].",
+          "items": {
+            "type": "string"
+          },
+          "title": "Excluded",
           "type": "array"
         },
         "possible_renames": {
@@ -233,6 +260,7 @@
         "created",
         "added",
         "missing",
+        "excluded",
         "possible_renames",
         "name_warnings",
         "write_error"
@@ -383,6 +411,14 @@
       "title": "Skipped Links",
       "type": "array"
     },
+    "skipped_unsupported": {
+      "description": "Inbox files with no parser and folders with no supported file; left where they are.",
+      "items": {
+        "$ref": "#/$defs/SkippedEntry"
+      },
+      "title": "Skipped Unsupported",
+      "type": "array"
+    },
     "job_id": {
       "anyOf": [
         {
@@ -460,6 +496,7 @@
     "needs_review",
     "duplicates",
     "skipped_links",
+    "skipped_unsupported",
     "job_id",
     "ai_unavailable",
     "ai_verification",

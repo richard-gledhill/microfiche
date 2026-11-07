@@ -498,7 +498,7 @@ def config(
     render_library_sync(console, result)
     if result.write_error is not None:
         raise typer.Exit(code=1)
-    if not (result.added or result.missing):
+    if not (result.added or result.missing or result.excluded):
         console.print("The library file already lists every folder.")
 
 
@@ -804,7 +804,7 @@ def _finish_init(path: Path, *, terminal: bool, verbose: bool, quiet: bool) -> N
     render_library_sync(console, result)
     if result.write_error is not None:
         raise typer.Exit(code=1)
-    if not (result.added or result.missing):
+    if not (result.added or result.missing or result.excluded):
         console.print("The library file already lists every folder.")
 
 

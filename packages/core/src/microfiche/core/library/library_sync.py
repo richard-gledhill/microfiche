@@ -39,6 +39,8 @@ class LibrarySync:
         added: Folders that had no entry and were given one, as paths inside the library with forward slashes
             (``Project Phoenix``, ``Project Phoenix/01 Requirements``).
         missing: Entries whose folder is no longer there. They are kept in the file.
+        excluded: Entries whose folder is there but is now excluded by ``[exclusions]``. They are kept in the
+            file and have no effect while the folder is excluded.
         possible_renames: A ``(missing, added)`` pair where exactly one entry went and exactly one folder
             appeared in the same place, so the folder may have been renamed. Nothing is carried over: the new
             entry starts with no hints.
@@ -52,6 +54,7 @@ class LibrarySync:
     created: bool = False
     added: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
+    excluded: list[str] = field(default_factory=list)
     possible_renames: list[tuple[str, str]] = field(default_factory=list)
     write_error: str | None = None
     name_warnings: list[str] = field(default_factory=list)
@@ -81,7 +84,7 @@ def sync_library_file(library: Library) -> LibrarySync:
         library: The library to sync. Its library file is replaced with the merged one after a write.
 
     Returns:
-        What was added and what is missing.
+        What was added, what is missing and what is now excluded.
 
     Raises:
         ConfigError: If the existing library file is invalid. It is not overwritten.
@@ -98,6 +101,8 @@ def sync_library_file(library: Library) -> LibrarySync:
         _find_name_problems(library.structure(), Path(), sync)
     for gone in sync.missing:
         _logger.warning("library file: %s has an entry but no folder", gone)
+    for stale in sync.excluded:
+        _logger.warning("library file: %s has an entry but its folder is excluded", stale)
     for warning in sync.name_warnings:
         _logger.warning("library file: %s", warning)
     if not sync.added:
@@ -166,8 +171,11 @@ def _merge(
         merged[merged.index(entry)] = entry.model_copy(update={"children": children})
     for entry in by_name.values():  # what is left named a folder that wasn't found
         path = parent / entry.name
-        if not (library.root / path).exists():  # an excluded folder is still there, so it isn't missing
+        found = library.root / path
+        if not found.exists():
             sync.missing.append(path.as_posix())
+        elif found.is_dir() and library.is_excluded(found):  # still there, so not missing, but no longer listed
+            sync.excluded.append(path.as_posix())
     return merged
 
 

@@ -665,6 +665,17 @@ def test_run_sort_ignored_names_never_reach_the_report(tmp_path: Path) -> None:
     assert (library / "_sorting" / "~$notes.docx").exists()  # left exactly where it was
 
 
+def test_run_sort_unsupported_file_in_inbox_reported_and_left(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "page.html").write_text("<p>saved page</p>", encoding="utf-8")
+
+    for dry_run in (True, False):
+        report = run_sort(Library(library), dry_run=dry_run)
+
+        assert [(e.path.name, e.reason) for e in report.skipped_unsupported] == [("page.html", "unsupported format")]
+        assert (library / "_sorting" / "page.html").exists()
+
+
 def test_run_sort_link_in_inbox_skipped_and_reported(tmp_path: Path, make_junction: LinkMaker) -> None:
     library = _library(tmp_path)
     elsewhere = tmp_path / "elsewhere"

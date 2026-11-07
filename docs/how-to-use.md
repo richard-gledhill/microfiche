@@ -932,6 +932,11 @@ One awkward file never stops a run. It stays where it is, and the summary says w
 - **Links.** A symbolic link or a Windows junction in the inbox is never followed, read or filed, so a link can't
   lead `sort` out of the library. `sort` lists it as `Skipped <name>: links and junctions are never followed`.
   Files that OneDrive keeps online only are ordinary files and are sorted as usual.
+- **Nothing microfiche can read.** A loose file with no parser (a saved `page.html`, say) and a folder with no
+  supported file in it (only images, say) stay in the inbox untouched. `sort` and `sort --dry-run` list each as
+  `Skipped <name>: unsupported format` or `Skipped <name>: no supported file inside`, and `--json` lists them in
+  `skipped_unsupported`. A hidden file (a name starting with a dot, such as `.gitkeep`) is not listed. `watch` never
+  lists them, because it looks only at entries it can file.
 
 ### Keeping the inbox filed with `watch`
 
@@ -1407,6 +1412,10 @@ microfiche is pre-release. At the moment:
 - The library file is synced by `init`, on a real `sort` and by `config --sync`, not on a preview, so `sort --dry-run` does not
   list folders that would be added or entries with no folder. The sync reads only down to the library's depth (1 or 2).
   A folder that is a link or junction is not a group or category.
+- A library file entry whose folder still exists but is now excluded by `[exclusions]` is kept and is reported by
+  `init`, `config --sync` and a real `sort` as `... is in microfiche-library.json but its folder is excluded`. It has
+  no effect on filing while the folder is excluded: remove it by hand if you do not want it. A folder added to the file
+  because you removed an exclusion is listed as added, without saying why.
 - `-q` hides the "AI fallback unavailable" log warning on screen (it is still in the log file); the `sort`
   summary line says it anyway.
 - A file that can't be moved is reported twice on screen: as a warning when it happens (also in the log file), and
