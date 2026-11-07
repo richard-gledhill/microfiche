@@ -283,6 +283,81 @@ def test_scan_sorting_inbox_ignore_setting_replaces_default_list(tmp_path: Path)
 # endregion
 
 
+# region Entries with no parser
+
+# An entry the scan cannot read is left alone and listed with a reason, so nothing is silent.
+
+
+def test_scan_sorting_inbox_loose_unsupported_file_listed_with_reason(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "page.html")
+    _write(tmp_path / "_sorting" / "real.md")
+
+    scan = scan_sorting_inbox(Library(tmp_path))
+
+    assert [unit.source_path.name for unit in scan.units] == ["real.md"]
+    assert [(entry.path, entry.reason) for entry in scan.skipped_unsupported] == [
+        (tmp_path / "_sorting" / "page.html", "unsupported format")
+    ]
+
+
+def test_scan_sorting_inbox_hidden_unsupported_file_not_listed(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / ".gitkeep")
+
+    assert scan_sorting_inbox(Library(tmp_path)).skipped_unsupported == []
+
+
+def test_scan_sorting_inbox_folder_without_supported_file_listed_with_reason(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "images" / "photo.png")
+
+    scan = scan_sorting_inbox(Library(tmp_path))
+
+    assert scan.units == []
+    assert [(entry.path, entry.reason) for entry in scan.skipped_unsupported] == [
+        (tmp_path / "_sorting" / "images", "no supported file inside")
+    ]
+
+
+@pytest.mark.parametrize("keep_folders", [True, False])
+def test_scan_sorting_inbox_folder_with_supported_file_not_listed(tmp_path: Path, keep_folders: bool) -> None:
+    _write(tmp_path / "_sorting" / "bundle" / "good.md")
+    _write(tmp_path / "_sorting" / "bundle" / "asset.png")
+
+    scan = scan_sorting_inbox(Library(tmp_path), keep_folders=keep_folders)
+
+    assert scan.skipped_unsupported == []
+
+
+def test_scan_sorting_inbox_ignored_and_linked_names_not_listed_as_unsupported(
+    tmp_path: Path, make_symlink: LinkMaker
+) -> None:
+    outside = _write(tmp_path / "elsewhere" / "outside.html")
+    _write(tmp_path / "_sorting" / "Thumbs.db")
+    make_symlink(tmp_path / "_sorting" / "linked.html", outside)
+
+    scan = scan_sorting_inbox(Library(tmp_path))
+
+    assert scan.skipped_unsupported == []
+    assert scan.skipped_links == [tmp_path / "_sorting" / "linked.html"]
+
+
+def test_scan_sorting_inbox_only_leaves_other_unsupported_entries_unlisted(tmp_path: Path) -> None:
+    kept = _write(tmp_path / "_sorting" / "real.md")
+    _write(tmp_path / "_sorting" / "page.html")
+
+    scan = scan_sorting_inbox(Library(tmp_path), only={kept})
+
+    assert scan.skipped_unsupported == []  # watch scans only settled entries, so it never repeats a notice
+
+
+def test_snapshot_inbox_unsupported_entries_not_included(tmp_path: Path) -> None:
+    _write(tmp_path / "_sorting" / "page.html")
+
+    assert snapshot_inbox(Library(tmp_path)) == {}
+
+
+# endregion
+
+
 # region Links
 
 # A link is never followed, read or filed; the user is told about it.
@@ -377,6 +452,18 @@ def test_scan_sorting_inbox_oversize_file_inside_folder_listed_unreadable(tmp_pa
 
 
 # region Logging
+
+
+def test_scan_sorting_inbox_logs_unsupported_count_only_when_non_zero(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _write(tmp_path / "_sorting" / "a.md")
+    _write(tmp_path / "_sorting" / "page.html")
+    caplog.set_level(logging.INFO, logger="microfiche.core")
+
+    scan_sorting_inbox(Library(tmp_path))
+
+    assert "scanned _sorting: 1 unit(s) to classify, 0 link(s) skipped, 1 unsupported" in caplog.messages
 
 
 def test_scan_sorting_inbox_logs_counts(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:

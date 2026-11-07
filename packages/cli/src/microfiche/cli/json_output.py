@@ -80,12 +80,20 @@ class FolderKept(BaseModel):
     reason: str
 
 
+class SkippedEntry(BaseModel):
+    """An inbox file or folder left alone because microfiche cannot read anything in it."""
+
+    path: str
+    reason: str
+
+
 class SyncEntry(BaseModel):
     """What a library file sync found."""
 
     created: bool
     added: list[str]
     missing: list[str]
+    excluded: list[str] = Field(description="Entries whose folder is there but is excluded by [exclusions].")
     possible_renames: list[tuple[str, str]]
     name_warnings: list[str]
     write_error: str | None
@@ -116,6 +124,9 @@ class SortOutput(_Output):
     needs_review: list[UnitEntry]
     duplicates: list[DuplicateEntry]
     skipped_links: list[str]
+    skipped_unsupported: list[SkippedEntry] = Field(
+        description="Inbox files with no parser and folders with no supported file; left where they are."
+    )
     job_id: str | None = Field(
         description="The job that filed them, for `rollback`; null for a preview or nothing filed."
     )
@@ -270,6 +281,9 @@ def sort_output(report: SortReport, library: Library, drift: DriftReport | None 
         needs_review=[_unit(u, c, library) for u, c in report.needs_review],
         duplicates=[_duplicate(d.unit, d.classification, library, d.existing, d.reason) for d in report.duplicates],
         skipped_links=[library.relative(p) for p in report.skipped_links],
+        skipped_unsupported=[
+            SkippedEntry(path=library.relative(s.path), reason=s.reason) for s in report.skipped_unsupported
+        ],
         job_id=report.job.job_id if report.job else None,
         ai_unavailable=report.ai_unavailable,
         ai_verification=_verification(report.ai_verification),
@@ -490,6 +504,7 @@ def _sync(sync: LibrarySync) -> SyncEntry:
         created=sync.created,
         added=sync.added,
         missing=sync.missing,
+        excluded=sync.excluded,
         possible_renames=sync.possible_renames,
         name_warnings=sync.name_warnings,
         write_error=sync.write_error,

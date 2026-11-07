@@ -5,10 +5,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from microfiche.core.classifier import Classifier
 from microfiche.core.config import ConfigError, load_config
 from microfiche.core.library.library import Library
 from microfiche.core.library.library_file import LIBRARY_FILENAME, FolderNode, load_library_file
 from microfiche.core.library.library_sync import sync_library_file
+from microfiche.core.models.document import Document
+from microfiche.core.models.unit import SortableUnit
 
 # region Test helpers
 
@@ -306,6 +309,64 @@ def test_sync_library_file_excluded_folder_that_exists_not_missing(tmp_path: Pat
 
     assert sync.missing == []
     assert "Scratch" not in sync.added
+
+
+def test_sync_library_file_excluded_folder_with_entry_reported_and_kept(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Scratch" / "Sub").mkdir(parents=True)
+    config = load_config(Path("does-not-exist"))
+    config.exclusions.exclude = ["Scratch"]
+    before = _write(
+        root,
+        {
+            "groups": [
+                {"name": "Project Phoenix", "children": [{"name": "01 Requirements"}, {"name": "02 Architecture"}]},
+                {"name": "Scratch", "children": [{"name": "Sub", "hints": ["x"]}]},
+            ]
+        },
+    )
+
+    first = sync_library_file(Library(root, config=config))
+    second = sync_library_file(Library(root, config=config))
+
+    assert first.excluded == ["Scratch"]  # the entry's children are not listed separately
+    assert second.excluded == first.excluded
+    assert first.missing == []
+    assert _file_path(root).read_bytes() == before
+
+
+def test_sync_library_file_entry_for_folder_that_is_a_file_not_reported(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "notes").write_text("a file, not a folder", encoding="utf-8")
+    _write(root, {"groups": [{"name": "notes"}]})
+
+    sync = sync_library_file(Library(root))
+
+    assert sync.excluded == []
+
+
+def test_sync_library_file_excluded_entry_has_no_effect_on_taxonomy_or_filing(tmp_path: Path) -> None:
+    root = _build(tmp_path / "library")
+    (root / "Scratch").mkdir()
+    config = load_config(Path("does-not-exist"))
+    config.exclusions.exclude = ["Scratch"]
+    _write(root, {"groups": [{"name": "Scratch", "hints": ["zanzibar"]}]})
+    library = Library(root, config=config)
+
+    sync_library_file(library)
+
+    assert "Scratch" not in library.taxonomy()
+    unit = SortableUnit(
+        source_path=root / "_sorting" / "z.md",
+        kind="file",
+        documents=[
+            Document(
+                file_path=root / "_sorting" / "z.md", file_name="z.md", extension=".md", content="zanzibar zanzibar"
+            )
+        ],
+    )
+    result = Classifier.from_library(library).classify_unit(unit, library.taxonomy())
+    assert result.group != "Scratch"
 
 
 def test_sync_library_file_wildcard_entry_never_missing(tmp_path: Path) -> None:

@@ -163,6 +163,12 @@ def render_library_sync(console: Console, sync: LibrarySync) -> None:
         console.print(
             f"  [yellow]{escape(path)}[/yellow] is in {LIBRARY_FILENAME} but has no folder{note}", soft_wrap=True
         )
+    for path in sync.excluded:
+        console.print(
+            f"  [yellow]{escape(path)}[/yellow] is in {LIBRARY_FILENAME} but its folder is excluded by "
+            "[exclusions]; the entry is kept and has no effect",
+            soft_wrap=True,
+        )
     for warning in sync.name_warnings:
         console.print(f"  [yellow]{escape(warning)}[/yellow]", soft_wrap=True)
 
@@ -332,12 +338,14 @@ def _render_units(console: Console, report: SortReport) -> None:
 
 
 def _render_inbox_notes(console: Console, report: SortReport) -> None:
-    """Notes about the inbox itself: links skipped, and folders removed or kept."""
+    """Notes about the inbox itself: links and unsupported entries skipped, and folders removed or kept."""
 
     for link in report.skipped_links:
         console.print(
             f"  [dim]Skipped {escape(link.name)}: links and junctions are never followed[/dim]", soft_wrap=True
         )
+    for skipped in report.skipped_unsupported:
+        console.print(f"  [dim]Skipped {escape(skipped.path.name)}: {skipped.reason}[/dim]", soft_wrap=True)
     for folder in report.folders_removed:
         removal = "Would remove the emptied inbox folder" if report.dry_run else "Removed the emptied inbox folder"
         console.print(f"  [dim]{removal}[/dim] {escape(folder.name)}", soft_wrap=True)

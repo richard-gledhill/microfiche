@@ -1013,6 +1013,19 @@ def test_sort_reports_skipped_link(tmp_path: Path, make_junction: LinkMaker) -> 
     assert "Skipped linked-folder: links and junctions are never followed" in " ".join(result.stdout.split())
 
 
+def test_sort_reports_skipped_unsupported_entries(tmp_path: Path) -> None:
+    library = _library(tmp_path)
+    (library / "_sorting" / "page.html").write_text("<p>saved page</p>", encoding="utf-8")
+    (library / "_sorting" / "pictures").mkdir()
+    (library / "_sorting" / "pictures" / "a.png").write_bytes(b"x")
+
+    result = runner.invoke(app, ["sort", "--library", str(library), "--dry-run"])
+
+    text = " ".join(result.stdout.split())
+    assert "Skipped page.html: unsupported format" in text
+    assert "Skipped pictures: no supported file inside" in text
+
+
 def test_sort_oversize_file_listed_with_reason(tmp_path: Path) -> None:
     library = _library(tmp_path)
     config = library / ".microfiche" / "microfiche-config.toml"
